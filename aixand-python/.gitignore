@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.aixand/
+.pytest_cache/
+
+# Existing pre-rebrand run records remain private.
+.intessio/

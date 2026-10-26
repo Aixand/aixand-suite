@@ -1,0 +1,9 @@
+{
+  "python_paths": [".venv/lib/python3.14/site-packages"],
+  "connection": {
+    "bridge": "../../undercurrent/target/debug/uc-python-bridge",
+    "state_dir": "target/real-agent/runs",
+    "stable_for": 2.0,
+    "timeout": 300.0
+  }
+}

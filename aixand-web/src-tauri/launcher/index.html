@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <title>Aixand</title>
+    <link rel="stylesheet" href="launcher.css">
+    <script src="launcher.js" defer></script>
+  </head>
+  <body>
+    <main>
+      <header>
+        <span class="wordmark">aixand<span aria-hidden="true">.</span></span>
+        <h1>Open your workspace</h1>
+      </header>
+
+      <div id="workspace-tabs" class="workspace-tabs" role="tablist" aria-label="Workspace location" hidden>
+        <button id="local-tab" type="button" role="tab" aria-selected="true" aria-controls="local-runtime">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/></svg>
+          This computer
+        </button>
+        <button id="server-tab" type="button" role="tab" aria-selected="false" aria-controls="server-panel" tabindex="-1">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="7" rx="2"/><rect x="4" y="14" width="16" height="7" rx="2"/><path d="M8 6.5h.01M8 17.5h.01m4-11h4m-4 11h4"/></svg>
+          Server
+        </button>
+      </div>
+
+      <section id="local-runtime" class="workspace-panel" role="tabpanel" aria-labelledby="local-tab" hidden>
+        <div class="workspace-intro">
+          <span class="workspace-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/></svg></span>
+          <div><h2>Local workspace</h2><p>Run Aixand on this computer.</p></div>
+        </div>
+        <button id="local-workspace" class="primary-action" type="button" disabled>Open workspace <span aria-hidden="true">→</span></button>
+        <details id="local-setup" class="advanced">
+          <summary>Advanced</summary>
+          <fieldset id="runtime-setup-fields" disabled>
+            <div class="field">
+              <label for="runtime-mode">Tools</label>
+              <select id="runtime-mode" aria-describedby="mode-help">
+                <option value="bundled">Self-contained (default)</option>
+                <option value="system">Use system tools</option>
+              </select>
+              <p id="mode-help" class="help">Use the tools included with Aixand.</p>
+            </div>
+            <div id="system-tool-options" hidden>
+              <label class="checkbox"><input id="reuse-manager-config" type="checkbox" aria-describedby="reuse-help"> Use existing manager configuration</label>
+              <p id="reuse-help" class="help">Share your existing manager settings with this workspace.</p>
+              <details class="tool-paths">
+                <summary>Tool paths</summary>
+                <div class="field"><label for="system-bin-directory">Tools directory</label><input id="system-bin-directory" placeholder="Detect automatically" spellcheck="false" autocomplete="off"></div>
+                <div class="field"><label for="system-python">Manager Suite Python</label><input id="system-python" placeholder="Detect automatically" spellcheck="false" autocomplete="off"></div>
+                <div class="field"><label for="system-voice-python">Voice Python</label><input id="system-voice-python" placeholder="Detect automatically" spellcheck="false" autocomplete="off"></div>
+              </details>
+              <div class="actions">
+                <button id="check-system-tools" type="button" class="secondary">Check tools</button>
+                <button id="install-system-tools" type="button" class="secondary">Install compatible tools</button>
+              </div>
+              <p class="help install-help">Installs tools for your user account, available outside Aixand.</p>
+            </div>
+            <p id="setup-message" class="help setup-message" aria-live="polite"></p>
+            <details id="tool-details" class="tool-paths" hidden>
+              <summary>Tool details</summary>
+              <ul id="tool-results" class="tool-results"></ul>
+            </details>
+            <p class="help apply-help">Changes apply when you open the workspace.</p>
+            <div class="maintenance-actions" role="group" aria-label="Maintenance">
+              <button id="stop-local-runtime" type="button" class="maintenance-action">
+                <span id="stop-local-runtime-label">Stop local services</span>
+              </button>
+              <button id="open-cleanup" type="button" class="maintenance-action" aria-haspopup="dialog" aria-controls="cleanup-dialog">
+                <span>Reset or remove components…</span>
+              </button>
+            </div>
+          </fieldset>
+        </details>
+      </section>
+
+      <section id="server-panel" class="workspace-panel" role="tabpanel" aria-labelledby="server-tab" hidden>
+        <form id="connection-form">
+          <fieldset id="connection-fields" disabled>
+            <div id="saved-server-field" class="field" hidden>
+              <label for="saved-connections">Saved servers</label>
+              <select id="saved-connections"></select>
+            </div>
+            <div class="field address-field">
+              <label for="server-address">Server address</label>
+              <input id="server-address" type="url" maxlength="2048" required placeholder="https://aixand.example.com" spellcheck="false" autocomplete="url" autocapitalize="off">
+            </div>
+            <button type="submit" id="connect" class="primary-action">Connect <span aria-hidden="true">→</span></button>
+            <p class="help remember-help">Servers are remembered on this computer.</p>
+            <details id="server-options" class="advanced">
+              <summary>Advanced</summary>
+              <div class="field">
+                <label for="connection-name">Name <span class="optional">(optional)</span></label>
+                <input id="connection-name" maxlength="80" placeholder="e.g. Office server" autocomplete="off">
+              </div>
+              <p class="help">For an SSH tunnel, use http://127.0.0.1:8753.</p>
+              <button type="button" id="delete-connection" class="quiet" hidden>Forget server</button>
+            </details>
+          </fieldset>
+        </form>
+      </section>
+
+      <label id="auto-connect-field" class="checkbox auto-connect" hidden><input id="auto-connect" type="checkbox" disabled> Open automatically next time</label>
+
+      <section id="status" class="status" role="status" aria-live="polite" aria-atomic="true" hidden>
+        <span class="status-dot" aria-hidden="true"></span>
+        <div class="status-content"><strong id="status-title"></strong><p id="status-message" hidden></p></div>
+        <button type="button" id="reconnect" class="secondary" hidden>Reconnect</button>
+      </section>
+    </main>
+    <dialog id="cleanup-dialog" aria-labelledby="cleanup-title" aria-describedby="cleanup-intro">
+      <h2 id="cleanup-title" tabindex="-1">Reset or remove components</h2>
+      <p id="cleanup-intro">Choose what to remove. Leave a box unchecked to keep that component.</p>
+      <p id="cleanup-notice" class="help"></p>
+      <div class="actions"><button id="cleanup-all" type="button" class="secondary">Select all</button><button id="cleanup-none" type="button" class="secondary">Clear selection</button></div>
+      <fieldset id="cleanup-items" aria-label="Components to remove"></fieldset>
+      <label class="checkbox cleanup-confirm"><input id="cleanup-confirm" type="checkbox"> I understand selected data is permanently deleted.</label>
+      <section id="cleanup-blockers" aria-labelledby="cleanup-blockers-title" hidden>
+        <h3 id="cleanup-blockers-title" tabindex="-1">Files are in use</h3>
+        <p id="cleanup-blockers-help">Review the applications below. Stop and retry asks them to close before continuing with your selected removals. Saved history is removed only when selected in the checklist.</p>
+        <ul id="cleanup-blocker-list"></ul>
+        <div class="actions"><button id="cleanup-stop" type="button">Stop and retry</button><button id="cleanup-repair-access" type="button" hidden>Repair access as administrator and retry</button></div>
+        <div id="cleanup-force-options" hidden>
+          <label class="checkbox cleanup-confirm"><input id="cleanup-force-confirm" type="checkbox"> Force stop the listed applications that support it. Active work in those applications may be lost.</label>
+          <button id="cleanup-force" type="button" class="secondary" disabled>Force stop and retry</button>
+        </div>
+      </section>
+      <p id="cleanup-message" role="status" aria-live="polite"></p>
+      <div class="actions"><button id="cleanup-cancel" type="button" class="secondary">Cancel</button><button id="cleanup-apply" type="button" class="danger" disabled>Remove selected</button></div>
+    </dialog>
+  </body>
+</html>

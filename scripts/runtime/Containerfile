@@ -1,0 +1,31 @@
+FROM docker.io/library/ubuntu:22.04
+
+ARG DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential ca-certificates curl git clang pkg-config libssl-dev \
+    libgtk-3-dev libwebkit2gtk-4.1-dev librsvg2-dev libayatana-appindicator3-dev \
+    patchelf file xz-utils python3 python3-pip xvfb xauth dbus-x11 \
+    webkit2gtk-driver libasound2-dev libespeak-ng1 ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+ARG NODE_VERSION=24.21.0
+RUN set -eu; arch="$(dpkg --print-architecture)"; \
+    case "$arch" in amd64) node_arch=x64;; arm64) node_arch=arm64;; *) exit 1;; esac; \
+    name="node-v${NODE_VERSION}-linux-${node_arch}.tar.xz"; \
+    curl -fsSLO "https://nodejs.org/dist/v${NODE_VERSION}/${name}"; \
+    curl -fsSLO "https://nodejs.org/dist/v${NODE_VERSION}/SHASUMS256.txt"; \
+    grep " ${name}$" SHASUMS256.txt | sha256sum -c -; \
+    mkdir /opt/node; tar -xJf "$name" -C /opt/node --strip-components=1; \
+    rm "$name" SHASUMS256.txt
+ENV PATH="/opt/node/bin:/root/.cargo/bin:/root/.local/bin:$PATH"
+
+ARG RUST_VERSION=1.95.0
+RUN curl --proto '=https' --tlsv1.2 -fsS https://sh.rustup.rs -o /tmp/rustup.sh \
+    && sh /tmp/rustup.sh -y --profile minimal --default-toolchain "$RUST_VERSION" \
+    && rm /tmp/rustup.sh
+ARG UV_VERSION=0.12.7
+RUN curl -fsSL "https://astral.sh/uv/${UV_VERSION}/install.sh" -o /tmp/uv.sh \
+    && sh /tmp/uv.sh && rm /tmp/uv.sh \
+    && uv python install 3.12.14
+ENV CARGO_BUILD_JOBS=4
+WORKDIR /build

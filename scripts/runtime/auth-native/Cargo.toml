@@ -1,0 +1,12 @@
+[package]
+name = "aixand-auth-native"
+version = "0.1.0-beta"
+edition = "2024"
+rust-version = "1.95"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[build-dependencies]
+cc = "=1.8.0"

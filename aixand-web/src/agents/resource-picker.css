@@ -1,0 +1,12 @@
+.resource-picker { gap: var(--bbb-space-3); }
+.resource-picker fieldset { display: grid; gap: var(--bbb-space-2); min-width: 0; max-height: var(--bbb-search-results-height); overflow: auto; margin: 0; border: 0; padding: 0; }
+.resource-picker legend { padding: 0; margin-block-end: var(--bbb-space-2); font-size: var(--bbb-font-size-sm); font-weight: var(--bbb-font-weight-medium); }
+.resource-picker-option { display: grid; gap: var(--bbb-space-1); }
+.resource-picker-required { margin-inline-start: calc(var(--bbb-choice-size) + var(--bbb-space-3)); }
+.resource-instruction-settings > .bbb-field { margin-block-start: var(--bbb-space-3); }
+.resource-instruction-inputs .bbb-textarea { font-family: var(--bbb-font-mono); }
+.resource-picker code { overflow-wrap: anywhere; }
+
+.resource-report-item { border-top: var(--bbb-border-width) solid var(--bbb-color-border); padding: var(--bbb-space-3) 0; overflow-wrap: anywhere; }
+.resource-report-item strong { display: inline; }
+.resource-report-item small { display: block; margin-top: var(--bbb-space-1); }

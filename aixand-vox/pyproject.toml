@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aixand-vox"
+version = "0.1.0b0"
+description = "Aixand Suite voice assistant using Pipecat and managed Codex profiles"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+dependencies = [
+    "agent-manager[sdk]>=0.1.0b0,<0.2",
+    "aixand-server-manager[native-codex]>=0.1.0b0,<0.2",
+    "undercurrent-sdk>=0.1.0b0,<0.2",
+    "pipecat-ai[webrtc,whisper,kokoro]==1.12.0",
+    "pipecat-ai[mlx-whisper]==1.12.0; sys_platform == 'darwin' and platform_machine == 'arm64'",
+    "sherpa-onnx==1.13.8",
+    "sherpa-onnx-core==1.13.8",
+]
+
+[project.scripts]
+aixand-vox = "aixand_vox.worker:main"
+aixand-vox-prepare = "aixand_vox.prepare:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.uv.sources]
+aixand-platform = { path = "../../aixand-platform", editable = true }
+agent-manager = { path = "../../manager-suites/agent-manager", editable = true }
+aixand-server-manager = { path = "../../manager-suites/server-manager", editable = true }
+undercurrent-sdk = { path = "../../undercurrent/python", editable = true }

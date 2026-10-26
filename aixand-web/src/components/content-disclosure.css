@@ -1,0 +1,10 @@
+.content-disclosure { min-inline-size: 0; border-block-start: var(--bbb-border-width) solid var(--bbb-content-divider, var(--bbb-color-border)); }
+.content-disclosure > summary { display: flex; align-items: center; justify-content: space-between; gap: var(--bbb-space-3); padding-block: var(--bbb-space-3); color: var(--bbb-color-text-secondary); font-size: var(--bbb-font-size-sm); cursor: pointer; list-style: none; overflow-wrap: anywhere; }
+.content-disclosure > summary::-webkit-details-marker { display: none; }
+.content-disclosure > summary > .bbb-icon { flex-shrink: 0; }
+.content-disclosure[open] > summary > .bbb-icon { transform: rotate(180deg); }
+.content-disclosure > summary:is(:hover, :focus-visible) { color: var(--bbb-content-heading, var(--bbb-color-text)); }
+.content-disclosure > summary:focus-visible { outline: var(--bbb-focus-width) solid var(--bbb-color-focus); outline-offset: var(--bbb-space-1); border-radius: var(--bbb-radius-sm); }
+.content-disclosure-body { display: grid; gap: var(--bbb-space-4); padding-block: var(--bbb-space-2) var(--bbb-space-4); min-inline-size: 0; }
+.content-disclosure-body > p { margin: 0; }
+.content-disclosure-body pre { white-space: pre-wrap; overflow-wrap: anywhere; }

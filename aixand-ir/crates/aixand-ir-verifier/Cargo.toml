@@ -1,0 +1,20 @@
+[package]
+name = "aixand-ir-verifier"
+description = "Independent verification operation package for Aixand IR"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+aixand-ir.workspace = true
+aixand-ir-runner.workspace = true
+async-trait.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true
+tokio-util.workspace = true
+
+[lints]
+workspace = true

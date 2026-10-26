@@ -1,0 +1,17 @@
+.connect-settings { display: grid; gap: 1rem; }
+.connect-settings summary, .connect-transfer summary { cursor: pointer; font-weight: 600; }
+.connect-form { display: grid; gap: .8rem; margin-top: 1rem; max-width: 40rem; }
+.connect-devices { display: grid; gap: .75rem; }
+.connect-device, .connect-transfer { border: 1px solid var(--border, #8886); border-radius: 12px; padding: 1rem; min-width: 0; }
+.connect-device p, .connect-transfer p { margin: .55rem 0; }
+.connect-row { display: flex; align-items: center; justify-content: space-between; gap: .6rem; flex-wrap: wrap; }
+.connect-row strong { overflow-wrap: anywhere; }
+.connect-path, .connect-setup { overflow-wrap: anywhere; }
+.connect-setup { padding-left: 1.3rem; }
+.connect-setup li { margin: .75rem 0; }
+.connect-setup pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .85em; }
+.connect-transfer { margin: 1rem 0; }
+.connect-comparison-targets { display: grid; gap: .75rem; margin-top: .8rem; min-width: 0; }
+.connect-transfer progress { width: 100%; margin-top: .6rem; accent-color: var(--accent, #5268df); }
+.connect-chat-location { display: flex; flex-wrap: wrap; gap: .25rem 1rem; padding: .5rem 1rem; font-size: .8125rem; border-bottom: 1px solid var(--bbb-border, #8884); }
+.connect-chat-location code { overflow-wrap: anywhere; min-width: 0; }

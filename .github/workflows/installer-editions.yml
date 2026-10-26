@@ -1,0 +1,81 @@
+name: Desktop and Server installers
+on:
+  push:
+    tags:
+      - '**'
+permissions:
+  contents: read
+jobs:
+  native:
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, macos-15-intel, macos-14, windows-2022]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: aixand-suite
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUTF8: '1'
+      UV_LINK_MODE: copy
+    steps:
+      - name: Preserve byte-verified notice and lock inputs
+        if: runner.os == 'Windows'
+        working-directory: .
+        shell: bash
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
+        with:
+          path: aixand-suite
+          persist-credentials: false
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
+        with:
+          repository: Aixand/aixand-platform
+          ref: main
+          path: aixand-platform
+          persist-credentials: false
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
+        with:
+          repository: Aixand/undercurrent
+          ref: main
+          path: undercurrent
+          persist-credentials: false
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
+        with:
+          repository: Aixand/runner
+          ref: main
+          path: runner
+          persist-credentials: false
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
+        with:
+          repository: Aixand/carrier
+          ref: main
+          path: carrier
+          persist-credentials: false
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
+        with:
+          repository: Aixand/manager-suites
+          ref: main
+          path: manager-suites
+          persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
+        with:
+          python-version: '3.12.14'
+      - uses: astral-sh/setup-uv@eb1897b8dc4b5d5bfe39a428a8f2304605e0983c
+        with:
+          version: '0.12.7'
+      - if: runner.os == 'Linux'
+        run: python -B scripts/package-linux.py --engine docker --output build/native --without-voice
+      - if: runner.os == 'macOS'
+        run: python -B scripts/package-macos.py --output build/native --without-voice
+      - if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./build-windows.ps1 -WithoutVoice -OutputDirectory build/native
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: aixand-desktop-server-${{ runner.os }}-${{ runner.arch }}
+          path: |
+            aixand-suite/build/native/output/installers/
+          if-no-files-found: error

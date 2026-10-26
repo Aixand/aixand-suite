@@ -1,0 +1,11 @@
+[package]
+name = "aixand-server-setup"
+version = "0.1.0-beta"
+edition = "2024"
+rust-version = "1.95"
+publish = false
+
+[dependencies]
+flate2 = "1"
+tar = "0.4"
+sha2 = "0.10"

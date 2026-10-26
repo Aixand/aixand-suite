@@ -1,0 +1,10 @@
+.project-discovery-modal { width: min(760px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); }
+.project-discovery-modal .bbb-dialog__body { overflow-y: auto; }
+.project-discovery-modal .command-project-form-actions { flex-wrap: wrap; margin-top: var(--bbb-space-4); }
+.project-discovery-path { overflow-wrap: anywhere; }
+.project-discovery-candidates { display: grid; gap: var(--bbb-space-3); max-height: 38dvh; overflow-y: auto; margin-block: var(--bbb-space-4); }
+.project-discovery-candidate { display: grid; gap: var(--bbb-space-1); padding: var(--bbb-space-3); border: 1px solid var(--bbb-color-border); border-radius: var(--bbb-radius-sm); }
+.project-discovery-candidate small { color: var(--bbb-color-text-secondary); }
+.project-discovery-filters { margin-top: var(--bbb-space-4); }
+.project-discovery-preview { display: grid; gap: var(--bbb-space-2); padding-left: var(--bbb-space-4); }
+.project-discovery-preview small { display: block; color: var(--bbb-color-text-secondary); }

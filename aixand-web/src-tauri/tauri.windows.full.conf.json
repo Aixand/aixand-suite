@@ -1,0 +1,15 @@
+{
+  "version": "0.1.0-beta",
+  "bundle": {
+    "resources": { "resources/runtime/": "runtime/" },
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "compression": "zlib",
+        "template": "windows/installer.nsi",
+        "installerHooks": "windows/runtime-hooks.nsh"
+      },
+      "webviewInstallMode": { "type": "downloadBootstrapper", "silent": true }
+    }
+  }
+}

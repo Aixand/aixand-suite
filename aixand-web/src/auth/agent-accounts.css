@@ -1,0 +1,24 @@
+.auth-content .setup-account-form { display: grid; justify-items: start; gap: 20px; width: 100%; max-width: 380px; margin: 0; }
+.setup-account-form > :not(.bbb-button) { width: 100%; }
+.setup-account-name-option { font-size: .8125rem; }
+.setup-account-name-option summary { cursor: pointer; color: var(--bbb-color-text-secondary); }
+.setup-account-name-option > :not(summary) { margin-top: 16px; }
+.setup-account-connected { display: flex; align-items: flex-start; gap: 10px; width: 100%; }
+.setup-account-connected > div { display: grid; justify-items: start; gap: 8px; min-width: 0; }
+.setup-account-symbol { display: grid; place-items: center; flex: none; width: 24px; height: 24px; color: var(--bbb-color-success); }
+.setup-account-symbol[data-unverified='true'] { color: var(--bbb-color-text-secondary); }
+.setup-account-symbol .bbb-icon { width: 24px; height: 24px; }
+.setup-account-content .setup-account-name { font-size: 1rem; font-weight: 600; }
+.setup-account-waiting { display: flex; gap: 16px; align-items: flex-start; }
+.setup-account-waiting > .bbb-icon { flex: none; color: var(--bbb-color-accent-text); }
+.setup-account-waiting > div { display: grid; gap: 12px; }
+.setup-account-alternatives { display: grid; gap: 16px; font-size: .8125rem; }
+.setup-account-alternatives summary,
+.setup-account-details summary { cursor: pointer; font-weight: 500; }
+.setup-account-alternatives details > :not(summary),
+.setup-account-details > :not(summary) { margin-top: 16px; }
+.setup-account-details { font-size: .8125rem; width: 100%; }
+.setup-account-operation { width: 100%; }
+.setup-account-content .agents-operation { min-width: 0; width: 100%; }
+.setup-account-utilities { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; padding-top: 8px; }
+.setup-account-content h3 { font-size: 1rem; margin: 0; }

@@ -1,0 +1,27 @@
+[package]
+name = "aixand-ir-aixand"
+description = "Rust bindings to the existing Aixand and Carrier SDKs"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[features]
+sdk-tests = []
+
+[dependencies]
+aixand-ir.workspace = true
+aixand-ir-runner.workspace = true
+async-trait.workspace = true
+serde_json.workspace = true
+serde.workspace = true
+tokio.workspace = true
+pyo3 = { version = "0.29", features = ["auto-initialize"] }
+
+[dev-dependencies]
+tokio-util.workspace = true
+clap.workspace = true
+aixand-ir-frontend = { version = "0.1.0-beta", path = "../aixand-ir-frontend" }
+
+[lints]
+workspace = true

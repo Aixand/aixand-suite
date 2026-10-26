@@ -1,0 +1,4 @@
+# Provider definitions come from Agent Manager's platform defaults.
+# Windows uses Claude's native credential store.
+[providers.claude]
+auth_mode = "native"

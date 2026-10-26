@@ -1,0 +1,15 @@
+.command-microphone-icon { width: var(--bbb-icon-size); height: var(--bbb-icon-size); flex-shrink: 0; }
+.command-voice-button.bbb-button { border-radius: var(--bbb-radius-full); color: var(--bbb-color-text-secondary); }
+.command-voice-button.bbb-button[data-active] { color: var(--bbb-color-accent-text); background: var(--bbb-color-accent-subtle); }
+.command-composer-send { display: flex; align-items: center; gap: var(--bbb-space-1); }
+.command-voice-panel { padding: var(--bbb-space-3); margin-bottom: var(--bbb-space-2); border: 1px solid var(--bbb-color-border); border-radius: var(--bbb-radius-md); background: var(--bbb-color-surface); font-size: var(--bbb-font-size-sm); }
+.command-voice-heading, .command-voice-actions { display: flex; align-items: center; gap: var(--bbb-space-2); flex-wrap: wrap; }
+.command-voice-heading { justify-content: space-between; }
+.command-voice-heading p { display: flex; align-items: center; gap: var(--bbb-space-2); margin: 0; }
+.command-voice-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--bbb-color-text-secondary); flex-shrink: 0; }
+.command-voice-dot[data-listening] { background: var(--bbb-color-accent-text); }
+.command-voice-error { margin: var(--bbb-space-2) 0 0; color: var(--bbb-color-text); overflow-wrap: anywhere; }
+.command-voice-captions { max-height: 10rem; overflow-y: auto; margin-top: var(--bbb-space-2); }
+.command-voice-captions p { display: flex; gap: var(--bbb-space-2); margin: var(--bbb-space-1) 0; }
+.command-voice-captions strong { flex: 0 0 3.5rem; }
+.command-voice-captions span { min-width: 0; overflow-wrap: anywhere; white-space: pre-wrap; }

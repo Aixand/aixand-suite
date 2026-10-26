@@ -1,0 +1,4 @@
+-e ../../undercurrent/python
+-e ../../manager-suites/agent-manager[sdk]
+-e ../../carrier
+-e .

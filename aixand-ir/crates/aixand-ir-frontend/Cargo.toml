@@ -1,0 +1,23 @@
+[package]
+name = "aixand-ir-frontend"
+description = "Experimental restricted Python AST lowering for Aixand IR"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+aixand-ir.workspace = true
+serde_json.workspace = true
+serde.workspace = true
+pyo3 = { version = "0.29", features = ["auto-initialize"] }
+
+[dev-dependencies]
+aixand-ir-runner.workspace = true
+async-trait.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+aixand-ir-verifier = { version = "0.1.0-beta", path = "../aixand-ir-verifier" }
+
+[lints]
+workspace = true

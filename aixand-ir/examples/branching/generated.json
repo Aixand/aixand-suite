@@ -1,0 +1,188 @@
+{
+  "ir_version": "0.2",
+  "inputs": {
+    "task": {
+      "type": {
+        "kind": "string"
+      }
+    }
+  },
+  "body": {
+    "kind": "sequence",
+    "steps": [
+      {
+        "kind": "operation",
+        "id": "verify_1",
+        "operation": {
+          "id": "verifier.verify",
+          "version": "1.0.0"
+        },
+        "inputs": {
+          "document": {
+            "kind": "object",
+            "fields": {
+              "body": {
+                "kind": "ref",
+                "source": "input",
+                "name": "task"
+              },
+              "labels": {
+                "kind": "array",
+                "items": []
+              },
+              "title": {
+                "kind": "literal",
+                "value": "Review"
+              }
+            }
+          },
+          "required_terms": {
+            "kind": "array",
+            "items": [
+              {
+                "kind": "literal",
+                "value": "workflow"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "kind": "branch",
+        "id": "branch_1",
+        "condition": {
+          "kind": "ref",
+          "source": "step",
+          "step": "verify_1",
+          "output": "result",
+          "path": [
+            "passed"
+          ]
+        },
+        "then": {
+          "kind": "sequence",
+          "steps": [
+            {
+              "kind": "operation",
+              "id": "verify_2",
+              "operation": {
+                "id": "verifier.verify",
+                "version": "1.0.0"
+              },
+              "inputs": {
+                "document": {
+                  "kind": "object",
+                  "fields": {
+                    "body": {
+                      "kind": "literal",
+                      "value": "The workflow passed review."
+                    },
+                    "labels": {
+                      "kind": "array",
+                      "items": []
+                    },
+                    "title": {
+                      "kind": "literal",
+                      "value": "Accepted"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "else": {
+          "kind": "sequence",
+          "steps": [
+            {
+              "kind": "operation",
+              "id": "verify_3",
+              "operation": {
+                "id": "verifier.verify",
+                "version": "1.0.0"
+              },
+              "inputs": {
+                "document": {
+                  "kind": "object",
+                  "fields": {
+                    "body": {
+                      "kind": "literal",
+                      "value": "Please describe the workflow."
+                    },
+                    "labels": {
+                      "kind": "array",
+                      "items": []
+                    },
+                    "title": {
+                      "kind": "literal",
+                      "value": "Needs revision"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "kind": "operation",
+        "id": "verify_4",
+        "operation": {
+          "id": "verifier.verify",
+          "version": "1.0.0"
+        },
+        "inputs": {
+          "document": {
+            "kind": "object",
+            "fields": {
+              "body": {
+                "kind": "ref",
+                "source": "input",
+                "name": "task"
+              },
+              "labels": {
+                "kind": "array",
+                "items": []
+              },
+              "title": {
+                "kind": "literal",
+                "value": "Review complete"
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "outputs": {
+    "passed": {
+      "type": {
+        "kind": "boolean"
+      },
+      "value": {
+        "kind": "ref",
+        "source": "step",
+        "step": "verify_1",
+        "output": "result",
+        "path": [
+          "passed"
+        ]
+      }
+    },
+    "summary": {
+      "type": {
+        "kind": "string"
+      },
+      "value": {
+        "kind": "ref",
+        "source": "step",
+        "step": "verify_1",
+        "output": "result",
+        "path": [
+          "summary"
+        ]
+      }
+    }
+  },
+  "name": "review_document"
+}

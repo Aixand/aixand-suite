@@ -1,0 +1,359 @@
+.wf-editor {
+  gap: 1.5rem;
+}
+.wf-editor fieldset {
+  min-width: 0;
+}
+.wf-fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 1.5rem;
+}
+.wf-section,
+.wf-step {
+  background: var(--bbb-color-surface);
+  border: 1px solid var(--bbb-color-border);
+  border-radius: var(--bbb-radius-lg);
+  padding: clamp(1rem, 2.5vw, 1.75rem);
+  min-width: 0;
+}
+.wf-section > .section-heading {
+  margin-bottom: 1.25rem;
+}
+.wf-section h2,
+.wf-step h3 {
+  margin: 0;
+}
+.wf-section h2 {
+  font-size: 1.2rem;
+}
+.wf-connection {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  background: var(--bbb-color-accent-subtle);
+  border: 1px solid var(--bbb-color-border);
+  border-radius: var(--bbb-radius-lg);
+  padding: 1rem 1.5rem;
+}
+.wf-connection p {
+  margin-bottom: 0;
+}
+.wf-connect-form {
+  display: flex;
+  gap: 0.75rem;
+  align-items: end;
+  flex-wrap: wrap;
+}
+.wf-connect-form > * {
+  min-width: 0;
+}
+.wf-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  min-width: 0;
+}
+.wf-field input,
+.wf-field textarea,
+.wf-field select {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--bbb-color-border-strong);
+  border-radius: var(--bbb-radius-md);
+  padding: 0.6rem 0.75rem;
+  background: var(--bbb-color-field-surface);
+  color: var(--bbb-color-text);
+  font: inherit;
+  min-width: 0;
+}
+.wf-field textarea {
+  resize: vertical;
+}
+.wf-field select {
+  text-overflow: ellipsis;
+}
+.wf-field input:focus-visible,
+.wf-field select:focus-visible,
+.wf-field textarea:focus-visible {
+  outline: 2px solid var(--bbb-color-focus);
+  outline-offset: 2px;
+}
+.wf-field small,
+.wf-hint {
+  font-size: 0.8rem;
+  color: var(--bbb-color-text-muted);
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+.wf-hint {
+  margin: 0.5rem 0;
+}
+.wf-row,
+.wf-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.wf-row > .wf-field {
+  flex: 1 1 10rem;
+}
+.wf-toolbar {
+  gap: 0.6rem;
+}
+.wf-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  padding: 0.5rem 0;
+}
+.wf-check input {
+  accent-color: var(--bbb-color-accent);
+  width: 1.1rem;
+  height: 1.1rem;
+}
+.wf-type {
+  color: var(--bbb-color-text-secondary);
+  font-family: var(--bbb-font-mono);
+  font-size: 0.75rem;
+  overflow-wrap: anywhere;
+}
+.wf-port {
+  border-top: 1px solid var(--bbb-color-border);
+  padding: 1rem 0;
+  display: grid;
+  gap: 0.6rem;
+  min-width: 0;
+}
+.wf-port-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+.wf-port-heading > span {
+  color: var(--bbb-color-text-muted);
+  font-size: 0.7rem;
+}
+.wf-type-editor,
+.wf-expression {
+  display: grid;
+  gap: 0.65rem;
+  min-width: 0;
+}
+.wf-nested {
+  border-left: 2px solid var(--bbb-color-border);
+  padding-left: min(1rem, 2vw);
+  display: grid;
+  gap: 0.6rem;
+  min-width: 0;
+}
+.wf-property {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.6rem 0;
+  min-width: 0;
+}
+.wf-property + .wf-property {
+  border-top: 1px solid var(--bbb-color-border);
+}
+.wf-steps {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+  display: grid;
+  gap: 2rem;
+}
+.wf-step {
+  position: relative;
+}
+.wf-step:not(:last-child)::after {
+  content: '↓';
+  position: absolute;
+  bottom: -1.8rem;
+  left: 50%;
+  color: var(--bbb-color-accent-text);
+  font-size: 1.25rem;
+}
+.wf-step-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+.wf-step-heading > div:not(.wf-step-actions) {
+  flex: 1;
+  min-width: 0;
+}
+.wf-step-heading h3 {
+  font-size: 1.15rem;
+}
+.wf-step-heading code {
+  color: var(--bbb-color-text-muted);
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+.wf-step-number {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 50%;
+  background: var(--bbb-color-accent-subtle);
+  color: var(--bbb-color-accent-text);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+}
+.wf-step-actions {
+  display: flex;
+  gap: 0.1rem;
+}
+.wf-contract {
+  font-size: 0.8rem;
+  color: var(--bbb-color-text-secondary);
+  margin: 0.8rem 0;
+  overflow-wrap: anywhere;
+}
+.wf-editor summary {
+  cursor: pointer;
+  padding-block: 0.4rem;
+}
+.wf-optional {
+  padding-block: 0.5rem;
+  font-size: 0.875rem;
+}
+.wf-operation-outputs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  border-top: 1px solid var(--bbb-color-border);
+  padding-top: 1rem;
+  font-size: 0.75rem;
+}
+.wf-output-chip {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  background: var(--bbb-color-surface-inset);
+  padding: 0.35rem 0.6rem;
+  border-radius: var(--bbb-radius-sm);
+  overflow-wrap: anywhere;
+}
+.wf-output-chip code {
+  color: var(--bbb-color-text-muted);
+}
+.wf-add-step {
+  border: 1px dashed var(--bbb-color-border-strong);
+  padding: 1rem;
+  border-radius: var(--bbb-radius-lg);
+  display: flex;
+  gap: 0.75rem;
+  align-items: end;
+  flex-wrap: wrap;
+}
+.wf-add-step > .wf-field {
+  flex: 1 1 14rem;
+}
+.wf-editor pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: 0.78rem/1.6 var(--bbb-font-mono);
+  background: var(--bbb-color-surface-inset);
+  border-radius: var(--bbb-radius-md);
+  padding: 1rem;
+  max-height: 28rem;
+  overflow: auto;
+}
+.wf-issues {
+  color: var(--bbb-color-danger);
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+.wf-issues [data-severity='warning'] {
+  color: var(--bbb-color-warning);
+}
+.wf-diagnostic-link {
+  text-align: left;
+  color: var(--bbb-color-danger);
+  font: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 0.5rem 0;
+  overflow-wrap: anywhere;
+}
+.wf-diagnostic-link small {
+  display: block;
+  color: var(--bbb-color-text-muted);
+}
+.wf-run-events {
+  padding-left: 1.25rem;
+  font: 0.85rem/1.8 var(--bbb-font-mono);
+  overflow-wrap: anywhere;
+}
+@media (max-width: 600px) {
+  .wf-editor .section-heading {
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+  .wf-connect-form {
+    width: 100%;
+  }
+  .wf-connect-form > .bbb-field {
+    width: 100%;
+  }
+  .wf-row > .wf-field {
+    flex-basis: 100%;
+  }
+  .wf-step-actions {
+    margin-left: auto;
+  }
+}
+
+/* Structured IR blocks keep the existing sequential editor and step cards. */
+.wf-sequence {
+  min-width: 0;
+}
+.wf-branch {
+  border-inline-start: 3px solid var(--bbb-color-accent);
+}
+.wf-branch-arms {
+  display: grid;
+  gap: 1.25rem;
+  margin-block: 1rem;
+}
+.wf-branch-arm {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--bbb-color-border);
+  border-radius: var(--bbb-radius-lg);
+}
+.wf-branch-arm > h4 {
+  margin: 0 0 1rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+}
+.wf-branch-arm .wf-step {
+  padding: 1rem;
+}
+.wf-branch-arm .wf-add-step {
+  flex-wrap: wrap;
+}
+.wf-comparison > .wf-row {
+  flex-wrap: wrap;
+}
+@media (min-width: 1200px) {
+  .wf-branch-arms {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .wf-branch-arms .wf-branch-arms {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

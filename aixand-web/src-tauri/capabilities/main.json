@@ -1,0 +1,19 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main-window",
+  "description": "Only the bundled connection window can manage server profiles and open a workspace. Remote workspace windows have no native permissions.",
+  "windows": ["main"],
+  "permissions": [
+    "allow-connection-settings",
+    "allow-save-connection-settings",
+    "allow-connect-workspace",
+    "allow-local-runtime-info",
+    "allow-local-runtime-setup",
+    "allow-select-local-workspace",
+    "allow-cleanup-context",
+    "allow-cleanup-components",
+    "allow-cleanup-finish",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten"
+  ]
+}
