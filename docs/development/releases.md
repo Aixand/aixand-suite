@@ -228,6 +228,29 @@ baseline; it cannot retrofit updater trust into an old application. Enabling a p
 channel requires a rebuilt installer with the intended enabled trust, qualified
 native packages, registered public bytes and a deployed feed.
 
+## Registry account setup
+
+For PyPI, configure a GitHub Trusted Publisher for each of `aixand-python`,
+`aixand-runner-client`, `aixand-connect`, and `aixand-orchestration-mcp`.
+Use owner `Aixand`, repository `aixand-suite`, workflow filename
+`registry-release.yml`, and environment `pypi`. Existing projects use their
+Publishing settings; new names use a pending publisher. No PyPI API-token secret
+is required. Vox is excluded from the initial alpha's registry publication.
+
+For crates.io, the publishing account must have a verified email and permission
+to publish the selected crate names. Store its API token as
+`CARGO_REGISTRY_TOKEN`, either in the repository's Actions secrets or in the
+`crates-io` environment. Limit the token to publishing new crates and updating
+existing versions, with crate patterns `aixand-ir*` and `aixand-job-runner`.
+Publish IR before Runner: Runner consumes the published IR crates and the
+independently published `aixand-undercurrent-platform-windows` dependency.
+
+The IR release contains `aixand-ir`, `aixand-ir-runner`, `aixand-ir-verifier`,
+`aixand-ir-frontend`, `aixand-ir-aixand`, and `aixand-ir-cli`. The Runner release
+publishes `aixand-job-runner`. Neither job needs access to owner-management or
+yank permissions. Keep credentials in GitHub's secret storage, never source or
+release artifacts.
+
 ## Local validation
 
 ```sh

@@ -205,7 +205,9 @@ try {
       { env, cwd: directory, windowsHide: true, timeout: 30_000, maxBuffer: 1024 * 1024 })
     const { stdout } = await execute(join(installed.prefix, 'bin', binary(command)), ['--version'],
       { env, cwd: directory, windowsHide: true, timeout: 30_000, maxBuffer: 1024 * 1024 })
-    const versions = stdout.trim().split(/\s+/).map(value => value.replace(/b0$/, '-beta'))
+    const versions = stdout.trim().split(/\s+/).map(value => value
+      .replace(/a(\d+)$/, '-alpha.$1').replace(/b0$/, '-beta')
+      .replace(/b(\d+)$/, '-beta.$1').replace(/rc(\d+)$/, '-rc.$1'))
     const expectedVersion = commandVersions.get(command)
     assert.ok(expectedVersion && versions.includes(expectedVersion),
       `${command} must report its owning product version ${expectedVersion}: ${stdout.trim()}`)
