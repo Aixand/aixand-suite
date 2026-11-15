@@ -1,0 +1,7 @@
+FROM localhost/aixand-linux-builder:0.1
+RUN apt-get update && apt-get install -y --no-install-recommends lld llvm nsis \
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -s /usr/bin/clang /usr/local/bin/clang-cl \
+    && rustup target add x86_64-pc-windows-msvc \
+    && uv tool install --python 3.12.14 cargo-xwin==0.23.1
+ENV XWIN_CACHE_DIR=/build/cache/xwin

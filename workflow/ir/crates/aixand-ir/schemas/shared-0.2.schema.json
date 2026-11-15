@@ -1,0 +1,615 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aixand.dev/ir/0.2/shared.schema.json",
+  "$defs": {
+    "type": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "null"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "json"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "boolean"
+            },
+            "nullable": {
+              "const": true
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "integer"
+            },
+            "nullable": {
+              "const": true
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "number"
+            },
+            "nullable": {
+              "const": true
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "string"
+            },
+            "nullable": {
+              "const": true
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "array"
+            },
+            "items": {
+              "$ref": "#/$defs/type"
+            },
+            "nullable": {
+              "const": true
+            }
+          },
+          "required": [
+            "kind",
+            "items"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "object"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/$defs/type"
+              }
+            },
+            "required": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "additional": {
+              "oneOf": [
+                {
+                  "const": false
+                },
+                {
+                  "$ref": "#/$defs/type"
+                }
+              ]
+            },
+            "nullable": {
+              "const": true
+            }
+          },
+          "required": [
+            "kind",
+            "properties",
+            "required"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "opaque"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z][a-z0-9_-]*)+$"
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[^\\s*^~<>=|]+$"
+            },
+            "nullable": {
+              "const": true
+            }
+          },
+          "required": [
+            "kind",
+            "id",
+            "version"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "path": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        ]
+      }
+    },
+    "expression": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "literal"
+            },
+            "value": {}
+          },
+          "required": [
+            "kind",
+            "value"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "object"
+            },
+            "fields": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/$defs/expression"
+              }
+            }
+          },
+          "required": [
+            "kind",
+            "fields"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "array"
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/expression"
+              }
+            }
+          },
+          "required": [
+            "kind",
+            "items"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "ref"
+            },
+            "source": {
+              "const": "input"
+            },
+            "name": {
+              "type": "string",
+              "pattern": "^[A-Za-z_][A-Za-z0-9_-]*$"
+            },
+            "path": {
+              "$ref": "#/$defs/path"
+            }
+          },
+          "required": [
+            "kind",
+            "source",
+            "name"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "ref"
+            },
+            "source": {
+              "const": "step"
+            },
+            "step": {
+              "type": "string",
+              "pattern": "^[A-Za-z_][A-Za-z0-9_-]*$"
+            },
+            "output": {
+              "type": "string",
+              "pattern": "^[A-Za-z_][A-Za-z0-9_-]*$"
+            },
+            "path": {
+              "$ref": "#/$defs/path"
+            }
+          },
+          "required": [
+            "kind",
+            "source",
+            "step",
+            "output"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "compare"
+            },
+            "operator": {
+              "enum": [
+                "eq",
+                "ne",
+                "lt",
+                "le",
+                "gt",
+                "ge"
+              ]
+            },
+            "left": {
+              "$ref": "#/$defs/expression"
+            },
+            "right": {
+              "$ref": "#/$defs/expression"
+            }
+          },
+          "required": [
+            "kind",
+            "operator",
+            "left",
+            "right"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "and"
+            },
+            "operands": {
+              "type": "array",
+              "minItems": 2,
+              "items": {
+                "$ref": "#/$defs/expression"
+              }
+            }
+          },
+          "required": [
+            "kind",
+            "operands"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "or"
+            },
+            "operands": {
+              "type": "array",
+              "minItems": 2,
+              "items": {
+                "$ref": "#/$defs/expression"
+              }
+            }
+          },
+          "required": [
+            "kind",
+            "operands"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "not"
+            },
+            "operand": {
+              "$ref": "#/$defs/expression"
+            }
+          },
+          "required": [
+            "kind",
+            "operand"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "workflow_input": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/type"
+        },
+        "default": {},
+        "description": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "workflow_output": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/type"
+        },
+        "value": {
+          "$ref": "#/$defs/expression"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "value"
+      ],
+      "additionalProperties": false
+    },
+    "operation_input": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/type"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "default": {},
+        "description": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "required"
+      ],
+      "additionalProperties": false
+    },
+    "operation_output": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/type"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "identity": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z][a-z0-9_-]*)+$"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[^\\s*^~<>=|]+$"
+        }
+      },
+      "required": [
+        "id",
+        "version"
+      ],
+      "additionalProperties": false
+    },
+    "operation": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "operation"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_-]*$"
+        },
+        "operation": {
+          "$ref": "#/$defs/identity"
+        },
+        "inputs": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/expression"
+          },
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_-]*$"
+          }
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "operation",
+        "inputs"
+      ],
+      "additionalProperties": false
+    },
+    "sequence": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "sequence"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/step"
+          }
+        }
+      },
+      "required": [
+        "kind",
+        "steps"
+      ],
+      "additionalProperties": false
+    },
+    "definition": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z][a-z0-9_-]*)+$"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[^\\s*^~<>=|]+$"
+        },
+        "inputs": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/operation_input"
+          },
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_-]*$"
+          }
+        },
+        "outputs": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/operation_output"
+          },
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_-]*$"
+          }
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "inputs",
+        "outputs"
+      ],
+      "additionalProperties": false
+    },
+    "branch": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "branch"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_-]*$"
+        },
+        "condition": {
+          "$ref": "#/$defs/expression"
+        },
+        "then": {
+          "$ref": "#/$defs/sequence"
+        },
+        "else": {
+          "$ref": "#/$defs/sequence"
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "condition",
+        "then"
+      ],
+      "additionalProperties": false
+    },
+    "step": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/operation"
+        },
+        {
+          "$ref": "#/$defs/branch"
+        }
+      ]
+    }
+  }
+}

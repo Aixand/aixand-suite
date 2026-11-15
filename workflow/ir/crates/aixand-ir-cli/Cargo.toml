@@ -1,0 +1,30 @@
+[package]
+name = "aixand-ir-cli"
+description = "Validate, canonicalize and execute Aixand workflows"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[features]
+sdk = ["dep:aixand-ir-aixand"]
+frontend = ["dep:aixand-ir-frontend"]
+
+[[bin]]
+name = "aixand-ir"
+path = "src/main.rs"
+
+[dependencies]
+aixand-ir.workspace = true
+aixand-ir-runner.workspace = true
+clap.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+aixand-ir-verifier = { version = "0.1.0-alpha.1", path = "../aixand-ir-verifier" }
+aixand-ir-aixand = { version = "0.1.0-alpha.1", path = "../aixand-ir-aixand", optional = true }
+aixand-ir-frontend = { version = "0.1.0-alpha.1", path = "../aixand-ir-frontend", optional = true }
+
+[lints]
+workspace = true

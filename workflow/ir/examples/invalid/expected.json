@@ -1,0 +1,10 @@
+{
+  "unsupported-control.json": "schema",
+  "unknown-field.json": "schema",
+  "invalid-default.json": "type",
+  "opaque-literal.json": "type",
+  "forward-reference.json": "forward_reference",
+  "unknown-output.json": "unknown_output",
+  "opaque-traversal.json": "opaque_traversal",
+  "duplicate-keys.json": "json"
+}

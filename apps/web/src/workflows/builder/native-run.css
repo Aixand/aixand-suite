@@ -1,0 +1,14 @@
+.wb-builder--native-run .wb-node-heading { flex-wrap: wrap; }
+.wb-builder--native-draft .wb-node-heading { flex-wrap: wrap; }
+.wb-builder--native-draft .wb-inspector-body p { overflow-wrap: anywhere; white-space: pre-line; }
+.wb-builder--native-draft .command-launch-card { min-width: 0; }
+.wb-builder--native-draft .command-launch-card header,
+.wb-builder--native-draft .command-launch-card li { flex-wrap: wrap; }
+.wb-builder--native-run .wb-node-kind { max-width: 130px; overflow-wrap: anywhere; }
+.wb-builder--native-run .wb-node-run-status { max-width: 100%; }
+.wb-node-run-action { margin-top: 10px; }
+.wb-builder--native-run .wb-node--delivered { border-color: var(--bbb-color-success); }
+.wb-builder--native-run .wb-node--blocked,
+.wb-builder--native-run .wb-node--failure-delivered { border-color: var(--bbb-color-danger); }
+.wb-builder--native-run .wb-run-steps li { flex-wrap: wrap; gap: 6px; }
+.wb-builder--native-run .wb-inspector-body p { overflow-wrap: anywhere; }

@@ -1,0 +1,78 @@
+{
+  "contract_version": "0.1",
+  "package": {
+    "id": "verifier",
+    "version": "0.1.0-beta",
+    "description": "Independent data-only verification package; no privileged runner support."
+  },
+  "operations": [
+    {
+      "id": "verifier.verify",
+      "version": "1.0.0",
+      "inputs": {
+        "document": {
+          "type": {
+            "kind": "object",
+            "properties": {
+              "title": {
+                "kind": "string"
+              },
+              "body": {
+                "kind": "string"
+              },
+              "labels": {
+                "kind": "array",
+                "items": {
+                  "kind": "string"
+                }
+              }
+            },
+            "required": [
+              "title",
+              "body",
+              "labels"
+            ]
+          },
+          "required": true
+        },
+        "required_terms": {
+          "type": {
+            "kind": "array",
+            "items": {
+              "kind": "string"
+            }
+          },
+          "required": false,
+          "default": []
+        }
+      },
+      "outputs": {
+        "result": {
+          "type": {
+            "kind": "object",
+            "properties": {
+              "passed": {
+                "kind": "boolean"
+              },
+              "summary": {
+                "kind": "string"
+              },
+              "issues": {
+                "kind": "array",
+                "items": {
+                  "kind": "string"
+                }
+              }
+            },
+            "required": [
+              "passed",
+              "summary",
+              "issues"
+            ]
+          }
+        }
+      },
+      "description": "Check that every required term is a case-sensitive substring of document body. Empty title is an issue. Success publishes passed, summary and issues even when verification fails. Omitted required_terms defaults to an empty array; null is invalid. No side effects, resource affinity or uncertain mutations; cancellation publishes nothing."
+    }
+  ]
+}

@@ -1,0 +1,77 @@
+name: Component checks
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  select:
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.select.outputs.matrix }}
+      has_components: ${{ steps.select.outputs.has_components }}
+    steps:
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
+        with:
+          python-version: '3.12.14'
+      - id: select
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if test -n "$BASE" && git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            git diff --name-only "$BASE" HEAD > "$RUNNER_TEMP/changed-paths"
+          else
+            git ls-files > "$RUNNER_TEMP/changed-paths"
+          fi
+          matrix=$(python -B scripts/release/components.py affected --paths-file "$RUNNER_TEMP/changed-paths")
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          python -c 'import json,sys; print("has_components=" + str(bool(json.loads(sys.argv[1])["component"])).lower())' "$matrix" >> "$GITHUB_OUTPUT"
+      - run: python -B -m unittest discover -s tests/release -v
+      - run: python -B scripts/check-release-versions.py
+  component:
+    needs: select
+    if: needs.select.outputs.has_components == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      RUSTUP_TOOLCHAIN: '1.95.0'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.select.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24.21.0'
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
+        with:
+          python-version: '3.12.14'
+      - uses: astral-sh/setup-uv@eb1897b8dc4b5d5bfe39a428a8f2304605e0983c
+        with:
+          version: '0.12.7'
+      - name: Install native development prerequisites
+        if: matrix.component == 'desktop'
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libssl-dev librsvg2-dev patchelf
+      - run: rustup toolchain install 1.95.0 --profile minimal
+      - name: Prepare component checks
+        env:
+          COMPONENT: ${{ matrix.component }}
+        run: |
+          case "$COMPONENT" in web|desktop) ;; *) ./dev.sh prepare ;; esac
+          case "$COMPONENT" in server|web|desktop) npm --prefix "apps/$COMPONENT" ci --no-audit --no-fund ;; esac
+      - name: Check selected component
+        env:
+          COMPONENT: ${{ matrix.component }}
+        run: ./dev.sh check --component "$COMPONENT"

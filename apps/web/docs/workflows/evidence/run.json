@@ -1,0 +1,295 @@
+{
+  "workflow": {
+    "body": {
+      "kind": "sequence",
+      "steps": [
+        {
+          "id": "spawn_1",
+          "inputs": {
+            "cwd": {
+              "kind": "literal",
+              "value": ".."
+            },
+            "profile": {
+              "kind": "literal",
+              "value": "backup"
+            },
+            "provider": {
+              "kind": "literal",
+              "value": "codex"
+            }
+          },
+          "kind": "operation",
+          "operation": {
+            "id": "aixand.agents.spawn",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "id": "send_1",
+          "inputs": {
+            "agent": {
+              "kind": "ref",
+              "output": "agent",
+              "source": "step",
+              "step": "spawn_1"
+            },
+            "text": {
+              "kind": "ref",
+              "name": "task",
+              "source": "input"
+            }
+          },
+          "kind": "operation",
+          "operation": {
+            "id": "aixand.agent.send",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "id": "wait_1",
+          "inputs": {
+            "after": {
+              "kind": "ref",
+              "output": "receipt",
+              "source": "step",
+              "step": "send_1"
+            },
+            "agent": {
+              "kind": "ref",
+              "output": "agent",
+              "source": "step",
+              "step": "spawn_1"
+            }
+          },
+          "kind": "operation",
+          "operation": {
+            "id": "aixand.agent.wait",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "id": "send_2",
+          "inputs": {
+            "agent": {
+              "kind": "ref",
+              "output": "agent",
+              "source": "step",
+              "step": "spawn_1"
+            },
+            "text": {
+              "kind": "literal",
+              "value": "Summarize your findings."
+            }
+          },
+          "kind": "operation",
+          "operation": {
+            "id": "aixand.agent.send",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "id": "wait_2",
+          "inputs": {
+            "after": {
+              "kind": "ref",
+              "output": "receipt",
+              "source": "step",
+              "step": "send_2"
+            },
+            "agent": {
+              "kind": "ref",
+              "output": "agent",
+              "source": "step",
+              "step": "spawn_1"
+            }
+          },
+          "kind": "operation",
+          "operation": {
+            "id": "aixand.agent.wait",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "id": "stop_1",
+          "inputs": {
+            "agent": {
+              "kind": "ref",
+              "output": "agent",
+              "source": "step",
+              "step": "spawn_1"
+            }
+          },
+          "kind": "operation",
+          "operation": {
+            "id": "aixand.agent.stop",
+            "version": "1.0.0"
+          }
+        }
+      ]
+    },
+    "inputs": {
+      "task": {
+        "type": {
+          "kind": "string"
+        }
+      }
+    },
+    "ir_version": "0.1",
+    "name": "managed_codex_two_turns",
+    "outputs": {
+      "run_id": {
+        "type": {
+          "kind": "string"
+        },
+        "value": {
+          "kind": "ref",
+          "output": "run_id",
+          "source": "step",
+          "step": "spawn_1"
+        }
+      },
+      "summary_observation": {
+        "type": {
+          "kind": "json"
+        },
+        "value": {
+          "kind": "ref",
+          "output": "observation",
+          "source": "step",
+          "step": "wait_2"
+        }
+      },
+      "task_observation": {
+        "type": {
+          "kind": "json"
+        },
+        "value": {
+          "kind": "ref",
+          "output": "observation",
+          "source": "step",
+          "step": "wait_1"
+        }
+      }
+    }
+  },
+  "inputs": {
+    "task": "Read aixand-ir/examples/real-agent/fixture.md. Report the three products and their responsibilities in three short bullets. Use only that file; do not browse, delegate, or modify any files. Keep this and subsequent responses concise."
+  },
+  "events": [
+    {
+      "event": "prepared",
+      "warnings": []
+    },
+    {
+      "event": "started",
+      "invocation": "spawn_1",
+      "operation": {
+        "id": "aixand.agents.spawn",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "event": "published",
+      "invocation": "spawn_1"
+    },
+    {
+      "event": "started",
+      "invocation": "send_1",
+      "operation": {
+        "id": "aixand.agent.send",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "event": "published",
+      "invocation": "send_1"
+    },
+    {
+      "event": "started",
+      "invocation": "wait_1",
+      "operation": {
+        "id": "aixand.agent.wait",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "event": "published",
+      "invocation": "wait_1"
+    },
+    {
+      "event": "started",
+      "invocation": "send_2",
+      "operation": {
+        "id": "aixand.agent.send",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "event": "published",
+      "invocation": "send_2"
+    },
+    {
+      "event": "started",
+      "invocation": "wait_2",
+      "operation": {
+        "id": "aixand.agent.wait",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "event": "published",
+      "invocation": "wait_2"
+    },
+    {
+      "event": "started",
+      "invocation": "stop_1",
+      "operation": {
+        "id": "aixand.agent.stop",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "event": "published",
+      "invocation": "stop_1"
+    },
+    {
+      "event": "completed"
+    }
+  ],
+  "result": {
+    "id": "41658a30-0d35-4eba-814c-961f2c49a9da",
+    "outputs": {
+      "run_id": "a25b1c701fde43dbbea088eba878afd8",
+      "summary_observation": {
+        "constraint": "clear",
+        "execution": "active",
+        "health": "no_check",
+        "interaction": "available",
+        "lifecycle": "running",
+        "name": "agent-a25b1c701fde43dbbea088eba878afd8",
+        "revision": 13,
+        "session_id": "session-e-6386e40011bfe3e3151ecd4b6372683d-11"
+      },
+      "task_observation": {
+        "constraint": "clear",
+        "execution": "active",
+        "health": "no_check",
+        "interaction": "available",
+        "lifecycle": "running",
+        "name": "agent-a25b1c701fde43dbbea088eba878afd8",
+        "revision": 8,
+        "session_id": "session-e-6386e40011bfe3e3151ecd4b6372683d-11"
+      }
+    },
+    "type": "run-result"
+  },
+  "verified_at_utc": "2026-09-22T20:20:02.779597+00:00",
+  "post_run": {
+    "lifecycle": "stopped",
+    "process": null,
+    "sdk_connection_status": "closed",
+    "last_receipt_revision": 11
+  },
+  "source_sha256": "be13519e32d7ed8e9d2f161c0e980d56aebd4e7c5ae1be5e72eea24c59fda035"
+}

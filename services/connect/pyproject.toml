@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools==80.9.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Artificial Intelligence Advancement Initiative Inc." }]
+name = "aixand-suite-connect"
+version = "0.1.0a1"
+description = "Private device file transfers, project tests, and remote Codex chats for Aixand Suite"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+managers = ["aixand-lib-filesystem>=0.1.0b0,<0.2", "aixand-agent-manager>=0.1.0b0,<0.2", "aixand-conversation-manager[agents]>=0.1.0b0,<0.2"]
+
+[project.scripts]
+aixand-connect = "aixand_connect.companion:main"
+
+[tool.setuptools.packages.find]
+include = ["aixand_connect*"]
+
+[project.urls]
+Repository = "https://github.com/Aixand/aixand-suite"
+Issues = "https://github.com/Aixand/aixand-suite/issues"

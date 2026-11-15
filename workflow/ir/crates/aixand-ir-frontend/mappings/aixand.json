@@ -1,0 +1,323 @@
+[
+  {
+    "python": "aixand.agents.spawn",
+    "operation": {
+      "id": "aixand.agents.spawn",
+      "version": "1.0.0"
+    },
+    "result": "agent",
+    "properties": {
+      "run_id": {
+        "output": "run_id"
+      },
+      "address": {
+        "output": "address"
+      }
+    },
+    "keyword_operations": {
+      "mcp": {
+        "id": "aixand.agents.spawn",
+        "version": "1.1.0"
+      }
+    }
+  },
+  {
+    "python": "aixand.agents.get",
+    "operation": {
+      "id": "aixand.agents.get",
+      "version": "1.0.0"
+    },
+    "positional": [
+      "run_id"
+    ],
+    "result": "agent",
+    "properties": {
+      "run_id": {
+        "output": "run_id"
+      },
+      "address": {
+        "output": "address"
+      }
+    }
+  },
+  {
+    "python": "send",
+    "receiver": {
+      "port": "agent",
+      "id": "aixand.agent",
+      "version": "1"
+    },
+    "operation": {
+      "id": "aixand.agent.send",
+      "version": "1.0.0"
+    },
+    "positional": [
+      "text"
+    ],
+    "result": "receipt"
+  },
+  {
+    "python": "wait",
+    "receiver": {
+      "port": "agent",
+      "id": "aixand.agent",
+      "version": "1"
+    },
+    "operation": {
+      "id": "aixand.agent.wait",
+      "version": "1.0.0"
+    },
+    "result": "observation"
+  },
+  {
+    "python": "stop",
+    "receiver": {
+      "port": "agent",
+      "id": "aixand.agent",
+      "version": "1"
+    },
+    "operation": {
+      "id": "aixand.agent.stop",
+      "version": "1.0.0"
+    }
+  },
+  {
+    "python": "inspect",
+    "receiver": {
+      "port": "agent",
+      "id": "aixand.agent",
+      "version": "1"
+    },
+    "operation": {
+      "id": "aixand.agent.inspect",
+      "version": "1.0.0"
+    },
+    "result": "observation"
+  },
+  {
+    "python": "read_screen",
+    "receiver": {
+      "port": "agent",
+      "id": "aixand.agent",
+      "version": "1"
+    },
+    "operation": {
+      "id": "aixand.agent.read_screen",
+      "version": "1.0.0"
+    },
+    "result": "text"
+  },
+  {
+    "python": "aixand.messaging.mailbox",
+    "operation": {
+      "id": "aixand.messaging.mailbox",
+      "version": "1.0.0"
+    },
+    "positional": [
+      "address"
+    ],
+    "result": "mailbox"
+  },
+  {
+    "python": "send",
+    "receiver": {
+      "port": "mailbox",
+      "id": "carrier.mailbox",
+      "version": "1"
+    },
+    "operation": {
+      "id": "carrier.message.send",
+      "version": "1.0.0"
+    },
+    "positional": [
+      "content"
+    ],
+    "result": "message",
+    "properties": {
+      "content": {
+        "output": "snapshot",
+        "path": [
+          "content"
+        ]
+      },
+      "sender": {
+        "output": "snapshot",
+        "path": [
+          "sender"
+        ]
+      },
+      "recipient": {
+        "output": "snapshot",
+        "path": [
+          "recipient"
+        ]
+      },
+      "id": {
+        "output": "snapshot",
+        "path": [
+          "id"
+        ]
+      },
+      "created_at": {
+        "output": "snapshot",
+        "path": [
+          "created_at"
+        ]
+      }
+    }
+  },
+  {
+    "python": "wait_for_reply",
+    "receiver": {
+      "port": "mailbox",
+      "id": "carrier.mailbox",
+      "version": "1"
+    },
+    "operation": {
+      "id": "carrier.message.wait_for_reply",
+      "version": "1.0.0"
+    },
+    "positional": [
+      "message"
+    ],
+    "result": "message",
+    "properties": {
+      "content": {
+        "output": "snapshot",
+        "path": [
+          "content"
+        ]
+      },
+      "sender": {
+        "output": "snapshot",
+        "path": [
+          "sender"
+        ]
+      },
+      "recipient": {
+        "output": "snapshot",
+        "path": [
+          "recipient"
+        ]
+      },
+      "id": {
+        "output": "snapshot",
+        "path": [
+          "id"
+        ]
+      },
+      "created_at": {
+        "output": "snapshot",
+        "path": [
+          "created_at"
+        ]
+      }
+    }
+  },
+  {
+    "python": "wait",
+    "receiver": {
+      "port": "mailbox",
+      "id": "carrier.mailbox",
+      "version": "1"
+    },
+    "operation": {
+      "id": "carrier.mailbox.wait",
+      "version": "1.0.0"
+    },
+    "result": "status"
+  },
+  {
+    "python": "reply",
+    "receiver": {
+      "port": "message",
+      "id": "carrier.message",
+      "version": "1"
+    },
+    "operation": {
+      "id": "carrier.message.reply",
+      "version": "1.0.0"
+    },
+    "positional": [
+      "content"
+    ],
+    "result": "message",
+    "properties": {
+      "content": {
+        "output": "snapshot",
+        "path": [
+          "content"
+        ]
+      },
+      "sender": {
+        "output": "snapshot",
+        "path": [
+          "sender"
+        ]
+      },
+      "recipient": {
+        "output": "snapshot",
+        "path": [
+          "recipient"
+        ]
+      },
+      "id": {
+        "output": "snapshot",
+        "path": [
+          "id"
+        ]
+      },
+      "created_at": {
+        "output": "snapshot",
+        "path": [
+          "created_at"
+        ]
+      }
+    }
+  },
+  {
+    "python": "ack",
+    "receiver": {
+      "port": "message",
+      "id": "carrier.message",
+      "version": "1"
+    },
+    "operation": {
+      "id": "carrier.message.ack",
+      "version": "1.0.0"
+    },
+    "result": "acknowledgment"
+  },
+  {
+    "python": "aixand.verifier.verify",
+    "operation": {
+      "id": "verifier.verify",
+      "version": "1.0.0"
+    },
+    "positional": [
+      "document",
+      "required_terms"
+    ],
+    "result": "result",
+    "properties": {
+      "passed": {
+        "output": "result",
+        "path": [
+          "passed"
+        ]
+      },
+      "summary": {
+        "output": "result",
+        "path": [
+          "summary"
+        ]
+      },
+      "issues": {
+        "output": "result",
+        "path": [
+          "issues"
+        ]
+      }
+    }
+  }
+]

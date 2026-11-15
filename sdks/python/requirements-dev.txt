@@ -1,0 +1,6 @@
+-e ../../../aixand-libraries/filesystem
+-e ../../../aixand-libraries/local-runtime
+-e ../../../undercurrent/python
+-e ../../../manager-suites/agent-manager[sdk]
+-e ../../../carrier
+-e .

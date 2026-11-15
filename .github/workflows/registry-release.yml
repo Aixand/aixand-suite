@@ -1,0 +1,168 @@
+name: Python and Rust package releases
+
+on:
+  push:
+    tags:
+      - 'python-sdk/v*'
+      - 'runner-client/v*'
+      - 'connect/v*'
+      - 'vox/v*'
+      - 'orchestration-mcp/v*'
+      - 'ir/v*'
+      - 'runner/v*'
+  workflow_dispatch:
+    inputs:
+      component:
+        type: choice
+        required: true
+        options: [python-sdk, runner-client, connect, vox, orchestration-mcp, ir, runner]
+      publish:
+        description: Publish the checked tag to its registry (false validates only)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: registry-${{ github.ref }}-${{ inputs.component }}
+  cancel-in-progress: false
+
+jobs:
+  select:
+    runs-on: ubuntu-24.04
+    outputs:
+      component: ${{ steps.select.outputs.component }}
+      registry: ${{ steps.select.outputs.registry }}
+      environment: ${{ steps.select.outputs.environment }}
+    steps:
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
+        with:
+          python-version: '3.12.14'
+      - id: select
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          COMPONENT: ${{ inputs.component }}
+          REF: ${{ github.ref }}
+          PUBLISH: ${{ inputs.publish }}
+        run: |
+          python -B - <<'PYTHON'
+          import os, sys
+          sys.path.insert(0, 'scripts/release')
+          from components import ROOT, load_catalog, release_selection, require
+          from registry import PYTHON_COMPONENTS, python_project
+          component = os.environ['COMPONENT']
+          if os.environ['EVENT_NAME'] == 'push' or os.environ['PUBLISH'] == 'true':
+              require(os.environ['REF'].startswith('refs/tags/'), 'Registry publication requires a version tag')
+              selected = release_selection(load_catalog(), ROOT, os.environ['RELEASE_TAG'])
+              require(len(selected) == 1, 'Select one component')
+              require(not component or component == selected[0], 'Tag and component disagree')
+              component = selected[0]
+          require(component in (*PYTHON_COMPONENTS, 'ir', 'runner'), 'Unsupported registry component')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('component=' + component + '\n')
+              output.write('registry=' + ('pypi' if component in PYTHON_COMPONENTS else 'crates') + '\n')
+              if component in PYTHON_COMPONENTS:
+                  output.write('environment=pypi-' + python_project(component)[1]['name'] + '\n')
+          PYTHON
+  python:
+    needs: select
+    if: needs.select.outputs.registry == 'pypi'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
+        with:
+          python-version: '3.12.14'
+      - uses: astral-sh/setup-uv@eb1897b8dc4b5d5bfe39a428a8f2304605e0983c
+        with:
+          version: '0.12.7'
+      - name: Build wheel and sdist, then rebuild from sdist
+        env:
+          COMPONENT: ${{ needs.select.outputs.component }}
+        run: python -B scripts/release/registry.py python --component "$COMPONENT" --output build/registry
+      - name: Install in a clean consumer environment
+        env:
+          COMPONENT: ${{ needs.select.outputs.component }}
+        run: |
+          uv venv --python 3.12.14 "$RUNNER_TEMP/package-smoke"
+          uv pip install --python "$RUNNER_TEMP/package-smoke/bin/python" build/registry/distributions/*.whl
+          uv pip check --python "$RUNNER_TEMP/package-smoke/bin/python"
+          case "$COMPONENT" in
+            python-sdk) module=aixand ;;
+            runner-client) module=runner_client ;;
+            connect) module=aixand_connect ;;
+            vox) module=aixand_vox ;;
+            orchestration-mcp) module=orchestration_mcp ;;
+          esac
+          "$RUNNER_TEMP/package-smoke/bin/python" -I -c 'import importlib,sys; importlib.import_module(sys.argv[1])' "$module"
+          "$RUNNER_TEMP/package-smoke/bin/python" -I -c 'import importlib.metadata as m,sys; sys.path.insert(0,"scripts/release"); from registry import python_project; print(m.version(python_project(sys.argv[1])[1]["name"]))' "$COMPONENT"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: registry-${{ needs.select.outputs.component }}
+          path: build/registry
+          if-no-files-found: error
+  pypi:
+    needs: [select, python]
+    if: github.event_name == 'push' || inputs.publish == true
+    runs-on: ubuntu-24.04
+    environment: ${{ needs.select.outputs.environment }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: registry-${{ needs.select.outputs.component }}
+          path: build/registry
+      - name: Publish the tested distributions using PyPI OIDC
+        uses: pypa/gh-action-pypi-publish@106e0b0b7c337fa67ed433972f777c6357f78598 # v1.13.0
+        with:
+          packages-dir: build/registry/distributions/
+  crates:
+    needs: select
+    if: needs.select.outputs.registry == 'crates'
+    runs-on: ubuntu-24.04
+    environment: crates-io
+    env:
+      RUSTUP_TOOLCHAIN: '1.95.0'
+    steps:
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
+        with:
+          python-version: '3.12.14'
+      - run: rustup toolchain install 1.95.0 --profile minimal
+      - name: Resolve and check the public crate dependency graph
+        env:
+          COMPONENT: ${{ needs.select.outputs.component }}
+        run: python -B scripts/release/registry.py cargo-plan --component "$COMPONENT" --output build/crates-plan.json
+      - name: Prepare pinned Runner sources
+        if: needs.select.outputs.component == 'runner'
+        run: |
+          python -B - <<'PYTHON'
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, 'scripts/release')
+          from build_inputs import prepare_runner
+          prepare_runner(Path.cwd(), Path('build/registry-inputs'))
+          PYTHON
+      - name: Verify or publish crates in dependency order
+        env:
+          COMPONENT: ${{ needs.select.outputs.component }}
+          PUBLISH: ${{ github.event_name == 'push' || inputs.publish == true }}
+          CARGO_REGISTRY_TOKEN: ${{ (github.event_name == 'push' || inputs.publish == true) && secrets.CARGO_REGISTRY_TOKEN || '' }}
+        run: python -B scripts/release/publish-crates.py --plan build/crates-plan.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          name: registry-${{ needs.select.outputs.component }}
+          path: build/crates-*.json
+          if-no-files-found: error
