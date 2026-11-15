@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "include": [
+    "README.md",
+    "orchestration/README.md",
+    "orchestration/docs/*.md"
+  ],
+  "exclude": [],
+  "allow_placeholders": false
+}

@@ -1,0 +1,2 @@
+import { defineConfig } from '@playwright/test'
+export default defineConfig({testDir:'./tests',testMatch:'mcp-managed.spec.ts',outputDir:'test-results/mcp-managed',workers:1,metadata:{mockAuthentication:true},use:{baseURL:'http://127.0.0.1:5227',viewport:{width:1440,height:1100},trace:'retain-on-failure'},webServer:{command:'node_modules/.bin/vite --host 127.0.0.1 --port 5227 --strictPort',url:'http://127.0.0.1:5227',reuseExistingServer:false,env:{AIXAND_SERVER_URL:'http://127.0.0.1:1'}}})

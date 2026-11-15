@@ -1,0 +1,23 @@
+.supervision-badge { display: inline-flex; align-items: center; gap: .3rem; color: var(--bbb-color-text-primary); background: var(--bbb-color-surface-muted); padding: .2rem .45rem; border-radius: var(--bbb-radius-sm); font-size: var(--bbb-font-size-xs); white-space: nowrap; }
+.supervision-badge svg { width: .85rem; height: .85rem; }
+.supervision-badge--needs_input { font-weight: var(--bbb-font-weight-semibold); }
+.supervision-trigger { flex-shrink: 0; gap: .3rem; }
+.supervision-sheet { display: flex; flex-direction: column; gap: var(--bbb-space-5); overflow-wrap: anywhere; }
+.supervision-sheet h3 { margin-block: 0 var(--bbb-space-2); font-size: var(--bbb-font-size-md); }
+.supervision-sheet summary { cursor: pointer; font-weight: var(--bbb-font-weight-semibold); }
+.supervision-sheet details[open] summary { margin-block-end: var(--bbb-space-3); }
+.supervision-preserve { white-space: pre-wrap; line-height: 1.6; }
+.supervision-actions, .supervision-resources li { display: flex; align-items: center; flex-wrap: wrap; gap: var(--bbb-space-2); }
+.supervision-actions { margin-block-start: var(--bbb-space-3); }
+.supervision-resources, .supervision-activity { padding: 0; margin: 0; list-style: none; }
+.supervision-resources li, .supervision-activity li { border-block-end: 1px solid var(--bbb-color-border); padding-block: var(--bbb-space-3); }
+.supervision-resources small { margin-inline-start: auto; }
+.supervision-activity p { margin: 0 0 var(--bbb-space-1); }
+.supervision-activity small, .supervision-resources small { color: var(--bbb-color-text-secondary); }
+.supervision-evidence { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 32rem; overflow: auto; font: inherit; }
+.supervision-direction { display: grid; gap: var(--bbb-space-3); }
+.supervision-direction > button { justify-self: start; }
+.supervision-context { display: flex; gap: var(--bbb-space-2); align-items: baseline; padding: .4rem var(--bbb-space-5); color: var(--bbb-color-text-secondary); font-size: var(--bbb-font-size-sm); }
+.supervision-context p { margin: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.supervision-resolving { padding: var(--bbb-space-6); }
+@media (max-width: 600px) { .command-conversation-heading { flex-wrap: wrap; } .supervision-context { padding-inline: var(--bbb-space-3); } }

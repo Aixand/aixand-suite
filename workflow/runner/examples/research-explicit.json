@@ -1,0 +1,132 @@
+{
+  "ir_version": "0.1",
+  "name": "research_two_turns",
+  "inputs": {
+    "task": {
+      "type": {
+        "kind": "string"
+      }
+    }
+  },
+  "body": {
+    "kind": "sequence",
+    "steps": [
+      {
+        "kind": "operation",
+        "id": "spawn_1",
+        "operation": {
+          "id": "aixand.agents.spawn",
+          "version": "1.0.0"
+        },
+        "inputs": {
+          "provider": {
+            "kind": "literal",
+            "value": "codex"
+          },
+          "profile": {
+            "kind": "literal",
+            "value": "research"
+          }
+        }
+      },
+      {
+        "kind": "operation",
+        "id": "send_1",
+        "operation": {
+          "id": "aixand.agent.send",
+          "version": "1.0.0"
+        },
+        "inputs": {
+          "agent": {
+            "kind": "ref",
+            "source": "step",
+            "step": "spawn_1",
+            "output": "agent"
+          },
+          "text": {
+            "kind": "ref",
+            "source": "input",
+            "name": "task"
+          }
+        }
+      },
+      {
+        "kind": "operation",
+        "id": "wait_1",
+        "operation": {
+          "id": "aixand.agent.wait",
+          "version": "1.0.0"
+        },
+        "inputs": {
+          "agent": {
+            "kind": "ref",
+            "source": "step",
+            "step": "spawn_1",
+            "output": "agent"
+          },
+          "after": {
+            "kind": "ref",
+            "source": "step",
+            "step": "send_1",
+            "output": "receipt"
+          }
+        }
+      },
+      {
+        "kind": "operation",
+        "id": "send_2",
+        "operation": {
+          "id": "aixand.agent.send",
+          "version": "1.0.0"
+        },
+        "inputs": {
+          "agent": {
+            "kind": "ref",
+            "source": "step",
+            "step": "spawn_1",
+            "output": "agent"
+          },
+          "text": {
+            "kind": "literal",
+            "value": "Summarize your findings"
+          }
+        }
+      },
+      {
+        "kind": "operation",
+        "id": "wait_2",
+        "operation": {
+          "id": "aixand.agent.wait",
+          "version": "1.0.0"
+        },
+        "inputs": {
+          "agent": {
+            "kind": "ref",
+            "source": "step",
+            "step": "spawn_1",
+            "output": "agent"
+          },
+          "after": {
+            "kind": "ref",
+            "source": "step",
+            "step": "send_2",
+            "output": "receipt"
+          }
+        }
+      }
+    ]
+  },
+  "outputs": {
+    "run_id": {
+      "type": {
+        "kind": "string"
+      },
+      "value": {
+        "kind": "ref",
+        "source": "step",
+        "step": "spawn_1",
+        "output": "run_id"
+      }
+    }
+  }
+}

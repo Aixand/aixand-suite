@@ -1,0 +1,10 @@
+{
+  "ir_version": "0.1",
+  "inputs": {},
+  "body": {
+    "kind": "sequence",
+    "steps": []
+  },
+  "outputs": {},
+  "retry": 3
+}

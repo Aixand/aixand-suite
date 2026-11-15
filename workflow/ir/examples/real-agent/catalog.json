@@ -1,0 +1,223 @@
+{
+  "contract_version": "0.1",
+  "package": {
+    "id": "aixand",
+    "version": "0.1.0-beta",
+    "description": "Four existing Aixand contracts selected for the managed Codex two-turn example."
+  },
+  "operations": [
+    {
+      "id": "aixand.agents.spawn",
+      "version": "1.0.0",
+      "inputs": {
+        "provider": {
+          "type": {
+            "kind": "string"
+          },
+          "required": false,
+          "default": "codex"
+        },
+        "profile": {
+          "type": {
+            "kind": "string"
+          },
+          "required": false,
+          "default": "default"
+        },
+        "cwd": {
+          "type": {
+            "kind": "string",
+            "nullable": true
+          },
+          "required": false
+        },
+        "address": {
+          "type": {
+            "kind": "string",
+            "nullable": true
+          },
+          "required": false
+        },
+        "instructions": {
+          "type": {
+            "kind": "string",
+            "nullable": true
+          },
+          "required": false
+        },
+        "timeout": {
+          "type": {
+            "kind": "number",
+            "nullable": true
+          },
+          "required": false,
+          "description": "Seconds. Omission or null uses the connection's configured timeout."
+        }
+      },
+      "outputs": {
+        "agent": {
+          "type": {
+            "kind": "opaque",
+            "id": "aixand.agent",
+            "version": "1"
+          }
+        },
+        "run_id": {
+          "type": {
+            "kind": "string"
+          }
+        },
+        "address": {
+          "type": {
+            "kind": "string",
+            "nullable": true
+          }
+        }
+      },
+      "description": "Launch an owned agent; completion establishes a composition handle, not task completion. Address optionally sets up a managed Carrier inbox; null or omission leaves it absent. cwd/instructions null or omission use SDK defaults. Setup failures retain launch identity and uncertain-effect details. Cleanup detaches unless stop-owned is configured. Failures stop execution, are never retried, and cancellation does not roll back effects."
+    },
+    {
+      "id": "aixand.agent.send",
+      "version": "1.0.0",
+      "inputs": {
+        "agent": {
+          "type": {
+            "kind": "opaque",
+            "id": "aixand.agent",
+            "version": "1"
+          },
+          "required": true
+        },
+        "text": {
+          "type": {
+            "kind": "string"
+          },
+          "required": true
+        },
+        "timeout": {
+          "type": {
+            "kind": "number",
+            "nullable": true
+          },
+          "required": false,
+          "description": "Seconds. Omission or null uses the connection's configured timeout."
+        }
+      },
+      "outputs": {
+        "receipt": {
+          "type": {
+            "kind": "opaque",
+            "id": "aixand.input_receipt",
+            "version": "1"
+          }
+        }
+      },
+      "description": "Submit nonempty text after input readiness. Success confirms terminal delivery only. Updates the shared handle latest direct-send boundary only when the receipt has an observation revision. Timeout null/omission uses scope timeout. Failed or cancelled delivery can be uncertain. Failures stop execution, are never retried, and cancellation does not roll back effects."
+    },
+    {
+      "id": "aixand.agent.wait",
+      "version": "1.0.0",
+      "inputs": {
+        "agent": {
+          "type": {
+            "kind": "opaque",
+            "id": "aixand.agent",
+            "version": "1"
+          },
+          "required": true
+        },
+        "after": {
+          "type": {
+            "kind": "opaque",
+            "id": "aixand.input_receipt",
+            "version": "1",
+            "nullable": true
+          },
+          "required": false
+        },
+        "stable_for": {
+          "type": {
+            "kind": "number",
+            "nullable": true
+          },
+          "required": false
+        },
+        "timeout": {
+          "type": {
+            "kind": "number",
+            "nullable": true
+          },
+          "required": false,
+          "description": "Seconds. Omission or null uses the connection's configured timeout."
+        }
+      },
+      "outputs": {
+        "observation": {
+          "type": {
+            "kind": "object",
+            "properties": {
+              "session_id": {
+                "kind": "string"
+              },
+              "name": {
+                "kind": "string"
+              },
+              "revision": {
+                "kind": "integer"
+              },
+              "lifecycle": {
+                "kind": "string"
+              },
+              "execution": {
+                "kind": "string"
+              },
+              "interaction": {
+                "kind": "string"
+              },
+              "constraint": {
+                "kind": "string"
+              },
+              "health": {
+                "kind": "string"
+              }
+            },
+            "required": [
+              "session_id",
+              "name",
+              "revision",
+              "lifecycle",
+              "execution",
+              "interaction",
+              "constraint",
+              "health"
+            ]
+          }
+        }
+      },
+      "description": "Observe stable readiness, never infer task success. Omitted after uses latest eligible direct-send receipt; null observes current readiness; explicit receipt must have a revision and belong to the agent session. Carrier deliveries do not retarget this boundary. stable_for null/omission uses connection configuration. Read-only timeout is a failure. Failures stop execution, are never retried, and cancellation does not roll back effects."
+    },
+    {
+      "id": "aixand.agent.stop",
+      "version": "1.0.0",
+      "inputs": {
+        "agent": {
+          "type": {
+            "kind": "opaque",
+            "id": "aixand.agent",
+            "version": "1"
+          },
+          "required": true
+        },
+        "force": {
+          "type": {
+            "kind": "boolean"
+          },
+          "required": false,
+          "default": false
+        }
+      },
+      "outputs": {},
+      "description": "Stop this agent explicitly, including an attached agent when requested. Closes its consumer and cancels pending input. Success confirms SDK stop completion. Stop failure/cancellation can leave process state uncertain. Failures stop execution, are never retried, and cancellation does not roll back effects."
+    }
+  ]
+}

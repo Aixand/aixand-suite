@@ -1,0 +1,21 @@
+.prompt-integrations { display: grid; align-content: start; gap: var(--bbb-space-6); max-inline-size: 64rem; min-inline-size: 0; }
+.prompt-integrations-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--bbb-space-5); flex-wrap: wrap; }
+.prompt-integrations-heading h3 { margin: 0; font-size: var(--bbb-font-size-lg); font-weight: var(--bbb-font-weight-semibold); }
+.prompt-integrations-heading p { margin: var(--bbb-space-2) 0 0; color: var(--bbb-color-text-secondary); font-size: var(--bbb-font-size-sm); max-inline-size: 48ch; }
+.prompt-integrations-heading > .bbb-button { flex: none; }
+.prompt-integrations-back.bbb-button { justify-self: start; }
+.prompt-integration-list { list-style: none; padding: 0; margin: 0; border: var(--bbb-border-width) solid var(--bbb-color-border); border-radius: var(--bbb-radius-lg); overflow: hidden; }
+.prompt-integration-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--bbb-space-5); padding: var(--bbb-space-5); }
+.prompt-integration-row + .prompt-integration-row { border-block-start: var(--bbb-border-width) solid var(--bbb-color-border); }
+.prompt-integration-copy { min-inline-size: 0; overflow-wrap: anywhere; }
+.prompt-integration-copy strong { font-size: var(--bbb-font-size-base); font-weight: var(--bbb-font-weight-medium); }
+.prompt-integration-copy p { margin: var(--bbb-space-2) 0; font-size: var(--bbb-font-size-sm); color: var(--bbb-color-text-secondary); }
+.prompt-integration-actions { display: flex; flex-wrap: wrap; gap: var(--bbb-space-2); }
+.bbb-modal:has(.prompt-integration-dialog) { --bbb-dialog-width: 34rem; }
+.prompt-integration-dialog.bbb-dialog { inline-size: 100%; }
+.prompt-integration-dialog .bbb-field { min-inline-size: 0; }
+.prompt-integration-dialog .bbb-dialog__footer { flex-wrap: wrap; }
+@media (max-width: 760px) {
+  .prompt-integration-row { grid-template-columns: minmax(0, 1fr); gap: var(--bbb-space-3); padding: var(--bbb-space-4); }
+  .prompt-integration-row > .bbb-button { justify-self: start; }
+}

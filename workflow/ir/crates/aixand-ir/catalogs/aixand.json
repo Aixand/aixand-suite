@@ -1,0 +1,974 @@
+{
+  "contract_version": "0.1",
+  "package": {
+    "id": "aixand",
+    "version": "0.1.0-beta",
+    "description": "Selected Aixand and Carrier sequential application operations."
+  },
+  "operations": [
+    {
+      "id": "aixand.agents.spawn",
+      "version": "1.0.0",
+      "inputs": {
+        "provider": {
+          "type": {
+            "kind": "string"
+          },
+          "required": false,
+          "default": "codex"
+        },
+        "profile": {
+          "type": {
+            "kind": "string"
+          },
+          "required": false,
+          "default": "default"
+        },
+        "cwd": {
+          "type": {
+            "kind": "string",
+            "nullable": true
+          },
+          "required": false
+        },
+        "address": {
+          "type": {
+            "kind": "string",
+            "nullable": true
+          },
+          "required": false
+        },
+        "instructions": {
+          "type": {
+            "kind": "string",
+            "nullable": true
+          },
+          "required": false
+        },
+        "timeout": {
+          "type": {
+            "kind": "number",
+            "nullable": true
+          },
+          "required": false,
+          "description": "Seconds. Omission or null uses the connection's configured timeout."
+        }
+      },
+      "outputs": {
+        "agent": {
+          "type": {
+            "kind": "opaque",
+            "id": "aixand.agent",
+            "version": "1"
+          }
+        },
+        "run_id": {
+          "type": {
+            "kind": "string"
+          }
+        },
+        "address": {
+          "type": {
+            "kind": "string",
+            "nullable": true
+          }
+        }
+      },
+      "description": "Launch an owned agent; completion establishes a composition handle, not task completion. Address optionally sets up a managed Carrier inbox; null or omission leaves it absent. cwd/instructions null or omission use SDK defaults. Setup failures retain launch identity and uncertain-effect details. Cleanup detaches unless stop-owned is configured. Failures stop execution, are never retried, and cancellation does not roll back effects."
+    },
+    {
+      "id": "aixand.agents.spawn",
+      "version": "1.1.0",
+      "inputs": {
+        "provider": {
+          "type": {
+            "kind": "string"
+          },
+          "required": false,
+          "default": "codex"
+        },
+        "profile": {
+          "type": {
+            "kind": "string"
+          },
+          "required": false,
+          "default": "default"
+        },
+        "cwd": {
+          "type": {
+            "kind": "string",
+            "nullable": true
+          },
+          "required": false
+        },
+        "address": {
+          "type": {
+            "kind": "string",
+            "nullable": true
+          },
+          "required": false
+        },
+        "instructions": {
+          "type": {
+            "kind": "string",
+            "nullable": true
+          },
+          "required": false
+        },
+        "timeout": {
+          "type": {
+            "kind": "number",
+            "nullable": true
+          },
+          "required": false,
+          "description": "Seconds. Omission or null uses the connection's configured timeout."
+        },
+        "mcp": {
+          "type": {
+            "kind": "json"
+          },
+          "required": false,
+          "description": "Optional MCP selection object with inherit, add, and exclude. Omission or null inherits profile defaults."
+        }
+      },
+      "outputs": {
+        "agent": {
+          "type": {
+            "kind": "opaque",
+            "id": "aixand.agent",
+            "version": "1"
+          }
+        },
+        "run_id": {
+          "type": {
+            "kind": "string"
+          }
+        },
+        "address": {
+          "type": {
+            "kind": "string",
+            "nullable": true
+          }
+        }
+      },
+      "description": "Launch an owned agent; completion establishes a composition handle, not task completion. Address optionally sets up a managed Carrier inbox; null or omission leaves it absent. cwd/instructions null or omission use SDK defaults. Setup failures retain launch identity and uncertain-effect details. Cleanup detaches unless stop-owned is configured. Failures stop execution, are never retried, and cancellation does not roll back effects. MCP selection customizes this launch without changing the profile."
+    },
+    {
+      "id": "aixand.agents.get",
+      "version": "1.0.0",
+      "inputs": {
+        "run_id": {
+          "type": {
+            "kind": "string"
+          },
+          "required": true
+        },
+        "provider": {
+          "type": {
+            "kind": "string"
+          },
+          "required": false,
+          "default": "codex"
+        }
+      },
+      "outputs": {
+        "agent": {
+          "type": {
+            "kind": "opaque",
+            "id": "aixand.agent",
+            "version": "1"
+          }
+        },
+        "run_id": {
+          "type": {
+            "kind": "string"
+          }
+        },
+        "address": {
+          "type": {
+            "kind": "string",
+            "nullable": true
+          }
+        }
+      },
+      "description": "Attach a run in the configured manager environment. Reuses the shared handle in this scope. Does not recreate a Carrier consumer or confer resource ownership. Failures stop execution, are never retried, and cancellation does not roll back effects."
+    },
+    {
+      "id": "aixand.agent.send",
+      "version": "1.0.0",
+      "inputs": {
+        "agent": {
+          "type": {
+            "kind": "opaque",
+            "id": "aixand.agent",
+            "version": "1"
+          },
+          "required": true
+        },
+        "text": {
+          "type": {
+            "kind": "string"
+          },
+          "required": true
+        },
+        "timeout": {
+          "type": {
+            "kind": "number",
+            "nullable": true
+          },
+          "required": false,
+          "description": "Seconds. Omission or null uses the connection's configured timeout."
+        }
+      },
+      "outputs": {
+        "receipt": {
+          "type": {
+            "kind": "opaque",
+            "id": "aixand.input_receipt",
+            "version": "1"
+          }
+        }
+      },
+      "description": "Submit nonempty text after input readiness. Success confirms terminal delivery only. Updates the shared handle latest direct-send boundary only when the receipt has an observation revision. Timeout null/omission uses scope timeout. Failed or cancelled delivery can be uncertain. Failures stop execution, are never retried, and cancellation does not roll back effects."
+    },
+    {
+      "id": "aixand.agent.wait",
+      "version": "1.0.0",
+      "inputs": {
+        "agent": {
+          "type": {
+            "kind": "opaque",
+            "id": "aixand.agent",
+            "version": "1"
+          },
+          "required": true
+        },
+        "after": {
+          "type": {
+            "kind": "opaque",
+            "id": "aixand.input_receipt",
+            "version": "1",
+            "nullable": true
+          },
+          "required": false
+        },
+        "stable_for": {
+          "type": {
+            "kind": "number",
+            "nullable": true
+          },
+          "required": false
+        },
+        "timeout": {
+          "type": {
+            "kind": "number",
+            "nullable": true
+          },
+          "required": false,
+          "description": "Seconds. Omission or null uses the connection's configured timeout."
+        }
+      },
+      "outputs": {
+        "observation": {
+          "type": {
+            "kind": "object",
+            "properties": {
+              "session_id": {
+                "kind": "string"
+              },
+              "name": {
+                "kind": "string"
+              },
+              "revision": {
+                "kind": "integer"
+              },
+              "lifecycle": {
+                "kind": "string"
+              },
+              "execution": {
+                "kind": "string"
+              },
+              "interaction": {
+                "kind": "string"
+              },
+              "constraint": {
+                "kind": "string"
+              },
+              "health": {
+                "kind": "string"
+              }
+            },
+            "required": [
+              "session_id",
+              "name",
+              "revision",
+              "lifecycle",
+              "execution",
+              "interaction",
+              "constraint",
+              "health"
+            ]
+          }
+        }
+      },
+      "description": "Observe stable readiness, never infer task success. Omitted after uses latest eligible direct-send receipt; null observes current readiness; explicit receipt must have a revision and belong to the agent session. Carrier deliveries do not retarget this boundary. stable_for null/omission uses connection configuration. Read-only timeout is a failure. Failures stop execution, are never retried, and cancellation does not roll back effects."
+    },
+    {
+      "id": "aixand.agent.stop",
+      "version": "1.0.0",
+      "inputs": {
+        "agent": {
+          "type": {
+            "kind": "opaque",
+            "id": "aixand.agent",
+            "version": "1"
+          },
+          "required": true
+        },
+        "force": {
+          "type": {
+            "kind": "boolean"
+          },
+          "required": false,
+          "default": false
+        }
+      },
+      "outputs": {},
+      "description": "Stop this agent explicitly, including an attached agent when requested. Closes its consumer and cancels pending input. Success confirms SDK stop completion. Stop failure/cancellation can leave process state uncertain. Failures stop execution, are never retried, and cancellation does not roll back effects."
+    },
+    {
+      "id": "aixand.agent.inspect",
+      "version": "1.0.0",
+      "inputs": {
+        "agent": {
+          "type": {
+            "kind": "opaque",
+            "id": "aixand.agent",
+            "version": "1"
+          },
+          "required": true
+        }
+      },
+      "outputs": {
+        "observation": {
+          "type": {
+            "kind": "object",
+            "properties": {
+              "session_id": {
+                "kind": "string"
+              },
+              "name": {
+                "kind": "string"
+              },
+              "revision": {
+                "kind": "integer"
+              },
+              "lifecycle": {
+                "kind": "string"
+              },
+              "execution": {
+                "kind": "string"
+              },
+              "interaction": {
+                "kind": "string"
+              },
+              "constraint": {
+                "kind": "string"
+              },
+              "health": {
+                "kind": "string"
+              }
+            },
+            "required": [
+              "session_id",
+              "name",
+              "revision",
+              "lifecycle",
+              "execution",
+              "interaction",
+              "constraint",
+              "health"
+            ]
+          }
+        }
+      },
+      "description": "Read a fresh selected session snapshot. Previous snapshots remain unchanged. Session affinity follows the agent capability. Failures stop execution, are never retried, and cancellation does not roll back effects."
+    },
+    {
+      "id": "aixand.agent.read_screen",
+      "version": "1.0.0",
+      "inputs": {
+        "agent": {
+          "type": {
+            "kind": "opaque",
+            "id": "aixand.agent",
+            "version": "1"
+          },
+          "required": true
+        }
+      },
+      "outputs": {
+        "text": {
+          "type": {
+            "kind": "string"
+          }
+        }
+      },
+      "description": "Read terminal screen bytes and explicitly decode UTF-8 with replacement for invalid sequences. The screen is an observation, not an application answer. Failures stop execution, are never retried, and cancellation does not roll back effects."
+    },
+    {
+      "id": "aixand.messaging.mailbox",
+      "version": "1.0.0",
+      "inputs": {
+        "address": {
+          "type": {
+            "kind": "string"
+          },
+          "required": true
+        }
+      },
+      "outputs": {
+        "mailbox": {
+          "type": {
+            "kind": "opaque",
+            "id": "carrier.mailbox",
+            "version": "1"
+          }
+        },
+        "address": {
+          "type": {
+            "kind": "string"
+          }
+        }
+      },
+      "description": "Provision/open an authenticated application mailbox. Credentials and shared clients come from runtime configuration. Managed agent inboxes remain reserved. Completion yields a live scope-bound capability. Failures stop execution, are never retried, and cancellation does not roll back effects."
+    },
+    {
+      "id": "carrier.message.send",
+      "version": "1.0.0",
+      "inputs": {
+        "mailbox": {
+          "type": {
+            "kind": "opaque",
+            "id": "carrier.mailbox",
+            "version": "1"
+          },
+          "required": true
+        },
+        "content": {
+          "type": {
+            "kind": "string"
+          },
+          "required": true
+        },
+        "to": {
+          "type": {
+            "kind": "string"
+          },
+          "required": true
+        },
+        "reply_to": {
+          "type": {
+            "kind": "integer",
+            "nullable": true
+          },
+          "required": false
+        },
+        "idempotency_key": {
+          "type": {
+            "kind": "string",
+            "nullable": true
+          },
+          "required": false
+        }
+      },
+      "outputs": {
+        "message": {
+          "type": {
+            "kind": "opaque",
+            "id": "carrier.message",
+            "version": "1"
+          }
+        },
+        "snapshot": {
+          "type": {
+            "kind": "object",
+            "properties": {
+              "id": {
+                "kind": "integer"
+              },
+              "sender": {
+                "kind": "string"
+              },
+              "recipient": {
+                "kind": "string"
+              },
+              "content": {
+                "kind": "string"
+              },
+              "created_at": {
+                "kind": "string"
+              },
+              "idempotency_key": {
+                "kind": "string",
+                "nullable": true
+              },
+              "reply_to": {
+                "kind": "integer",
+                "nullable": true
+              },
+              "acknowledged_at": {
+                "kind": "string",
+                "nullable": true
+              }
+            },
+            "required": [
+              "id",
+              "sender",
+              "recipient",
+              "content",
+              "created_at",
+              "idempotency_key",
+              "reply_to",
+              "acknowledged_at"
+            ]
+          }
+        }
+      },
+      "description": "Store ordinary text to an explicit recipient. Does not decode JSON or await substantive reply. Omitted/null reply_to means uncorrelated; omitted/null key supplies no idempotency guarantee. No implicit acknowledgment. Transport failure may leave delivery uncertain. Failures stop execution, are never retried, and cancellation does not roll back effects."
+    },
+    {
+      "id": "carrier.message.wait_for_reply",
+      "version": "1.0.0",
+      "inputs": {
+        "mailbox": {
+          "type": {
+            "kind": "opaque",
+            "id": "carrier.mailbox",
+            "version": "1"
+          },
+          "required": true
+        },
+        "message": {
+          "type": {
+            "kind": "opaque",
+            "id": "carrier.message",
+            "version": "1"
+          },
+          "required": true
+        },
+        "timeout": {
+          "type": {
+            "kind": "number"
+          },
+          "required": false,
+          "default": 45.0
+        },
+        "poll_interval": {
+          "type": {
+            "kind": "number"
+          },
+          "required": false,
+          "default": 0.5
+        },
+        "sender": {
+          "type": {
+            "kind": "string"
+          },
+          "required": false
+        }
+      },
+      "outputs": {
+        "message": {
+          "type": {
+            "kind": "opaque",
+            "id": "carrier.message",
+            "version": "1"
+          }
+        },
+        "snapshot": {
+          "type": {
+            "kind": "object",
+            "properties": {
+              "id": {
+                "kind": "integer"
+              },
+              "sender": {
+                "kind": "string"
+              },
+              "recipient": {
+                "kind": "string"
+              },
+              "content": {
+                "kind": "string"
+              },
+              "created_at": {
+                "kind": "string"
+              },
+              "idempotency_key": {
+                "kind": "string",
+                "nullable": true
+              },
+              "reply_to": {
+                "kind": "integer",
+                "nullable": true
+              },
+              "acknowledged_at": {
+                "kind": "string",
+                "nullable": true
+              }
+            },
+            "required": [
+              "id",
+              "sender",
+              "recipient",
+              "content",
+              "created_at",
+              "idempotency_key",
+              "reply_to",
+              "acknowledged_at"
+            ]
+          }
+        }
+      },
+      "description": "Wait for a pending reply correlated to a message sent by this mailbox identity. Optional sender must match the returned authenticated sender. Does not acknowledge. Timeout raises a failure; failure leaves messages pending. Managed consumer failure interrupts waiting. Failures stop execution, are never retried, and cancellation does not roll back effects."
+    },
+    {
+      "id": "carrier.mailbox.wait",
+      "version": "1.0.0",
+      "inputs": {
+        "mailbox": {
+          "type": {
+            "kind": "opaque",
+            "id": "carrier.mailbox",
+            "version": "1"
+          },
+          "required": true
+        },
+        "timeout": {
+          "type": {
+            "kind": "number"
+          },
+          "required": false,
+          "default": 45.0
+        },
+        "poll_interval": {
+          "type": {
+            "kind": "number"
+          },
+          "required": false,
+          "default": 0.5
+        },
+        "limit": {
+          "type": {
+            "kind": "integer"
+          },
+          "required": false,
+          "default": 50
+        },
+        "reply_to": {
+          "type": {
+            "kind": "integer",
+            "nullable": true
+          },
+          "required": false
+        }
+      },
+      "outputs": {
+        "status": {
+          "type": {
+            "kind": "string"
+          }
+        },
+        "messages": {
+          "type": {
+            "kind": "array",
+            "items": {
+              "kind": "opaque",
+              "id": "carrier.message",
+              "version": "1"
+            }
+          }
+        },
+        "snapshots": {
+          "type": {
+            "kind": "array",
+            "items": {
+              "kind": "object",
+              "properties": {
+                "id": {
+                  "kind": "integer"
+                },
+                "sender": {
+                  "kind": "string"
+                },
+                "recipient": {
+                  "kind": "string"
+                },
+                "content": {
+                  "kind": "string"
+                },
+                "created_at": {
+                  "kind": "string"
+                },
+                "idempotency_key": {
+                  "kind": "string",
+                  "nullable": true
+                },
+                "reply_to": {
+                  "kind": "integer",
+                  "nullable": true
+                },
+                "acknowledged_at": {
+                  "kind": "string",
+                  "nullable": true
+                }
+              },
+              "required": [
+                "id",
+                "sender",
+                "recipient",
+                "content",
+                "created_at",
+                "idempotency_key",
+                "reply_to",
+                "acknowledged_at"
+              ]
+            }
+          }
+        },
+        "next_after": {
+          "type": {
+            "kind": "integer",
+            "nullable": true
+          }
+        }
+      },
+      "description": "Wait for pending mailbox messages; timeout is successful status timeout with empty arrays. Timeout and poll interval are positive; limit is 1..100. Omitted/null reply_to applies no correlation filter. No automatic acknowledgment. Service/consumer errors are failures. Failures stop execution, are never retried, and cancellation does not roll back effects."
+    },
+    {
+      "id": "carrier.message.reply",
+      "version": "1.0.0",
+      "inputs": {
+        "message": {
+          "type": {
+            "kind": "opaque",
+            "id": "carrier.message",
+            "version": "1"
+          },
+          "required": true
+        },
+        "content": {
+          "type": {
+            "kind": "string"
+          },
+          "required": true
+        },
+        "idempotency_key": {
+          "type": {
+            "kind": "string",
+            "nullable": true
+          },
+          "required": false
+        }
+      },
+      "outputs": {
+        "message": {
+          "type": {
+            "kind": "opaque",
+            "id": "carrier.message",
+            "version": "1"
+          }
+        },
+        "snapshot": {
+          "type": {
+            "kind": "object",
+            "properties": {
+              "id": {
+                "kind": "integer"
+              },
+              "sender": {
+                "kind": "string"
+              },
+              "recipient": {
+                "kind": "string"
+              },
+              "content": {
+                "kind": "string"
+              },
+              "created_at": {
+                "kind": "string"
+              },
+              "idempotency_key": {
+                "kind": "string",
+                "nullable": true
+              },
+              "reply_to": {
+                "kind": "integer",
+                "nullable": true
+              },
+              "acknowledged_at": {
+                "kind": "string",
+                "nullable": true
+              }
+            },
+            "required": [
+              "id",
+              "sender",
+              "recipient",
+              "content",
+              "created_at",
+              "idempotency_key",
+              "reply_to",
+              "acknowledged_at"
+            ]
+          }
+        }
+      },
+      "description": "Reply to a received message using its receiving identity and numeric correlation. Does not acknowledge the original. Null/omitted idempotency key supplies no retry identity. Transport failure may leave effects uncertain. Failures stop execution, are never retried, and cancellation does not roll back effects."
+    },
+    {
+      "id": "carrier.message.ack",
+      "version": "1.0.0",
+      "inputs": {
+        "message": {
+          "type": {
+            "kind": "opaque",
+            "id": "carrier.message",
+            "version": "1"
+          },
+          "required": true
+        }
+      },
+      "outputs": {
+        "acknowledgment": {
+          "type": {
+            "kind": "object",
+            "properties": {
+              "message_id": {
+                "kind": "integer"
+              },
+              "acknowledged_at": {
+                "kind": "string"
+              }
+            },
+            "required": [
+              "message_id",
+              "acknowledged_at"
+            ]
+          }
+        }
+      },
+      "description": "Explicitly acknowledge through the message receiving client. Return a fresh acknowledgment record; never mutate previously published snapshots. Acknowledgment can be uncertain on transport failure. Failures stop execution, are never retried, and cancellation does not roll back effects."
+    },
+    {
+      "id": "carrier.message.inspect",
+      "version": "1.0.0",
+      "inputs": {
+        "message": {
+          "type": {
+            "kind": "opaque",
+            "id": "carrier.message",
+            "version": "1"
+          },
+          "required": true
+        }
+      },
+      "outputs": {
+        "snapshot": {
+          "type": {
+            "kind": "object",
+            "properties": {
+              "id": {
+                "kind": "integer"
+              },
+              "sender": {
+                "kind": "string"
+              },
+              "recipient": {
+                "kind": "string"
+              },
+              "content": {
+                "kind": "string"
+              },
+              "created_at": {
+                "kind": "string"
+              },
+              "idempotency_key": {
+                "kind": "string",
+                "nullable": true
+              },
+              "reply_to": {
+                "kind": "integer",
+                "nullable": true
+              },
+              "acknowledged_at": {
+                "kind": "string",
+                "nullable": true
+              }
+            },
+            "required": [
+              "id",
+              "sender",
+              "recipient",
+              "content",
+              "created_at",
+              "idempotency_key",
+              "reply_to",
+              "acknowledged_at"
+            ]
+          }
+        }
+      },
+      "description": "Publish a fresh immutable snapshot of the retained message capability, including local acknowledgment state. No remote refresh or automatic text decoding occurs. Failures stop execution, are never retried, and cancellation does not roll back effects."
+    },
+    {
+      "id": "carrier.message.decode_json",
+      "version": "1.0.0",
+      "inputs": {
+        "message": {
+          "type": {
+            "kind": "opaque",
+            "id": "carrier.message",
+            "version": "1"
+          },
+          "required": true
+        }
+      },
+      "outputs": {
+        "data": {
+          "type": {
+            "kind": "json"
+          }
+        }
+      },
+      "description": "Explicitly parse the message text as portable JSON. Reject malformed JSON, duplicate keys, and unsafe exact integers. This pure extraction has no acknowledgment side effect. Failures stop execution, are never retried, and cancellation does not roll back effects."
+    },
+    {
+      "id": "aixand.application.run",
+      "version": "1.0.0",
+      "inputs": {
+        "name": {
+          "type": {
+            "kind": "string"
+          },
+          "required": true
+        },
+        "arguments": {
+          "type": {
+            "kind": "json"
+          },
+          "required": true
+        }
+      },
+      "outputs": {
+        "result": {
+          "type": {
+            "kind": "json"
+          }
+        }
+      },
+      "description": "Run an async application explicitly installed by the host. Inputs cannot select code to import. The application receives the shared SDK connection and JSON arguments; returns JSON. Cancellation is forwarded and scope cleanup applies to owned agents. No automatic retries."
+    }
+  ]
+}

@@ -1,0 +1,335 @@
+name: Desktop, Client and Server installers
+on:
+  push:
+    tags:
+      - 'suite/v*'
+  workflow_dispatch:
+    inputs:
+      target:
+        type: choice
+        default: all
+        options: [all, linux-x86_64-gnu, macos-arm64, windows-x86_64-msvc]
+      release-sequence:
+        description: Reviewed application sequence; zero is build-only and cannot enter an update feed
+        type: number
+        default: 0
+      include-voice:
+        description: Build the optional Vox runtime (requires separate voice qualification)
+        type: boolean
+        default: false
+      baseline-artifact-id:
+        description: Optional trusted default-branch Actions artifact ID for warm frontend assembly
+        type: string
+      baseline-run-id:
+        description: Successful run that produced that exact artifact
+        type: string
+      baseline-archive-sha256:
+        description: Trusted SHA-256 of the Desktop runtime tar.gz inside the artifact
+        type: string
+      clean-build:
+        description: Force the full native build; ignore any baseline artifact inputs
+        type: boolean
+        default: false
+permissions:
+  contents: read
+  actions: read
+jobs:
+  select:
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.select.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
+        with:
+          python-version: '3.12.14'
+      - id: select
+        env:
+          TARGET: ${{ inputs.target }}
+          BASELINE: ${{ inputs.baseline-artifact-id }}
+          EVENT: ${{ github.event_name }}
+          TAG: ${{ github.ref_name }}
+          REF: ${{ github.ref }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          CLEAN_BUILD: ${{ inputs.clean-build }}
+        run: |
+          python -B scripts/check-release-versions.py
+          if [ "$EVENT" = push ]; then python -B scripts/release/components.py release --tag "$TAG"; fi
+          python -B - <<'PYTHON'
+          import json, os, sys
+          sys.path.insert(0, 'scripts/release')
+          from build_plan import TARGETS
+          target = os.environ['TARGET']
+          if target and target != 'all' and target not in TARGETS:
+              raise SystemExit('Unsupported target')
+          if os.environ['BASELINE'] and os.environ['CLEAN_BUILD'] != 'true':
+              if target in ('', 'all'):
+                  raise SystemExit('Warm assembly requires one exact target for its pinned baseline')
+              if os.environ['EVENT'] != 'workflow_dispatch' or os.environ['REF'] != 'refs/heads/' + os.environ['DEFAULT_BRANCH']:
+                  raise SystemExit('Warm assembly must run manually on the trusted default branch')
+          rows = [{'os': host, 'target': name} for name, host in TARGETS.items() if target in ('', 'all', name)]
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('matrix=' + json.dumps({'include': rows}) + '\n')
+          PYTHON
+  native:
+    needs: select
+    if: inputs.baseline-artifact-id == '' || inputs.clean-build == true
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      # Pinned Agent/Conversation releases currently omit Intel macOS.
+      matrix: ${{ fromJSON(needs.select.outputs.matrix) }}
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: aixand-suite
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUTF8: '1'
+      UV_LINK_MODE: copy
+      AIXAND_RELEASE_SEQUENCE: ${{ inputs.release-sequence || 0 }}
+      INCLUDE_VOICE: ${{ inputs.include-voice == true }}
+    steps:
+      - name: Preserve byte-verified notice and lock inputs
+        if: runner.os == 'Windows'
+        working-directory: .
+        shell: bash
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
+        with:
+          path: aixand-suite
+          persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
+        with:
+          python-version: '3.12.14'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24.21.0'
+      - name: Prepare explicitly configured public updater trust
+        if: vars.SUITE_UPDATE_TRUST_JSON != ''
+        env:
+          SUITE_UPDATE_TRUST_JSON: ${{ vars.SUITE_UPDATE_TRUST_JSON }}
+        shell: bash
+        run: node scripts/release/configure-trust.mjs
+      - name: Set cache location after runner initialization
+        shell: bash
+        env:
+          CLEAN: ${{ inputs.clean-build }}
+        run: |
+          python -B - <<'PYTHON'
+          import os
+          from pathlib import Path
+          suffix = '-clean' if os.environ['CLEAN'] == 'true' else ''
+          with open(os.environ['GITHUB_ENV'], 'a') as output:
+              output.write('UV_CACHE_DIR=' + str(Path(os.environ['RUNNER_TEMP']) / ('suite-installer-uv' + suffix)) + '\n')
+          PYTHON
+      - uses: astral-sh/setup-uv@eb1897b8dc4b5d5bfe39a428a8f2304605e0983c
+        with:
+          version: '0.12.7'
+          enable-cache: ${{ !inputs.clean-build && github.event_name != 'pull_request' && (github.ref == format('refs/heads/{0}', github.event.repository.default_branch) || startsWith(github.ref, 'refs/tags/')) }}
+      - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
+        if: inputs.clean-build != true && github.event_name != 'pull_request' && (github.ref == format('refs/heads/{0}', github.event.repository.default_branch) || startsWith(github.ref, 'refs/tags/'))
+        with:
+          path: |
+            aixand-suite/build/native/cache/registry
+            aixand-suite/build/native/cache/native
+          key: native-compiler-v1-${{ matrix.target }}-rust1.95.0-${{ hashFiles('aixand-suite/**/Cargo.lock') }}-${{ github.sha }}
+          restore-keys: |
+            native-compiler-v1-${{ matrix.target }}-rust1.95.0-${{ hashFiles('aixand-suite/**/Cargo.lock') }}-
+            native-compiler-v1-${{ matrix.target }}-rust1.95.0-
+      - if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          args=()
+          if [ "$INCLUDE_VOICE" != true ]; then args+=(--without-voice); fi
+          python -B scripts/package-linux.py --engine docker --output build/native "${args[@]}"
+      - if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          args=()
+          if [ "$INCLUDE_VOICE" != true ]; then args+=(--without-voice); fi
+          python -B scripts/package-macos.py --output build/native "${args[@]}"
+      - if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $buildOptions = @{ OutputDirectory = 'build/native' }
+          if ($env:INCLUDE_VOICE -ne 'true') { $buildOptions.WithoutVoice = $true }
+          ./build-windows.ps1 @buildOptions
+      - name: Export pinned Desktop baseline identity
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          python -B - <<'PYTHON'
+          import hashlib, json, os, sys
+          from pathlib import Path
+          sys.path.insert(0, 'scripts/release')
+          from assemble import inspect
+          from artifacts import digest_file
+          directory = Path('build/native/output/installers/desktop')
+          runtime = directory / 'runtime'
+          digest = hashlib.sha256((runtime / 'manifest.json').read_bytes()).hexdigest()
+          result = inspect(runtime, digest, os.environ['TARGET'], 'desktop')
+          result['archives'] = {p.name: digest_file(p) for p in directory.glob('*.tar.gz')}
+          (directory / 'baseline-identity.json').write_text(json.dumps(result, indent=2) + '\n')
+          PYTHON
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: aixand-desktop-client-server-${{ runner.os }}-${{ runner.arch }}
+          path: |
+            aixand-suite/build/native/output/installers/installers.json
+            aixand-suite/build/native/output/installers/*/*.tar.gz
+            aixand-suite/build/native/output/installers/*/*.deb
+            aixand-suite/build/native/output/installers/*/*.dmg
+            aixand-suite/build/native/output/installers/*/*.exe
+            aixand-suite/build/native/output/installers/*/*-setup
+            aixand-suite/build/native/output/installers/*/*.json
+          if-no-files-found: error
+  web:
+    needs: select
+    if: inputs.baseline-artifact-id != '' && inputs.clean-build != true
+    strategy:
+      matrix: ${{ fromJSON(needs.select.outputs.matrix) }}
+    uses: ./.github/workflows/component-build.yml
+    with:
+      component: web
+      target: ${{ matrix.target }}
+      os: ${{ matrix.os }}
+  warm:
+    needs: [select, web]
+    if: inputs.baseline-artifact-id != '' && inputs.clean-build != true
+    strategy:
+      matrix: ${{ fromJSON(needs.select.outputs.matrix) }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    env:
+      RUSTUP_TOOLCHAIN: '1.95.0'
+    steps:
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
+        with:
+          python-version: '3.12.14'
+      - name: Reject PR, fork, failed, or non-default-branch baselines before downloading
+        id: baseline_trust
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          ARTIFACT_ID: ${{ inputs.baseline-artifact-id }}
+          RUN_ID: ${{ inputs.baseline-run-id }}
+        run: python -B scripts/release/build_plan.py trust-baseline --artifact-id "$ARTIFACT_ID" --run-id "$RUN_ID" --github-output "$GITHUB_OUTPUT"
+      - name: Require unchanged backend source before warm assembly
+        shell: bash
+        env:
+          BASELINE_SHA: ${{ steps.baseline_trust.outputs.head_sha }}
+        run: python -B scripts/release/build_plan.py check-baseline-source --base "$BASELINE_SHA" --output build/baseline-source-check.json
+      # v4.3.0 verified at https://github.com/actions/download-artifact/releases/tag/v4.3.0
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          artifact-ids: ${{ inputs.baseline-artifact-id }}
+          run-id: ${{ inputs.baseline-run-id }}
+          github-token: ${{ github.token }}
+          path: build/baseline-download
+          merge-multiple: true
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: web-${{ matrix.target }}
+          path: build/web-download
+      - name: Extract the externally pinned archive and verify runtime inventory/modes
+        shell: bash
+        env:
+          ARCHIVE_SHA256: ${{ inputs.baseline-archive-sha256 }}
+          TARGET: ${{ matrix.target }}
+        run: python -B scripts/release/build_plan.py extract-baseline --baseline-directory build/baseline-download --archive-sha256 "$ARCHIVE_SHA256" --output build/pinned-baseline --target "$TARGET"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24.21.0'
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
+      - name: Set native compiler cache locations
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          python -B - <<'PYTHON'
+          import os
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP'])
+          with open(os.environ['GITHUB_ENV'], 'a') as output:
+              output.write('CARGO_TARGET_DIR=' + str(root / 'suite-native-compiler' / os.environ['TARGET']) + '\n')
+              output.write('npm_config_cache=' + str(root / 'suite-native-npm') + '\n')
+          PYTHON
+      - uses: astral-sh/setup-uv@eb1897b8dc4b5d5bfe39a428a8f2304605e0983c
+        with:
+          version: '0.12.7'
+          enable-cache: true
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libssl-dev librsvg2-dev patchelf
+      - run: rustup toolchain install 1.95.0 --profile minimal
+      - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
+        if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        with:
+          path: |
+            ${{ env.CARGO_TARGET_DIR }}
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: frontend-native-compiler-v1-${{ matrix.target }}-rust1.95.0-${{ hashFiles('**/Cargo.lock') }}-${{ github.sha }}
+          restore-keys: |
+            frontend-native-compiler-v1-${{ matrix.target }}-rust1.95.0-${{ hashFiles('**/Cargo.lock') }}-
+            frontend-native-compiler-v1-${{ matrix.target }}-rust1.95.0-
+      - name: Assemble Desktop and Client without Server or Runner compilation
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          python -B - <<'PYTHON'
+          import json, os, subprocess, sys, time
+          from pathlib import Path
+          receipt = json.loads(Path('build/pinned-baseline/baseline-identity.json').read_text())
+          web = json.loads(Path('build/web-download/component-release/release.json').read_text())
+          artifact = Path('build/web-download/component-release') / web['file']
+          timings = []
+          for role in ('desktop', 'client'):
+              args = [sys.executable, '-B', 'scripts/release/assemble.py', '--native-installers',
+                      '--desktop', 'apps/desktop', '--target', os.environ['TARGET'], '--role', role,
+                      '--web-artifact', str(artifact), '--web-sha256', web['sha256'],
+                      '--output', 'build/frontend-' + role]
+              if role == 'desktop':
+                  args += ['--runtime', 'build/pinned-baseline/runtime',
+                           '--manifest-sha256', receipt['manifestSha256'], '--modes-sha256', receipt['modesSha256']]
+              started = time.monotonic()
+              subprocess.run(args, check=True)
+              timings.append({'role': role, 'elapsed_seconds': time.monotonic() - started,
+                              'declared_build_scope': 'native-shell-only',
+                              'requested_server_compilation': False, 'requested_runner_compilation': False})
+          Path('build/assembly-timings.json').write_text(json.dumps({'schema': 1, 'phases': timings}, indent=2) + '\n')
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as stream:
+              stream.write('Manual pinned-baseline frontend assembly; declared scope is native-shell-only, with Server/Runner compilation not requested. Elapsed time is measured; compile dispatch counts are not instrumented. Native qualification remains as recorded by each assembly receipt.\n')
+              for row in timings:
+                  stream.write(f"{row['role']}: {row['elapsed_seconds']:.3f} seconds\n")
+          PYTHON
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          name: frontend-desktop-client-${{ matrix.target }}
+          path: |
+            build/frontend-desktop/*.tar.gz
+            build/frontend-desktop/*.deb
+            build/frontend-desktop/*.dmg
+            build/frontend-desktop/*.exe
+            build/frontend-desktop/*.json
+            build/frontend-client/*.json
+            build/frontend-client/client/*.tar.gz
+            build/frontend-client/client/*.deb
+            build/frontend-client/client/*.dmg
+            build/frontend-client/client/*.exe
+            build/frontend-client/client/*.json
+            build/assembly-timings.json
+            build/pinned-baseline/baseline-identity.json
+            build/baseline-source-check.json
+          if-no-files-found: error

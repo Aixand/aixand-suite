@@ -1,0 +1,21 @@
+[package]
+license = "Apache-2.0"
+repository = "https://github.com/Aixand/aixand-suite"
+name = "aixand-workflow-bridge"
+version = "0.1.0-alpha.1"
+edition = "2024"
+rust-version = "1.95"
+publish = false
+
+[dependencies]
+aixand-ir = { path = "../../../workflow/ir/crates/aixand-ir" }
+aixand-ir-runner = { path = "../../../workflow/ir/crates/aixand-ir-runner" }
+aixand-ir-aixand = { path = "../../../workflow/ir/crates/aixand-ir-aixand" }
+aixand-ir-verifier = { path = "../../../workflow/ir/crates/aixand-ir-verifier" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "io-util", "io-std"] }
+tokio-util = "0.7"
+
+[lints.rust]
+unsafe_code = "forbid"

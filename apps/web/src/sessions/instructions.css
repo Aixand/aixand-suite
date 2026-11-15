@@ -1,0 +1,11 @@
+.session-instructions-dialog.bbb-dialog { inline-size: 100%; max-block-size: calc(100dvh - var(--bbb-space-8)); display: flex; flex-direction: column; box-sizing: border-box; }
+.bbb-modal:has(.session-instructions-dialog) { --bbb-dialog-width: 46rem; max-block-size: calc(100dvh - var(--bbb-space-8)); overflow: hidden; }
+.session-instructions-dialog .bbb-dialog__header, .session-instructions-dialog .bbb-dialog__footer { flex: none; }
+.session-instructions-dialog .bbb-dialog__body { min-block-size: 0; overflow: auto; overscroll-behavior: contain; }
+.session-instructions { display: grid; gap: var(--bbb-space-5); min-inline-size: 0; }
+.session-instructions > * { min-inline-size: 0; }
+.session-instruction-reference { margin: 0; font-size: var(--bbb-font-size-sm); color: var(--bbb-color-text-secondary); overflow-wrap: anywhere; }
+.session-instruction-details { border-block-start: var(--bbb-border-width) solid var(--bbb-color-border); padding-block-start: var(--bbb-space-4); font-size: var(--bbb-font-size-sm); }
+.session-instruction-details summary { color: var(--bbb-color-text-secondary); cursor: pointer; }
+.session-instruction-details pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.session-details .session-instructions-trigger.bbb-button { block-size: auto; min-block-size: var(--bbb-control-height-sm); padding-inline: 0; text-align: start; white-space: normal; }
