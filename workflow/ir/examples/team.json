@@ -1,0 +1,220 @@
+{
+  "ir_version": "0.1",
+  "name": "team_request_reply",
+  "inputs": {
+    "task": {
+      "type": {
+        "kind": "string"
+      }
+    },
+    "profile": {
+      "type": {
+        "kind": "string"
+      },
+      "default": "research"
+    },
+    "timeout": {
+      "type": {
+        "kind": "number"
+      },
+      "default": 600
+    }
+  },
+  "body": {
+    "kind": "sequence",
+    "steps": [
+      {
+        "kind": "operation",
+        "id": "coordinator",
+        "operation": {
+          "id": "aixand.messaging.mailbox",
+          "version": "1.0.0"
+        },
+        "inputs": {
+          "address": {
+            "kind": "literal",
+            "value": "coordinator"
+          }
+        }
+      },
+      {
+        "kind": "operation",
+        "id": "brain",
+        "operation": {
+          "id": "aixand.agents.spawn",
+          "version": "1.0.0"
+        },
+        "inputs": {
+          "provider": {
+            "kind": "literal",
+            "value": "codex"
+          },
+          "profile": {
+            "kind": "ref",
+            "source": "input",
+            "name": "profile"
+          },
+          "address": {
+            "kind": "literal",
+            "value": "brain"
+          },
+          "instructions": {
+            "kind": "literal",
+            "value": "Answer Implementer questions through correlated Carrier replies. Do not send unsolicited messages or edit files."
+          }
+        }
+      },
+      {
+        "kind": "operation",
+        "id": "implementer",
+        "operation": {
+          "id": "aixand.agents.spawn",
+          "version": "1.0.0"
+        },
+        "inputs": {
+          "provider": {
+            "kind": "literal",
+            "value": "codex"
+          },
+          "profile": {
+            "kind": "ref",
+            "source": "input",
+            "name": "profile"
+          },
+          "address": {
+            "kind": "literal",
+            "value": "implementer"
+          },
+          "instructions": {
+            "kind": "literal",
+            "value": "Remember the original coordinator message ID. Ask brain one substantive question; after its answer, reply to the original coordinator job ID. Do not edit files."
+          }
+        }
+      },
+      {
+        "kind": "operation",
+        "id": "job",
+        "operation": {
+          "id": "carrier.message.send",
+          "version": "1.0.0"
+        },
+        "inputs": {
+          "mailbox": {
+            "kind": "ref",
+            "source": "step",
+            "step": "coordinator",
+            "output": "mailbox"
+          },
+          "to": {
+            "kind": "literal",
+            "value": "implementer"
+          },
+          "content": {
+            "kind": "ref",
+            "source": "input",
+            "name": "task"
+          },
+          "idempotency_key": {
+            "kind": "literal",
+            "value": "team-job"
+          }
+        }
+      },
+      {
+        "kind": "operation",
+        "id": "answer",
+        "operation": {
+          "id": "carrier.message.wait_for_reply",
+          "version": "1.0.0"
+        },
+        "inputs": {
+          "mailbox": {
+            "kind": "ref",
+            "source": "step",
+            "step": "coordinator",
+            "output": "mailbox"
+          },
+          "message": {
+            "kind": "ref",
+            "source": "step",
+            "step": "job",
+            "output": "message"
+          },
+          "sender": {
+            "kind": "literal",
+            "value": "implementer"
+          },
+          "timeout": {
+            "kind": "ref",
+            "source": "input",
+            "name": "timeout"
+          }
+        }
+      },
+      {
+        "kind": "operation",
+        "id": "ack",
+        "operation": {
+          "id": "carrier.message.ack",
+          "version": "1.0.0"
+        },
+        "inputs": {
+          "message": {
+            "kind": "ref",
+            "source": "step",
+            "step": "answer",
+            "output": "message"
+          }
+        }
+      },
+      {
+        "kind": "operation",
+        "id": "brain_ready",
+        "operation": {
+          "id": "aixand.agent.wait",
+          "version": "1.0.0"
+        },
+        "inputs": {
+          "agent": {
+            "kind": "ref",
+            "source": "step",
+            "step": "brain",
+            "output": "agent"
+          }
+        }
+      },
+      {
+        "kind": "operation",
+        "id": "implementer_ready",
+        "operation": {
+          "id": "aixand.agent.wait",
+          "version": "1.0.0"
+        },
+        "inputs": {
+          "agent": {
+            "kind": "ref",
+            "source": "step",
+            "step": "implementer",
+            "output": "agent"
+          }
+        }
+      }
+    ]
+  },
+  "outputs": {
+    "result": {
+      "type": {
+        "kind": "string"
+      },
+      "value": {
+        "kind": "ref",
+        "source": "step",
+        "step": "answer",
+        "output": "snapshot",
+        "path": [
+          "content"
+        ]
+      }
+    }
+  }
+}

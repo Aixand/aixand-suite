@@ -1,0 +1,123 @@
+{
+  "verified_at_utc": "2026-09-22T18:37:51.395441+00:00",
+  "workflow_sha256": "4122c9db479f1abedb27d64e5495931ada0b6a9053d543962a60308557bc7bdf",
+  "catalog_sha256": "376569412aec02aac08b702063e11fb1a2372e0235d8357e2bd6070610474faf",
+  "profile": "backup",
+  "provider": "codex",
+  "result": {
+    "run_id": "9638a65fd29c48e4b4970ddb5e487358",
+    "summary_observation": {
+      "constraint": "clear",
+      "execution": "active",
+      "health": "no_check",
+      "interaction": "available",
+      "lifecycle": "running",
+      "name": "agent-9638a65fd29c48e4b4970ddb5e487358",
+      "revision": 15,
+      "session_id": "session-e-6386e40011bfe3e3151ecd4b6372683d-8"
+    },
+    "task_observation": {
+      "constraint": "clear",
+      "execution": "active",
+      "health": "no_check",
+      "interaction": "available",
+      "lifecycle": "running",
+      "name": "agent-9638a65fd29c48e4b4970ddb5e487358",
+      "revision": 11,
+      "session_id": "session-e-6386e40011bfe3e3151ecd4b6372683d-8"
+    }
+  },
+  "events": [
+    {
+      "event": "prepared",
+      "warnings": []
+    },
+    {
+      "event": "started",
+      "invocation": "spawn",
+      "operation": {
+        "id": "aixand.agents.spawn",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "event": "published",
+      "invocation": "spawn"
+    },
+    {
+      "event": "started",
+      "invocation": "send_task",
+      "operation": {
+        "id": "aixand.agent.send",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "event": "published",
+      "invocation": "send_task"
+    },
+    {
+      "event": "started",
+      "invocation": "wait_task",
+      "operation": {
+        "id": "aixand.agent.wait",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "event": "published",
+      "invocation": "wait_task"
+    },
+    {
+      "event": "started",
+      "invocation": "send_summary",
+      "operation": {
+        "id": "aixand.agent.send",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "event": "published",
+      "invocation": "send_summary"
+    },
+    {
+      "event": "started",
+      "invocation": "wait_summary",
+      "operation": {
+        "id": "aixand.agent.wait",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "event": "published",
+      "invocation": "wait_summary"
+    },
+    {
+      "event": "started",
+      "invocation": "stop",
+      "operation": {
+        "id": "aixand.agent.stop",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "event": "published",
+      "invocation": "stop"
+    },
+    {
+      "event": "completed"
+    }
+  ],
+  "post_run": {
+    "lifecycle": "stopped",
+    "process": null,
+    "sdk_connection_status": "closed"
+  },
+  "summary_receipt_revision": 13,
+  "cancelled_startup": {
+    "run_id": "29235c1d9354469aad4b1edef92dc46d",
+    "reason": "Codex directory-trust prompt in untrusted child directory; cancelled before task delivery",
+    "lifecycle": "stopped",
+    "process": null
+  }
+}

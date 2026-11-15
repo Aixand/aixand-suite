@@ -1,0 +1,15 @@
+node_modules/
+/artifacts/agents-live/
+dist/
+test-results/
+playwright-report/
+*.tsbuildinfo
+.env.local
+
+artifacts/workflows-live/
+
+artifacts/carrier-live/
+
+/public/downloads/aixand-connect.pyz
+
+/artifacts/desktop/

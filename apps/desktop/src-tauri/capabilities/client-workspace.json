@@ -1,0 +1,12 @@
+{
+  "identifier": "client-workspace",
+  "description": "Bundled Client workspace can access only its selected server transport.",
+  "windows": [
+    "workspace"
+  ],
+  "permissions": [
+    "allow-client-request",
+    "allow-client-socket-open",
+    "allow-client-socket-send"
+  ]
+}

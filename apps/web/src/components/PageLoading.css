@@ -1,0 +1,28 @@
+.page-loading {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: var(--bbb-space-6);
+  overflow-wrap: anywhere;
+}
+
+.page-loading--panel {
+  min-height: var(--ax-empty-height);
+}
+
+.page-loading__indicator.bbb-loading-indicator {
+  --bbb-spinner-size: var(--bbb-space-6);
+  flex-direction: column;
+  gap: var(--bbb-space-3);
+  text-align: center;
+  line-height: var(--bbb-line-height-body);
+}
+
+.page-loading__indicator .bbb-button__spinner {
+  color: var(--bbb-color-supporting);
+}
+

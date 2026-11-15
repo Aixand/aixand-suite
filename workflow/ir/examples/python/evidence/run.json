@@ -1,0 +1,123 @@
+{
+  "verified_at_utc": "2026-09-22T18:58:28.011225+00:00",
+  "sha256": {
+    "examples/python/managed_codex_two_turns.py": "7d0f77001cefd3f0845377555042b6579b98a565a5f04a7db9eae9e2e009514a",
+    "examples/python/managed_codex_two_turns.json": "be13519e32d7ed8e9d2f161c0e980d56aebd4e7c5ae1be5e72eea24c59fda035",
+    "examples/real-agent/workflow.json": "4122c9db479f1abedb27d64e5495931ada0b6a9053d543962a60308557bc7bdf",
+    "examples/real-agent/catalog.json": "376569412aec02aac08b702063e11fb1a2372e0235d8357e2bd6070610474faf",
+    "examples/real-agent/inputs.json": "08c8ae7a529c88e7631b261df37d6d2bd7a3aa907cde26f121722eecdad4ef01",
+    "crates/aixand-ir-frontend/mappings/aixand.json": "7aa850cbd66cd32c2f24c27a6816ba3212043d1eaefec37024e9d4ecd6240403"
+  },
+  "profile": "backup",
+  "provider": "codex",
+  "result": {
+    "run_id": "87764f3c2a784007ac910bf965d1a0d2",
+    "summary_observation": {
+      "constraint": "clear",
+      "execution": "active",
+      "health": "no_check",
+      "interaction": "available",
+      "lifecycle": "running",
+      "name": "agent-87764f3c2a784007ac910bf965d1a0d2",
+      "revision": 14,
+      "session_id": "session-e-6386e40011bfe3e3151ecd4b6372683d-9"
+    },
+    "task_observation": {
+      "constraint": "clear",
+      "execution": "active",
+      "health": "no_check",
+      "interaction": "available",
+      "lifecycle": "running",
+      "name": "agent-87764f3c2a784007ac910bf965d1a0d2",
+      "revision": 10,
+      "session_id": "session-e-6386e40011bfe3e3151ecd4b6372683d-9"
+    }
+  },
+  "events": [
+    {
+      "event": "prepared",
+      "warnings": []
+    },
+    {
+      "event": "started",
+      "invocation": "spawn_1",
+      "operation": {
+        "id": "aixand.agents.spawn",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "event": "published",
+      "invocation": "spawn_1"
+    },
+    {
+      "event": "started",
+      "invocation": "send_1",
+      "operation": {
+        "id": "aixand.agent.send",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "event": "published",
+      "invocation": "send_1"
+    },
+    {
+      "event": "started",
+      "invocation": "wait_1",
+      "operation": {
+        "id": "aixand.agent.wait",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "event": "published",
+      "invocation": "wait_1"
+    },
+    {
+      "event": "started",
+      "invocation": "send_2",
+      "operation": {
+        "id": "aixand.agent.send",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "event": "published",
+      "invocation": "send_2"
+    },
+    {
+      "event": "started",
+      "invocation": "wait_2",
+      "operation": {
+        "id": "aixand.agent.wait",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "event": "published",
+      "invocation": "wait_2"
+    },
+    {
+      "event": "started",
+      "invocation": "stop_1",
+      "operation": {
+        "id": "aixand.agent.stop",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "event": "published",
+      "invocation": "stop_1"
+    },
+    {
+      "event": "completed"
+    }
+  ],
+  "post_run": {
+    "lifecycle": "stopped",
+    "process": null,
+    "sdk_connection_status": "closed"
+  },
+  "summary_receipt_revision": 12
+}

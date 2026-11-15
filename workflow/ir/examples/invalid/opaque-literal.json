@@ -1,0 +1,23 @@
+{
+  "ir_version": "0.1",
+  "inputs": {},
+  "body": {
+    "kind": "sequence",
+    "steps": []
+  },
+  "outputs": {
+    "agent": {
+      "type": {
+        "kind": "opaque",
+        "id": "aixand.agent",
+        "version": "1"
+      },
+      "value": {
+        "kind": "literal",
+        "value": {
+          "id": "not-a-handle"
+        }
+      }
+    }
+  }
+}

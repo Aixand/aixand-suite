@@ -1,0 +1,16 @@
+{
+  "ir_version": "0.1",
+  "inputs": {
+    "task": {
+      "type": {
+        "kind": "string"
+      },
+      "default": null
+    }
+  },
+  "body": {
+    "kind": "sequence",
+    "steps": []
+  },
+  "outputs": {}
+}

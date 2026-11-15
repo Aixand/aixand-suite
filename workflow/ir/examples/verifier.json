@@ -1,0 +1,104 @@
+{
+  "ir_version": "0.1",
+  "name": "verify_document",
+  "inputs": {
+    "title": {
+      "type": {
+        "kind": "string"
+      }
+    },
+    "body": {
+      "type": {
+        "kind": "string"
+      }
+    },
+    "label": {
+      "type": {
+        "kind": "string"
+      },
+      "default": "research"
+    }
+  },
+  "body": {
+    "kind": "sequence",
+    "steps": [
+      {
+        "kind": "operation",
+        "id": "verify",
+        "operation": {
+          "id": "verifier.verify",
+          "version": "1.0.0"
+        },
+        "inputs": {
+          "document": {
+            "kind": "object",
+            "fields": {
+              "title": {
+                "kind": "ref",
+                "source": "input",
+                "name": "title"
+              },
+              "body": {
+                "kind": "ref",
+                "source": "input",
+                "name": "body"
+              },
+              "labels": {
+                "kind": "array",
+                "items": [
+                  {
+                    "kind": "literal",
+                    "value": "aixand"
+                  },
+                  {
+                    "kind": "ref",
+                    "source": "input",
+                    "name": "label"
+                  }
+                ]
+              }
+            }
+          },
+          "required_terms": {
+            "kind": "literal",
+            "value": [
+              "workflow"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "outputs": {
+    "result": {
+      "type": {
+        "kind": "object",
+        "properties": {
+          "passed": {
+            "kind": "boolean"
+          },
+          "summary": {
+            "kind": "string"
+          },
+          "issues": {
+            "kind": "array",
+            "items": {
+              "kind": "string"
+            }
+          }
+        },
+        "required": [
+          "passed",
+          "summary",
+          "issues"
+        ]
+      },
+      "value": {
+        "kind": "ref",
+        "source": "step",
+        "step": "verify",
+        "output": "result"
+      }
+    }
+  }
+}

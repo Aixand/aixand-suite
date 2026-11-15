@@ -1,0 +1,94 @@
+name: Dependency-aware build-only plan
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      component:
+        description: 'auto uses git diff; all or a component explicitly rebuilds its dependency closure'
+        type: choice
+        default: auto
+        options: [auto, all, web, desktop, client, server, runner, ir, runner-client, python-sdk, orchestration-mcp, connect, vox]
+      target:
+        type: choice
+        default: all
+        options: [all, linux-x86_64-gnu, macos-arm64, windows-x86_64-msvc]
+      clean-build:
+        description: Cold verification without restoring artifact, compiler or download caches
+        type: boolean
+        default: false
+      repeat-build:
+        description: Measure a second build using byte-verified local reuse
+        type: boolean
+        default: false
+      include-voice:
+        description: Include optional Vox binary builds; Vox source checks run separately
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      has_builds: ${{ steps.plan.outputs.has_builds }}
+    steps:
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
+        with:
+          # Bootstrap CPython has native installers on all hosts; packaged runtimes use uv's pinned 3.12.14.
+          python-version: '3.12.10'
+      - id: plan
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          COMPONENT: ${{ inputs.component }}
+          TARGET: ${{ inputs.target }}
+          EVENT: ${{ github.event_name }}
+          INCLUDE_VOICE: ${{ inputs.include-voice == true }}
+        run: |
+          args=()
+          if [ "$COMPONENT" = all ]; then
+            while IFS= read -r component; do args+=(--component "$component"); done < <(python -B -c 'import json; print("\n".join(json.load(open("release/components.json"))["components"]))')
+          elif [ -n "$COMPONENT" ] && [ "$COMPONENT" != auto ]; then
+            args+=(--component "$COMPONENT")
+          elif [ -n "$BASE" ] && git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            args+=(--base "$BASE")
+          else
+            # Manual auto uses the previous commit; initial repositories fall back to all tracked paths.
+            if git rev-parse --verify HEAD^ >/dev/null 2>&1; then args+=(--base HEAD^); fi
+          fi
+          if [ -n "$TARGET" ] && [ "$TARGET" != all ]; then args+=(--target "$TARGET"); fi
+          if [ "$INCLUDE_VOICE" != true ] && [ "$COMPONENT" != vox ]; then args+=(--without-voice); fi
+          python -B scripts/release/build_plan.py "${args[@]}" --output build/build-plan.json --github-output "$GITHUB_OUTPUT"
+          python -B scripts/check-release-versions.py
+          python -B -m unittest discover -s tests/release -p test_build_plan.py -v
+          echo 'Frontend-only plans build target-specific Web artifacts. Desktop/Client assembly requires the manual pinned-baseline workflow; this run does not qualify native installers.' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: build-plan
+          path: build/build-plan.json
+          if-no-files-found: error
+  build:
+    needs: plan
+    if: needs.plan.outputs.has_builds == 'true'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    uses: ./.github/workflows/component-build.yml
+    with:
+      component: ${{ matrix.component }}
+      target: ${{ matrix.target }}
+      os: ${{ matrix.os }}
+      role: ${{ matrix.role }}
+      clean-build: ${{ inputs.clean-build == true }}
+      repeat-build: ${{ inputs.repeat-build == true }}

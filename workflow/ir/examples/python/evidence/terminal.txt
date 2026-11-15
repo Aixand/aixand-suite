@@ -1,0 +1,40 @@
+│ model:       gpt-6-astra xhigh   /model to change    │
+│ directory:   /data/dev/…/main-prod/aixand-products │
+│ permissions: YOLO mode                               │
+╰──────────────────────────────────────────────────────╯
+
+  Tip: Start a fresh idea with /new; the previous session stays in history.
+
+• You have 2 usage limit resets available. Run /usage to use one.
+
+
+› Read aixand-ir/examples/real-agent/fixture.md. Report the three products and their responsibilities in three short
+  bullets. Use only that file; do not browse, delegate, or modify any files. Keep this and subsequent responses
+  concise.
+
+
+• I’ll read the fixture and summarize the three products.
+
+• Explored
+  └ Read fixture.md
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+• - Agent Manager: Selects existing authenticated provider profiles and launches managed agents.
+  - Undercurrent: Delivers terminal input and reports observed session availability.
+  - Aixand: Composes those APIs and retains agent identity and input receipts across turns.
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+› Summarize your findings.
+
+
+• - Agent Manager: Selects authenticated provider profiles and launches managed agents.
+  - Undercurrent: Delivers terminal input and reports observed session availability.
+  - Aixand: Combines those APIs, preserving agent identity and input receipts across turns.
+ 
+ 
+› Ask Codex to do anything
+ 
+  gpt-6-astra xhigh · /data/dev/projects/aixand/main-prod/aixand-products

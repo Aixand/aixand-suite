@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools==84.2.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Artificial Intelligence Advancement Initiative Inc." }]
+name = "aixand-vox"
+version = "0.1.0a2"
+description = "Aixand Suite voice assistant using Pipecat and managed Codex profiles"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+dependencies = [
+    "Pillow>=13.0.0,<14",
+    "certifi>=2026.10.18",
+    "dnspython>=2.9.2",
+    "filelock>=4.2.1,<5",
+    "aixand-agent-manager[sdk]>=0.1.0b0,<0.2",
+    "aixand-undercurrent-sdk>=0.1.0b0,<0.2",
+    "pipecat-ai[webrtc,whisper,kokoro]==1.16.0",
+    "pipecat-ai[mlx-whisper]==1.16.0; sys_platform == 'darwin' and platform_machine == 'arm64'",
+    "sherpa-onnx==1.13.8",
+    "sherpa-onnx-core==1.13.8",
+]
+
+[project.scripts]
+aixand-vox = "aixand_vox.worker:main"
+aixand-vox-prepare = "aixand_vox.prepare:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.urls]
+Repository = "https://github.com/Aixand/aixand-suite"
+Issues = "https://github.com/Aixand/aixand-suite/issues"

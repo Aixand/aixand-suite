@@ -1,0 +1,261 @@
+name: Reusable build-only component
+
+on:
+  workflow_call:
+    inputs:
+      component: {type: string, required: true}
+      target: {type: string, required: true}
+      os: {type: string, required: true}
+      role: {type: string, default: ''}
+      release-sequence: {type: number, default: 0}
+      baseline-artifact-id: {type: string, default: ''}
+      baseline-run-id: {type: string, default: ''}
+      baseline-archive-sha256: {type: string, default: ''}
+      clean-build: {type: boolean, default: false}
+      repeat-build: {type: boolean, default: false}
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  build:
+    runs-on: ${{ inputs.os }}
+    timeout-minutes: 120
+    env:
+      RUSTUP_TOOLCHAIN: '1.95.0'
+      AIXAND_RELEASE_SEQUENCE: ${{ inputs.release-sequence }}
+    steps:
+      - name: Preserve checked input bytes on Windows
+        if: runner.os == 'Windows'
+        shell: bash
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Initialize Microsoft C++ toolchain
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $locator = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $installation = & $locator -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if (!$installation) { throw 'Microsoft C++ build tools are required' }
+          $developer = Join-Path $installation 'Common7\Tools\VsDevCmd.bat'
+          $lines = & $env:COMSPEC /d /s /c "`"$developer`" -no_logo -arch=x64 -host_arch=x64 >nul && set"
+          if ($LASTEXITCODE -ne 0) { throw 'C++ toolchain initialization failed' }
+          foreach ($line in $lines) {
+            if ($line -match '^([^=]+)=(.*)$') {
+              $name = $matches[1]; $value = $matches[2]
+              if ($name -ieq 'PATH') {
+                $existing = @($env:PATH -split ';' | ForEach-Object { $_.TrimEnd('\') })
+                $value -split ';' | Where-Object { $_ -and $_.TrimEnd('\') -notin $existing } | Add-Content $env:GITHUB_PATH
+              } elseif ($name -match '^(INCLUDE|LIB|LIBPATH|VCINSTALLDIR|VCTOOLSINSTALLDIR|WINDOWSSDKDIR|WINDOWSSDKVERSION|UNIVERSALCRTSDKDIR|UCRTVERSION)$') {
+                "$($name.ToUpperInvariant())=$value" | Add-Content $env:GITHUB_ENV
+              }
+            }
+          }
+          $toolVersion = (Get-Content (Join-Path $installation 'VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt') -Raw).Trim()
+          $linker = Join-Path $installation "VC\Tools\MSVC\$toolVersion\bin\Hostx64\x64\link.exe"
+          if (!(Test-Path $linker)) { throw 'Microsoft linker missing' }
+          "CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER=$linker" | Add-Content $env:GITHUB_ENV
+      - id: trust
+        shell: bash
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          trusted=false
+          if [ "$EVENT" != pull_request ] && { [ "$REF" = "refs/heads/$DEFAULT_BRANCH" ] || [[ "$REF" == refs/tags/* ]]; }; then trusted=true; fi
+          echo "trusted=$trusted" >> "$GITHUB_OUTPUT"
+      - if: inputs.component != 'python-sdk' && inputs.component != 'runner-client' && inputs.component != 'connect'
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24.21.0'
+          cache: ${{ steps.trust.outputs.trusted == 'true' && !inputs.clean-build && 'npm' || '' }}
+          cache-dependency-path: '**/package-lock.json'
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
+        with:
+          # Bootstrap CPython has native installers on all hosts; packaged runtimes use uv's pinned 3.12.14.
+          python-version: '3.12.10'
+      - name: Set cache locations after runner initialization
+        shell: bash
+        env:
+          TARGET: ${{ inputs.target }}
+          CLEAN: ${{ inputs.clean-build }}
+        run: |
+          python -B - <<'PYTHON'
+          import os
+          from pathlib import Path
+          suffix = '-clean' if os.environ['CLEAN'] == 'true' else ''
+          root = Path(os.environ['RUNNER_TEMP']) / ('suite-build-cache' + suffix) / os.environ['TARGET']
+          with open(os.environ['GITHUB_ENV'], 'a') as output:
+              for key, value in {'CACHE_ROOT': root, 'npm_config_cache': root / 'tools/npm', 'UV_CACHE_DIR': root / 'tools/uv'}.items():
+                  output.write(key + '=' + str(value) + '\n')
+          PYTHON
+      - uses: astral-sh/setup-uv@eb1897b8dc4b5d5bfe39a428a8f2304605e0983c
+        with:
+          version: '0.12.7'
+          enable-cache: ${{ steps.trust.outputs.trusted == 'true' && !inputs.clean-build }}
+      - name: Prepare explicitly configured public updater trust
+        if: vars.SUITE_UPDATE_TRUST_JSON != ''
+        env:
+          SUITE_UPDATE_TRUST_JSON: ${{ vars.SUITE_UPDATE_TRUST_JSON }}
+        shell: bash
+        run: node scripts/release/configure-trust.mjs
+      - name: Validate explicit runtime baseline inputs
+        shell: bash
+        env:
+          COMPONENT: ${{ inputs.component }}
+          ARTIFACT_ID: ${{ inputs.baseline-artifact-id }}
+          RUN_ID: ${{ inputs.baseline-run-id }}
+          DIGEST: ${{ inputs.baseline-archive-sha256 }}
+          CLEAN: ${{ inputs.clean-build }}
+        run: |
+          python -B - <<'PYTHON'
+          import os
+          values = [os.environ[k] for k in ('ARTIFACT_ID', 'RUN_ID', 'DIGEST')]
+          if any(values):
+              if not all(values) or os.environ['COMPONENT'] not in ('server', 'vox') or os.environ['CLEAN'] == 'true':
+                  raise SystemExit('Supply all baseline pins for Server/Vox; cold verification requires no baseline')
+          PYTHON
+      - name: Authenticate baseline provenance before downloading
+        if: inputs.baseline-artifact-id != ''
+        id: baseline
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          ARTIFACT_ID: ${{ inputs.baseline-artifact-id }}
+          RUN_ID: ${{ inputs.baseline-run-id }}
+          COMPONENT: ${{ inputs.component }}
+        run: |
+          python -B scripts/release/build_plan.py trust-baseline --artifact-id "$ARTIFACT_ID" --run-id "$RUN_ID" --github-output "$GITHUB_OUTPUT" --output build/baseline-trust.json
+          BASELINE_SHA=$(python -c 'import json; print(json.load(open("build/baseline-trust.json"))["head_sha"])')
+          python -B scripts/release/build_plan.py check-component-baseline --base "$BASELINE_SHA" --component "$COMPONENT" --output build/baseline-source.json
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        if: inputs.baseline-artifact-id != ''
+        with:
+          artifact-ids: ${{ inputs.baseline-artifact-id }}
+          run-id: ${{ inputs.baseline-run-id }}
+          github-token: ${{ github.token }}
+          path: build/baseline-download
+          merge-multiple: true
+      - name: Verify the pinned runtime archive
+        if: inputs.baseline-artifact-id != ''
+        shell: bash
+        env:
+          DIGEST: ${{ inputs.baseline-archive-sha256 }}
+          TARGET: ${{ inputs.target }}
+        run: python -B scripts/release/build_plan.py extract-baseline --baseline-directory build/baseline-download --archive-sha256 "$DIGEST" --output build/pinned-baseline --target "$TARGET"
+      - name: Install Linux desktop prerequisites
+        if: runner.os == 'Linux' && inputs.component == 'desktop'
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libssl-dev librsvg2-dev patchelf
+      - if: inputs.component != 'python-sdk' && inputs.component != 'runner-client' && inputs.component != 'connect'
+        run: rustup toolchain install 1.95.0 --profile minimal
+      - name: Prepare exact Linux full-native builder before input identity
+        if: inputs.baseline-artifact-id == '' && runner.os == 'Linux' && (inputs.component == 'desktop' || inputs.component == 'server' || inputs.component == 'vox')
+        shell: bash
+        env:
+          CLEAN_BUILD: ${{ inputs.clean-build }}
+        run: |
+          python -B - <<'PY'
+          import os, shutil, subprocess
+          # Match package-linux.py's engine selection and immutable local tag.
+          engine = 'podman' if shutil.which('podman') else 'docker'
+          args = [engine, 'build']
+          if os.environ['CLEAN_BUILD'] == 'true':
+              args.append('--no-cache')
+          subprocess.run([*args, '-t', 'localhost/aixand-linux-builder:0.1',
+                          '-f', 'scripts/runtime/Containerfile', 'scripts/runtime'], check=True)
+          PY
+      # v4.2.3 verified against https://github.com/actions/cache/releases/tag/v4.2.3
+      # Tool/download/compiler caches are disposable; never used as final artifacts.
+      - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
+        if: steps.trust.outputs.trusted == 'true' && !inputs.clean-build
+        with:
+          path: |
+            ${{ env.CACHE_ROOT }}/tools/cargo/registry
+            ${{ env.CACHE_ROOT }}/tools/cargo/git
+            ${{ env.CACHE_ROOT }}/tools/target
+          key: compiler-v1-${{ runner.os }}-${{ runner.arch }}-${{ inputs.target }}-rust1.95.0-${{ hashFiles('**/Cargo.lock') }}-${{ github.sha }}
+          restore-keys: |
+            compiler-v1-${{ runner.os }}-${{ runner.arch }}-${{ inputs.target }}-rust1.95.0-${{ hashFiles('**/Cargo.lock') }}-
+            compiler-v1-${{ runner.os }}-${{ runner.arch }}-${{ inputs.target }}-rust1.95.0-
+      - id: identity
+        name: Identify exact native-host inputs after toolchain setup
+        shell: bash
+        env:
+          COMPONENT: ${{ inputs.component }}
+          TARGET: ${{ inputs.target }}
+          ROLE: ${{ inputs.role }}
+        run: |
+          args=()
+          if [ -n "$ROLE" ]; then args+=(--role "$ROLE"); fi
+          if [ -d build/pinned-baseline/runtime ]; then args+=(--runtime build/pinned-baseline/runtime); fi
+          python -B scripts/release/build_plan.py identity --component "$COMPONENT" --target "$TARGET" "${args[@]}" --output build/identity.json --github-output "$GITHUB_OUTPUT"
+      - uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684
+        if: steps.trust.outputs.trusted == 'true' && !inputs.clean-build
+        with:
+          path: ${{ env.CACHE_ROOT }}/objects/${{ steps.identity.outputs.key }}
+          key: component-output-v1-${{ inputs.target }}-${{ steps.identity.outputs.key }}
+          # No restore prefixes: build.py verifies the exact identity and bytes.
+      - name: Check Windows command discovery isolation
+        if: runner.os == 'Windows' && inputs.component == 'orchestration-mcp'
+        shell: pwsh
+        run: python -B scripts/checks/check-windows-command-discovery.py
+      - name: Build selected artifacts
+        shell: bash
+        env:
+          COMPONENT: ${{ inputs.component }}
+          TARGET: ${{ inputs.target }}
+          ROLE: ${{ inputs.role }}
+          CLEAN_BUILD: ${{ inputs.clean-build }}
+        run: |
+          args=()
+          if [ -n "$ROLE" ]; then args+=(--role "$ROLE"); fi
+          if [ -d build/pinned-baseline/runtime ]; then args+=(--runtime build/pinned-baseline/runtime); fi
+          if [ "$CLEAN_BUILD" = true ]; then args+=(--clean-build); fi
+          python -B scripts/release/build.py --component "$COMPONENT" --target "$TARGET" --output build/component-release --cache "$CACHE_ROOT" --timing-report build/timing-first.json "${args[@]}"
+      - name: Measure verified repeat reuse
+        if: inputs.repeat-build
+        shell: bash
+        env:
+          COMPONENT: ${{ inputs.component }}
+          TARGET: ${{ inputs.target }}
+          ROLE: ${{ inputs.role }}
+        run: |
+          args=()
+          if [ -n "$ROLE" ]; then args+=(--role "$ROLE"); fi
+          if [ -d build/pinned-baseline/runtime ]; then args+=(--runtime build/pinned-baseline/runtime); fi
+          python -B scripts/release/build.py --component "$COMPONENT" --target "$TARGET" --output build/component-repeat --cache "$CACHE_ROOT" --timing-report build/timing-repeat.json "${args[@]}"
+      - name: Record measured timing summary
+        if: always()
+        shell: bash
+        run: |
+          python -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as stream:
+              stream.write('| Measurement | Cache status | Build dispatches | Seconds |\n|---|---|---:|---:|\n')
+              for path in sorted(Path('build').glob('timing-*.json')):
+                  row = json.loads(path.read_text())
+                  stream.write(f"| {path.stem} | {row['cache_status']} | {row['build_dispatches']} | {row['elapsed_seconds']:.3f} |\n")
+          PY
+      - uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684
+        if: success() && steps.trust.outputs.trusted == 'true' && !inputs.clean-build
+        with:
+          path: ${{ env.CACHE_ROOT }}/objects/${{ steps.identity.outputs.key }}
+          key: component-output-v1-${{ inputs.target }}-${{ steps.identity.outputs.key }}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          name: ${{ inputs.role || inputs.component }}-${{ inputs.target }}
+          path: |
+            build/component-release/
+            build/identity.json
+            build/timing-*.json
+            build/baseline-source.json
+            build/pinned-baseline/baseline-identity.json
+          if-no-files-found: error

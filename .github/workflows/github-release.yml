@@ -1,0 +1,87 @@
+name: Prepare or publish GitHub release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing component/vVERSION or suite/vVERSION tag (select this same tag as the workflow ref)
+        required: true
+        type: string
+      run-id:
+        description: Successful first-party build at this exact tag commit
+        required: true
+        type: string
+      artifact-ids:
+        description: Comma-separated Actions artifact IDs from that run
+        required: true
+        type: string
+      native-exports:
+        description: Inputs contain hosted.py exports with exact native qualification
+        type: boolean
+        default: false
+      publish:
+        description: Make the release public; false creates a draft
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: github-release-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    environment: github-release
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
+        with:
+          # Bootstrap CPython has native installers on all hosts; packaged runtimes use uv's pinned 3.12.14.
+          python-version: '3.12.10'
+      - name: Verify tag and source artifact provenance
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          RUN_ID: ${{ inputs.run-id }}
+          ARTIFACT_IDS: ${{ inputs.artifact-ids }}
+        run: |
+          test "$GITHUB_REF" = "refs/tags/$TAG"
+          python -B scripts/release/github-release.py trust --tag "$TAG" --run-id "$RUN_ID" --artifact-ids "$ARTIFACT_IDS"
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          artifact-ids: ${{ inputs.artifact-ids }}
+          run-id: ${{ inputs.run-id }}
+          github-token: ${{ github.token }}
+          path: build/release-inputs
+      - name: Prepare exact release assets and composition
+        env:
+          TAG: ${{ inputs.tag }}
+          NATIVE: ${{ inputs.native-exports }}
+        run: |
+          args=(--directory build/release-inputs)
+          if [ "$NATIVE" = true ]; then args=(--native-directory build/release-inputs); fi
+          python -B scripts/release/github-release.py prepare --tag "$TAG" "${args[@]}" --output build/github-release
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: github-release-assets
+          path: build/github-release
+          if-no-files-found: error
+      - name: Create the GitHub release without replacing existing assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+          PUBLISH: ${{ inputs.publish }}
+        run: |
+          args=()
+          if [ "$PUBLISH" = true ]; then args+=(--publish); fi
+          python -B scripts/release/github-release.py upload --tag "$TAG" --directory build/github-release "${args[@]}"

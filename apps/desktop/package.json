@@ -1,0 +1,22 @@
+{
+  "name": "aixand-desktop",
+  "version": "0.1.0-alpha.2",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "desktop:dev": "tauri dev",
+    "desktop:dev:ssh": "tauri dev",
+    "desktop:build": "tauri build",
+    "desktop:export": "python3 scripts/export-desktop.py"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.12.3"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Aixand/aixand-suite.git",
+    "directory": "apps/desktop"
+  },
+  "author": "Artificial Intelligence Advancement Initiative Inc."
+}

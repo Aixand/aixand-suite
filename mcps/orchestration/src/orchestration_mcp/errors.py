@@ -1,0 +1,10 @@
+"""Public errors do not require any manager or application package."""
+
+
+class OrchestrationError(RuntimeError):
+    def __init__(self, code, message, *, uncertain=False):
+        super().__init__(message)
+        self.code, self.uncertain = code, uncertain
+
+    def to_dict(self):
+        return {"code": self.code, "message": str(self), "uncertain": self.uncertain}

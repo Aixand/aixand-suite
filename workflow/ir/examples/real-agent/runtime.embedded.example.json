@@ -1,0 +1,12 @@
+{
+  "python_interpreter": {
+    "executable": "/absolute/path/to/private-python/bin/python3",
+    "home": "/absolute/path/to/private-python"
+  },
+  "connection": {
+    "bridge": "/absolute/path/to/runtime/bin/uc-python-bridge",
+    "state_dir": "/absolute/path/to/private-workspace/workflow-runs",
+    "stable_for": 2.0,
+    "timeout": 300.0
+  }
+}

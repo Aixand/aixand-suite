@@ -1,0 +1,70 @@
+{
+  "name": "aixand-server",
+  "version": "0.1.0-alpha.2",
+  "description": "Aixand backend API and WebSocket gateway",
+  "author": "Artificial Intelligence Advancement Initiative Inc.",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "build": "nest build",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "start": "nest start",
+    "start:dev": "nest start --watch --watchAssets",
+    "start:debug": "nest start --debug --watch --watchAssets",
+    "start:prod": "node dist/production-main.js",
+    "lint": "oxlint src/ test/",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:cov": "vitest run --coverage",
+    "test:debug": "vitest --inspect-brk --no-file-parallelism",
+    "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
+    "bridge:build": "cargo build --locked --manifest-path bridge/Cargo.toml",
+    "test:terminals:pressure": "npm run bridge:build && node scripts/test-terminal-pressure.mjs",
+    "bridge:release": "cargo build --locked --release --manifest-path bridge/Cargo.toml",
+    "workflow:build": "cargo build --locked --manifest-path workflow-bridge/Cargo.toml",
+    "test:workflows:protocol": "npm run build && npm run workflow:build && node scripts/test-workflows-protocol.mjs",
+    "auth:hash-password": "npm run build --silent && node --env-file-if-exists=.env dist/auth/cli.js hash-password",
+    "auth:recover": "npm run build --silent && node --env-file-if-exists=.env dist/auth/cli.js recover"
+  },
+  "dependencies": {
+    "@nestjs/common": "^12.0.1",
+    "@nestjs/core": "^12.0.1",
+    "@nestjs/platform-express": "^12.0.1",
+    "@nestjs/platform-ws": "^12.0.4",
+    "@nestjs/websockets": "^12.0.4",
+    "argon2": "0.45.1",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "ws": "^8.21.3",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^12.0.0",
+    "@nestjs/schematics": "^12.0.0",
+    "@nestjs/testing": "^12.0.1",
+    "@types/express": "^5.0.0",
+    "@types/node": "^24.0.0",
+    "@types/supertest": "^7.0.0",
+    "@types/ws": "^8.18.1",
+    "@vitest/coverage-v8": "^4.1.12",
+    "oxlint": "^1.58.0",
+    "prettier": "^3.4.2",
+    "source-map-support": "^0.5.21",
+    "supertest": "^7.0.0",
+    "typescript": "^6.0.2",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^4.1.12"
+  },
+  "engines": {
+    "node": ">=24.15.0 <25"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Aixand/aixand-suite.git",
+    "directory": "apps/server"
+  },
+  "overrides": {
+    "multer": "^2.5.0"
+  }
+}

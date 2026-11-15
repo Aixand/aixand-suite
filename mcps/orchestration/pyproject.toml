@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools==84.2.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aixand-suite-orchestration-mcp"
+version = "0.1.0a2"
+description = "Public manager and runtime delegation tools"
+readme = "README.md"
+requires-python = ">=3.11,<3.15"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+dependencies = ["aixand-lib-filesystem>=0.1.0b0,<0.2", "aixand-lib-local-runtime>=0.1.0b0,<0.2"]
+
+[project.optional-dependencies]
+agents = ["aixand-agent-manager>=0.1.0b0,<0.2", "jsonschema>=4.25,<5"]
+resources = ["aixand-mcp-manager>=0.1.0b0,<0.2", "aixand-prompt-manager>=0.1.0b0,<0.2", "aixand-skill-manager>=0.1.0b0,<0.2"]
+conversations = ["aixand-conversation-manager[agents]>=0.1.0b0,<0.2"]
+terminals = ["aixand-agent-manager[undercurrent]>=0.1.0b0,<0.2"]
+runtime = ["aixand-conversation-manager[agents]>=0.1.0b0,<0.2", "aixand-agent-manager[undercurrent]>=0.1.0b0,<0.2"]
+tasks = ["aixand-carrier-mcp>=0.1.0b0,<0.2"]
+workflows = ["aixand-conversation-manager[agents]>=0.1.0b0,<0.2", "aixand-suite-runner-client>=0.1.0a1,<0.2", "aixand-carrier-mcp>=0.1.0b0,<0.2"]
+runner = ["aixand-suite-runner-client>=0.1.0a1,<0.2"]
+carrier = ["aixand-carrier-mcp>=0.1.0b0,<0.2"]
+connect = ["aixand-suite-connect>=0.1.0a1,<0.2"]
+
+[project.scripts]
+orchestration-mcp = "orchestration_mcp.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+orchestration_mcp = ["contracts/*.json"]
+
+[tool.uv.sources]
+aixand-suite-runner-client = { path = "../../workflow/runner/python", editable = true }

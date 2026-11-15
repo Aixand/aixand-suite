@@ -1,0 +1,297 @@
+{
+  "schema": 1,
+  "suite": {
+    "version": "0.1.0-alpha.2"
+  },
+  "components": {
+    "server": {
+      "root": "apps/server",
+      "manifest": "apps/server/package.json",
+      "format": "node",
+      "kind": "application",
+      "activation": "runtime",
+      "dependencies": [
+        "orchestration-mcp",
+        "connect",
+        "python-sdk",
+        "runner-client",
+        "ir"
+      ],
+      "check": [
+        [
+          "npm",
+          "--prefix",
+          "apps/server",
+          "run",
+          "lint"
+        ],
+        [
+          "npm",
+          "--prefix",
+          "apps/server",
+          "test"
+        ]
+      ],
+      "build": [
+        [
+          "npm",
+          "--prefix",
+          "apps/server",
+          "run",
+          "build"
+        ]
+      ]
+    },
+    "web": {
+      "root": "apps/web",
+      "manifest": "apps/web/package.json",
+      "format": "node",
+      "kind": "assets",
+      "activation": "runtime",
+      "dependencies": [],
+      "check": [
+        [
+          "npm",
+          "--prefix",
+          "apps/web",
+          "run",
+          "lint"
+        ]
+      ],
+      "build": [
+        [
+          "npm",
+          "--prefix",
+          "apps/web",
+          "run",
+          "build"
+        ]
+      ]
+    },
+    "desktop": {
+      "root": "apps/desktop",
+      "manifest": "apps/desktop/package.json",
+      "format": "node",
+      "kind": "application",
+      "activation": "native-installer",
+      "dependencies": [
+        "web"
+      ],
+      "check": [
+        [
+          "cargo",
+          "check",
+          "--locked",
+          "--manifest-path",
+          "apps/desktop/src-tauri/Cargo.toml"
+        ]
+      ],
+      "build": [
+        [
+          "npm",
+          "--prefix",
+          "apps/desktop",
+          "run",
+          "desktop:build"
+        ]
+      ]
+    },
+    "orchestration-mcp": {
+      "root": "mcps/orchestration",
+      "manifest": "mcps/orchestration/pyproject.toml",
+      "format": "python",
+      "kind": "product",
+      "activation": "product-engine",
+      "dependencies": [
+        "connect",
+        "runner-client"
+      ],
+      "check": [
+        [
+          "{python}",
+          "-B",
+          "-m",
+          "compileall",
+          "-q",
+          "mcps/orchestration/src"
+        ]
+      ],
+      "build": [
+        [
+          "uv",
+          "build",
+          "--wheel",
+          "--no-sources",
+          "mcps/orchestration"
+        ]
+      ]
+    },
+    "connect": {
+      "root": "services/connect",
+      "manifest": "services/connect/pyproject.toml",
+      "format": "python",
+      "kind": "service",
+      "activation": "runtime",
+      "dependencies": [],
+      "check": [
+        [
+          "{python}",
+          "-B",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "services/connect/tests"
+        ]
+      ],
+      "build": [
+        [
+          "uv",
+          "build",
+          "--wheel",
+          "--no-sources",
+          "services/connect"
+        ]
+      ]
+    },
+    "vox": {
+      "root": "services/vox",
+      "manifest": "services/vox/pyproject.toml",
+      "format": "python",
+      "kind": "service",
+      "activation": "runtime",
+      "dependencies": [],
+      "check": [
+        [
+          "{python}",
+          "-B",
+          "-m",
+          "compileall",
+          "-q",
+          "services/vox/src"
+        ]
+      ],
+      "build": [
+        [
+          "uv",
+          "build",
+          "--wheel",
+          "--no-sources",
+          "services/vox"
+        ]
+      ]
+    },
+    "runner": {
+      "root": "workflow/runner",
+      "manifest": "workflow/runner/Cargo.toml",
+      "format": "cargo",
+      "kind": "product",
+      "activation": "product-engine",
+      "dependencies": [
+        "ir",
+        "runner-client"
+      ],
+      "check": [
+        [
+          "cargo",
+          "test",
+          "--locked",
+          "--manifest-path",
+          "workflow/runner/Cargo.toml"
+        ]
+      ],
+      "build": [
+        [
+          "cargo",
+          "build",
+          "--locked",
+          "--release",
+          "--manifest-path",
+          "workflow/runner/Cargo.toml"
+        ]
+      ]
+    },
+    "ir": {
+      "root": "workflow/ir",
+      "manifest": "workflow/ir/Cargo.toml",
+      "format": "cargo-workspace",
+      "kind": "library",
+      "activation": "consumer-build",
+      "dependencies": [],
+      "check": [
+        [
+          "cargo",
+          "test",
+          "--locked",
+          "--manifest-path",
+          "workflow/ir/Cargo.toml"
+        ]
+      ],
+      "build": [
+        [
+          "cargo",
+          "build",
+          "--locked",
+          "--release",
+          "--manifest-path",
+          "workflow/ir/Cargo.toml"
+        ]
+      ]
+    },
+    "runner-client": {
+      "root": "workflow/runner/python",
+      "manifest": "workflow/runner/python/pyproject.toml",
+      "format": "python",
+      "kind": "library",
+      "activation": "consumer-build",
+      "dependencies": [],
+      "check": [
+        [
+          "{python}",
+          "-B",
+          "-m",
+          "compileall",
+          "-q",
+          "workflow/runner/python"
+        ]
+      ],
+      "build": [
+        [
+          "uv",
+          "build",
+          "--wheel",
+          "--no-sources",
+          "workflow/runner/python"
+        ]
+      ]
+    },
+    "python-sdk": {
+      "root": "sdks/python",
+      "manifest": "sdks/python/pyproject.toml",
+      "format": "python",
+      "kind": "library",
+      "activation": "consumer-build",
+      "dependencies": [],
+      "check": [
+        [
+          "{python}",
+          "-B",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "sdks/python/tests"
+        ]
+      ],
+      "build": [
+        [
+          "uv",
+          "build",
+          "--wheel",
+          "--no-sources",
+          "sdks/python"
+        ]
+      ]
+    }
+  }
+}
