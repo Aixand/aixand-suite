@@ -1,0 +1,10 @@
+/target/
+/.runner/
+__pycache__/
+*.pyc
+/build/
+/dist/
+/.venv/
+/tools/.venv/
+*.egg-info/
+.ruff_cache/

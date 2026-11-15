@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools==84.2.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Artificial Intelligence Advancement Initiative Inc." }]
+name = "aixand-suite-python"
+version = "0.1.0a2"
+description = "Ergonomic composition of Agent Manager, Carrier, and Undercurrent"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "opentelemetry-api>=1.45.2",
+    "aixand-lib-filesystem>=0.1.0b0,<0.2",
+    "aixand-agent-manager[sdk]>=0.1.0b0,<0.2",
+    "aixand-undercurrent-sdk>=0.1.0b0,<0.2",
+    "aixand-carrier-mcp>=0.1.0b0,<0.2",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+aixand = ["py.typed"]
+
+[project.urls]
+Repository = "https://github.com/Aixand/aixand-suite"
+Issues = "https://github.com/Aixand/aixand-suite/issues"

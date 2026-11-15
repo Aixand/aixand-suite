@@ -1,0 +1,43 @@
+// Copied from ../../project-site/src/styles/aixand-palette.mjs.
+// Keep the site's colors together; the app inherits BBB component foundations.
+// Neutral surfaces support teal identity, primary actions, and selected accents.
+export const aixandPalette = {
+  light: {
+    canvas: '#FAFAFA',
+    surface: '#FFFFFF',
+    muted: '#F0F1F2',
+    inset: '#FFFFFF',
+    text: '#202124',
+    secondary: '#62666B',
+    border: '#E6E7E9',
+    borderStrong: '#888D94',
+    teal: '#237D80',
+    actionHover: '#1B6669',
+    actionPressed: '#145054',
+    actionText: '#1C6E71',
+    onAction: '#FFFFFF',
+    fieldHover: '#E8EAED',
+    glass: 'rgb(250 250 250 / 94%)',
+    scrim: 'rgb(32 33 36 / 32%)',
+    floatingShadow: '0 8px 24px rgb(32 33 36 / 10%)',
+  },
+  dark: {
+    canvas: '#121212',
+    surface: '#1C1C1C',
+    muted: '#262626',
+    inset: '#191919',
+    text: '#F4F4F4',
+    secondary: '#A8ADB3',
+    border: '#303234',
+    borderStrong: '#72777F',
+    teal: '#65BCBE',
+    actionHover: '#8CCED0',
+    actionPressed: '#AADBDD',
+    actionText: '#65BCBE',
+    onAction: '#121212',
+    fieldHover: '#2E2E2E',
+    glass: 'rgb(18 18 18 / 94%)',
+    scrim: 'rgb(0 0 0 / 65%)',
+    floatingShadow: '0 12px 32px rgb(0 0 0 / 35%)',
+  },
+}

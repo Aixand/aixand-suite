@@ -1,0 +1,34 @@
+[package]
+license = "Apache-2.0"
+repository = "https://github.com/Aixand/aixand-suite"
+name = "aixand-desktop"
+version = "0.1.0-alpha.3"
+description = "Aixand Suite desktop client"
+edition = "2024"
+rust-version = "1.95"
+publish = false
+
+[features]
+client = []
+
+[build-dependencies]
+serde_json = "1"
+sha2 = "0.10"
+url = "2"
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+aixand-native-updater = { path = "native-updater" }
+aixand-client-transport = { path = "transport" }
+open = "5"
+tauri = { version = "2", features = [] }
+reqwest = { version = "0.13", default-features = false, features = ["native-tls"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+tokio = { version = "1", features = ["rt", "sync", "time", "macros"] }
+url = "2"
+
+# GTK3-compatible GLib with the upstream RUSTSEC-2024-0429 fix.
+[patch.crates-io]
+glib = { path = "vendor/glib" }

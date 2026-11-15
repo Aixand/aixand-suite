@@ -1,0 +1,29 @@
+{
+  "version": "0.1.0-alpha.3",
+  "bundle": {
+    "resources": {
+      "resources/runtime/": "runtime/"
+    },
+    "linux": {
+      "deb": {
+        "depends": [
+          "libwebkit2gtk-4.1-0",
+          "libgtk-3-0",
+          "libssl3",
+          "libstdc++6",
+          "libgomp1",
+          "libasound2",
+          "libespeak-ng1",
+          "ffmpeg",
+          "git",
+          "curl",
+          "bash",
+          "ca-certificates"
+        ],
+        "files": {
+          "/usr/bin/aixand-runtime": "resources/aixand-runtime"
+        }
+      }
+    }
+  }
+}

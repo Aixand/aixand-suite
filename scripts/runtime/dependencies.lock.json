@@ -1,0 +1,353 @@
+{
+  "products": {
+    "agent-manager": {
+      "assets": {
+        "linux-arm64-gnu": {
+          "filename": "aixand-agent-manager-0.1.0-beta-linux-arm64-gnu.tar.gz",
+          "sha256": "aba42ae0f3ba119f449a4c84d2c6d6a3103041f9e23aa478b87a89cb8ea8b13e",
+          "url": "https://github.com/Aixand/manager-suite/releases/download/aixand-agent-manager/v0.1.0-beta/aixand-agent-manager-0.1.0-beta-linux-arm64-gnu.tar.gz"
+        },
+        "linux-x86_64-gnu": {
+          "filename": "aixand-agent-manager-0.1.0-beta-linux-x86_64-gnu.tar.gz",
+          "sha256": "fa311b0c8859c55ca3f2cc72b5975fa9f58cdd726640469800b9977584afeddb",
+          "url": "https://github.com/Aixand/manager-suite/releases/download/aixand-agent-manager/v0.1.0-beta/aixand-agent-manager-0.1.0-beta-linux-x86_64-gnu.tar.gz"
+        },
+        "macos-arm64": {
+          "filename": "aixand-agent-manager-0.1.0-beta-macos-arm64.tar.gz",
+          "sha256": "b612bfb1d108964af6d0cc95053ca1ab1a9702162070f7c433eedcf93145872c",
+          "url": "https://github.com/Aixand/manager-suite/releases/download/aixand-agent-manager/v0.1.0-beta/aixand-agent-manager-0.1.0-beta-macos-arm64.tar.gz"
+        },
+        "windows-x86_64-msvc": {
+          "filename": "aixand-agent-manager-0.1.0-beta-windows-x86_64-msvc.zip",
+          "sha256": "505d7eb22dc9127ad7eb3727278461284f623f869f6689bdcae8b8d950ba80cb",
+          "url": "https://github.com/Aixand/manager-suite/releases/download/aixand-agent-manager/v0.1.0-beta/aixand-agent-manager-0.1.0-beta-windows-x86_64-msvc.zip"
+        }
+      },
+      "product": "manager-suite/agent-manager",
+      "repository": "Aixand/manager-suite",
+      "tag": "aixand-agent-manager/v0.1.0-beta"
+    },
+    "carrier": {
+      "assets": {
+        "linux-arm64-gnu": {
+          "filename": "carrier-0.1.0-beta-linux-arm64-gnu.tar.gz",
+          "sha256": "552d607997b9ca2d7e394c2d6e364d4315bd8bedf379c005dbf974a6160ccf21",
+          "url": "https://github.com/Aixand/carrier/releases/download/v0.1.0-beta/carrier-0.1.0-beta-linux-arm64-gnu.tar.gz"
+        },
+        "linux-x86_64-gnu": {
+          "filename": "carrier-0.1.0-beta-linux-x86_64-gnu.tar.gz",
+          "sha256": "a1c451e1fa02adbd285687db27a47b5511d4a518bf7af71a3ecec28a08dc3147",
+          "url": "https://github.com/Aixand/carrier/releases/download/v0.1.0-beta/carrier-0.1.0-beta-linux-x86_64-gnu.tar.gz"
+        },
+        "macos-arm64": {
+          "filename": "carrier-0.1.0-beta-macos-arm64.tar.gz",
+          "sha256": "1c6731d8d31a8b49fa4291830d662afccc3fb19ad9842899e71b6fbe480cdd1e",
+          "url": "https://github.com/Aixand/carrier/releases/download/v0.1.0-beta/carrier-0.1.0-beta-macos-arm64.tar.gz"
+        },
+        "macos-x86_64": {
+          "filename": "carrier-0.1.0-beta-macos-x86_64.tar.gz",
+          "sha256": "eff4d89eb70ed3543adc761fbaed06d6e58197984da761841ca35afd5df0d2fc",
+          "url": "https://github.com/Aixand/carrier/releases/download/v0.1.0-beta/carrier-0.1.0-beta-macos-x86_64.tar.gz"
+        },
+        "windows-x86_64-msvc": {
+          "filename": "carrier-0.1.0-beta-windows-x86_64-msvc.zip",
+          "sha256": "9e9be573c852338f44220820981915dd3ab1fcd00f24abd0b57fdbb20b17e72e",
+          "url": "https://github.com/Aixand/carrier/releases/download/v0.1.0-beta/carrier-0.1.0-beta-windows-x86_64-msvc.zip"
+        }
+      },
+      "product": "carrier",
+      "repository": "Aixand/carrier",
+      "tag": "v0.1.0-beta"
+    },
+    "conversation-manager": {
+      "assets": {
+        "linux-arm64-gnu": {
+          "filename": "aixand-conversation-manager-0.1.0-beta-linux-arm64-gnu.tar.gz",
+          "sha256": "2fc16ee65936a069f28f4cd0139113aa7d2e5fa8c9acbfd0a851df864a82401a",
+          "url": "https://github.com/Aixand/manager-suite/releases/download/aixand-conversation-manager/v0.1.0-beta/aixand-conversation-manager-0.1.0-beta-linux-arm64-gnu.tar.gz"
+        },
+        "linux-x86_64-gnu": {
+          "filename": "aixand-conversation-manager-0.1.0-beta-linux-x86_64-gnu.tar.gz",
+          "sha256": "2b7167f0215ccf0cde7fbde33778230a9b96a2542cae18047ff1ebcc1c9e12be",
+          "url": "https://github.com/Aixand/manager-suite/releases/download/aixand-conversation-manager/v0.1.0-beta/aixand-conversation-manager-0.1.0-beta-linux-x86_64-gnu.tar.gz"
+        },
+        "macos-arm64": {
+          "filename": "aixand-conversation-manager-0.1.0-beta-macos-arm64.tar.gz",
+          "sha256": "94456174ecb9ce672025aeac0c103c52dbb3ff6848685f988cb6dbf66a3ede0e",
+          "url": "https://github.com/Aixand/manager-suite/releases/download/aixand-conversation-manager/v0.1.0-beta/aixand-conversation-manager-0.1.0-beta-macos-arm64.tar.gz"
+        },
+        "windows-x86_64-msvc": {
+          "filename": "aixand-conversation-manager-0.1.0-beta-windows-x86_64-msvc.zip",
+          "sha256": "b8a5f3aadf4baa1eec5ec9cd7e39e6be29f3a2caa8a054198a6e085c5ecfec8a",
+          "url": "https://github.com/Aixand/manager-suite/releases/download/aixand-conversation-manager/v0.1.0-beta/aixand-conversation-manager-0.1.0-beta-windows-x86_64-msvc.zip"
+        }
+      },
+      "product": "manager-suite/conversation-manager",
+      "repository": "Aixand/manager-suite",
+      "tag": "aixand-conversation-manager/v0.1.0-beta"
+    },
+    "mcp-manager": {
+      "assets": {
+        "linux-arm64-gnu": {
+          "filename": "aixand-mcp-manager-0.1.0-beta-linux-arm64-gnu.tar.gz",
+          "sha256": "59203aec8551851dd77de064486b177eaf96ccac9522d1ac1bd8971080363988",
+          "url": "https://github.com/Aixand/manager-suite/releases/download/aixand-mcp-manager/v0.1.0-beta/aixand-mcp-manager-0.1.0-beta-linux-arm64-gnu.tar.gz"
+        },
+        "linux-x86_64-gnu": {
+          "filename": "aixand-mcp-manager-0.1.0-beta-linux-x86_64-gnu.tar.gz",
+          "sha256": "3342c6ba348774afa885b2af178930cc0950aaf3b1a759ade89a84db498f2215",
+          "url": "https://github.com/Aixand/manager-suite/releases/download/aixand-mcp-manager/v0.1.0-beta/aixand-mcp-manager-0.1.0-beta-linux-x86_64-gnu.tar.gz"
+        },
+        "macos-arm64": {
+          "filename": "aixand-mcp-manager-0.1.0-beta-macos-arm64.tar.gz",
+          "sha256": "6c1d75d6546b0f57522be332840245db5cc976ba312af2b596bc9c94574a636e",
+          "url": "https://github.com/Aixand/manager-suite/releases/download/aixand-mcp-manager/v0.1.0-beta/aixand-mcp-manager-0.1.0-beta-macos-arm64.tar.gz"
+        },
+        "macos-x86_64": {
+          "filename": "aixand-mcp-manager-0.1.0-beta-macos-x86_64.tar.gz",
+          "sha256": "1c8f7278c5480abe3ecf62b3fa1ac89ce8a7ed50debf7f866af25edce754fb9d",
+          "url": "https://github.com/Aixand/manager-suite/releases/download/aixand-mcp-manager/v0.1.0-beta/aixand-mcp-manager-0.1.0-beta-macos-x86_64.tar.gz"
+        },
+        "windows-x86_64-msvc": {
+          "filename": "aixand-mcp-manager-0.1.0-beta-windows-x86_64-msvc.zip",
+          "sha256": "f70b90f0d0b045230aa1983571756274f1756d9f58e880284ad537ba9a9d1832",
+          "url": "https://github.com/Aixand/manager-suite/releases/download/aixand-mcp-manager/v0.1.0-beta/aixand-mcp-manager-0.1.0-beta-windows-x86_64-msvc.zip"
+        }
+      },
+      "product": "manager-suite/mcp-manager",
+      "repository": "Aixand/manager-suite",
+      "tag": "aixand-mcp-manager/v0.1.0-beta"
+    },
+    "prompt-manager": {
+      "assets": {
+        "linux-arm64-gnu": {
+          "filename": "aixand-prompt-manager-0.1.0-beta-linux-arm64-gnu.tar.gz",
+          "sha256": "c053c97d765ef7a3e2394716b2487e828166a922092a172f7b0dd3bcacae7d31",
+          "url": "https://github.com/Aixand/manager-suite/releases/download/aixand-prompt-manager/v0.1.0-beta/aixand-prompt-manager-0.1.0-beta-linux-arm64-gnu.tar.gz"
+        },
+        "linux-x86_64-gnu": {
+          "filename": "aixand-prompt-manager-0.1.0-beta-linux-x86_64-gnu.tar.gz",
+          "sha256": "f12690d8d537b05964a4ba6915f0509d1db868f22cb2381b69277a3b00840076",
+          "url": "https://github.com/Aixand/manager-suite/releases/download/aixand-prompt-manager/v0.1.0-beta/aixand-prompt-manager-0.1.0-beta-linux-x86_64-gnu.tar.gz"
+        },
+        "macos-arm64": {
+          "filename": "aixand-prompt-manager-0.1.0-beta-macos-arm64.tar.gz",
+          "sha256": "5c86c7573de3075bfa7dc387f7ab07358cb89d6607caf4aca3a0615e3f08c6fa",
+          "url": "https://github.com/Aixand/manager-suite/releases/download/aixand-prompt-manager/v0.1.0-beta/aixand-prompt-manager-0.1.0-beta-macos-arm64.tar.gz"
+        },
+        "macos-x86_64": {
+          "filename": "aixand-prompt-manager-0.1.0-beta-macos-x86_64.tar.gz",
+          "sha256": "1155d5f8bc651b26938e3b09bb8037e40cd72ae764c5dd7789575baea7704872",
+          "url": "https://github.com/Aixand/manager-suite/releases/download/aixand-prompt-manager/v0.1.0-beta/aixand-prompt-manager-0.1.0-beta-macos-x86_64.tar.gz"
+        },
+        "windows-x86_64-msvc": {
+          "filename": "aixand-prompt-manager-0.1.0-beta-windows-x86_64-msvc.zip",
+          "sha256": "a2b066c73c28f09b2fb4179979caf0a3bfd205f9347f76dddc7278b78f755007",
+          "url": "https://github.com/Aixand/manager-suite/releases/download/aixand-prompt-manager/v0.1.0-beta/aixand-prompt-manager-0.1.0-beta-windows-x86_64-msvc.zip"
+        }
+      },
+      "product": "manager-suite/prompt-manager",
+      "repository": "Aixand/manager-suite",
+      "tag": "aixand-prompt-manager/v0.1.0-beta"
+    },
+    "skill-manager": {
+      "assets": {
+        "linux-arm64-gnu": {
+          "filename": "aixand-skill-manager-0.1.0-beta-linux-arm64-gnu.tar.gz",
+          "sha256": "66b2e4e14477e5b4d1a2094d5045f0f72b4f60cb27e730aca9739d31a89c125d",
+          "url": "https://github.com/Aixand/manager-suite/releases/download/aixand-skill-manager/v0.1.0-beta/aixand-skill-manager-0.1.0-beta-linux-arm64-gnu.tar.gz"
+        },
+        "linux-x86_64-gnu": {
+          "filename": "aixand-skill-manager-0.1.0-beta-linux-x86_64-gnu.tar.gz",
+          "sha256": "70e406c24b04ae2354a8e89ed3894b7b4bf6e7d7eebbc8e79f88e1b3b7cc614a",
+          "url": "https://github.com/Aixand/manager-suite/releases/download/aixand-skill-manager/v0.1.0-beta/aixand-skill-manager-0.1.0-beta-linux-x86_64-gnu.tar.gz"
+        },
+        "macos-arm64": {
+          "filename": "aixand-skill-manager-0.1.0-beta-macos-arm64.tar.gz",
+          "sha256": "2ab35a9ff0382f417d07dcd00a4471a5d635e713d28ea7b2515a5e3605117590",
+          "url": "https://github.com/Aixand/manager-suite/releases/download/aixand-skill-manager/v0.1.0-beta/aixand-skill-manager-0.1.0-beta-macos-arm64.tar.gz"
+        },
+        "macos-x86_64": {
+          "filename": "aixand-skill-manager-0.1.0-beta-macos-x86_64.tar.gz",
+          "sha256": "8192d8d1058b4e2b3f40a7e0e14879af8578b16e37c7b90b563f69471e0db8ce",
+          "url": "https://github.com/Aixand/manager-suite/releases/download/aixand-skill-manager/v0.1.0-beta/aixand-skill-manager-0.1.0-beta-macos-x86_64.tar.gz"
+        },
+        "windows-x86_64-msvc": {
+          "filename": "aixand-skill-manager-0.1.0-beta-windows-x86_64-msvc.zip",
+          "sha256": "5dcd45c72e591aed86351c413471586677d0367aaf31de83d34258b6975d9b38",
+          "url": "https://github.com/Aixand/manager-suite/releases/download/aixand-skill-manager/v0.1.0-beta/aixand-skill-manager-0.1.0-beta-windows-x86_64-msvc.zip"
+        }
+      },
+      "product": "manager-suite/skill-manager",
+      "repository": "Aixand/manager-suite",
+      "tag": "aixand-skill-manager/v0.1.0-beta"
+    },
+    "undercurrent": {
+      "assets": {
+        "linux-x86_64-gnu": {
+          "filename": "undercurrent-0.1.0-beta-linux-x86_64-gnu.tar.gz",
+          "sha256": "d3afca10b825f17a59842dfebb37eaff7e23fa86b81d568dbde66e79de61510f",
+          "url": "https://github.com/Aixand/undercurrent/releases/download/v0.1.0-beta/undercurrent-0.1.0-beta-linux-x86_64-gnu.tar.gz"
+        },
+        "macos-arm64": {
+          "filename": "undercurrent-0.1.0-beta-macos-arm64.tar.gz",
+          "sha256": "6e220c097a1e33a87c648d622b392a2ead3a0423b1510a7c914e157259b9f0ac",
+          "url": "https://github.com/Aixand/undercurrent/releases/download/v0.1.0-beta/undercurrent-0.1.0-beta-macos-arm64.tar.gz"
+        },
+        "macos-x86_64": {
+          "filename": "undercurrent-0.1.0-beta-macos-x86_64.tar.gz",
+          "sha256": "2da4062691218d6ba801aa7d252cf43cc2ca3f74772cfd258fb335d7c82dba8d",
+          "url": "https://github.com/Aixand/undercurrent/releases/download/v0.1.0-beta/undercurrent-0.1.0-beta-macos-x86_64.tar.gz"
+        },
+        "windows-x86_64-msvc": {
+          "filename": "undercurrent-0.1.0-beta-windows-x86_64-msvc.zip",
+          "sha256": "274fb95dd5a15cdd014e220f2edddea58f518f0c17531b2175de4f8b23c9124a",
+          "url": "https://github.com/Aixand/undercurrent/releases/download/v0.1.0-beta/undercurrent-0.1.0-beta-windows-x86_64-msvc.zip"
+        }
+      },
+      "product": "undercurrent",
+      "repository": "Aixand/undercurrent",
+      "tag": "v0.1.0-beta"
+    }
+  },
+  "python": {
+    "aixand-agent-manager": {
+      "filename": "aixand_agent_manager-0.1.0b0-py3-none-any.whl",
+      "sha256": "dba20df1f8a9f8029fd589aa874117d578478c9db367dc452f3d7752055e62d7",
+      "url": "https://files.pythonhosted.org/packages/d4/06/ab8d2865e946e51ae89ee7f45494daf3355e34c658b500ba59ad3f9b2ee7/aixand_agent_manager-0.1.0b0-py3-none-any.whl",
+      "version": "0.1.0b0"
+    },
+    "aixand-carrier-mcp": {
+      "filename": "aixand_carrier_mcp-0.1.0b0-py3-none-any.whl",
+      "sha256": "653c2b7aa20a31f5897877104781f2b7e6a684fe893e6c886b1bb8b72efdd2f8",
+      "url": "https://files.pythonhosted.org/packages/a4/d9/382ca2c19219e6aaa208ab307893dec7c7982a524ef9df066d888434d198/aixand_carrier_mcp-0.1.0b0-py3-none-any.whl",
+      "version": "0.1.0b0"
+    },
+    "aixand-conversation-manager": {
+      "filename": "aixand_conversation_manager-0.1.0b0-py3-none-any.whl",
+      "sha256": "9ff5a45e9aadf253fa9593ecabcb01390b3b15ca198811f0c22fdbe4b6b098b8",
+      "url": "https://files.pythonhosted.org/packages/f5/bc/dad36bca6ddfc0a79ed79e4a03697629bd6071af2aae61c82ca1a71f258b/aixand_conversation_manager-0.1.0b0-py3-none-any.whl",
+      "version": "0.1.0b0"
+    },
+    "aixand-lib-filesystem": {
+      "filename": "aixand_lib_filesystem-0.1.0b0-py3-none-any.whl",
+      "sha256": "9a32265eadd406141ff9c381e7efc6de9a37b32214c27d54638a3edafc77900b",
+      "url": "https://files.pythonhosted.org/packages/e5/da/8252566ba8176b6c8c703636e7f79fd81629653a2448bdff1a2b9d75e612/aixand_lib_filesystem-0.1.0b0-py3-none-any.whl",
+      "version": "0.1.0b0"
+    },
+    "aixand-lib-github-source": {
+      "filename": "aixand_lib_github_source-0.1.0b0-py3-none-any.whl",
+      "sha256": "dd01f2ab1e22c0efd0bba935b86a9ba9feb742274953d5fa1bd861ce578236bb",
+      "url": "https://files.pythonhosted.org/packages/85/be/5bd0f4e173f04e67f0d53d50a54b8960767582c1d7bd8585f242e4e2798f/aixand_lib_github_source-0.1.0b0-py3-none-any.whl",
+      "version": "0.1.0b0"
+    },
+    "aixand-lib-local-runtime": {
+      "filename": "aixand_lib_local_runtime-0.1.0b0-py3-none-any.whl",
+      "sha256": "95f675b4f0a88a228d2bcd401ae434a003b90dfeec549c97c4f428aeee28b638",
+      "url": "https://files.pythonhosted.org/packages/f2/d8/1d8e3b1051b2632bef1ac37d1a4f80b452dec5f36c6c8c0972298e664b32/aixand_lib_local_runtime-0.1.0b0-py3-none-any.whl",
+      "version": "0.1.0b0"
+    },
+    "aixand-mcp-manager": {
+      "filename": "aixand_mcp_manager-0.1.0b0-py3-none-any.whl",
+      "sha256": "e0ee84bd1cee0e012397410cc01a8debe81965b2c198028650d98b5c898ba6e5",
+      "url": "https://files.pythonhosted.org/packages/f5/19/28bcee20362edccf7a836e4bd37b26687f705de249d4546cd70d83c65c3f/aixand_mcp_manager-0.1.0b0-py3-none-any.whl",
+      "version": "0.1.0b0"
+    },
+    "aixand-prompt-manager": {
+      "filename": "aixand_prompt_manager-0.1.0b0-py3-none-any.whl",
+      "sha256": "be1fad6c3093590f83785cd1309f3abbb50c90c21f4f4018c917d335480021c2",
+      "url": "https://files.pythonhosted.org/packages/26/b8/8aec44601a77593fab4235ba134a9e3498f6f03d88a95059d6ab8c535700/aixand_prompt_manager-0.1.0b0-py3-none-any.whl",
+      "version": "0.1.0b0"
+    },
+    "aixand-skill-manager": {
+      "filename": "aixand_skill_manager-0.1.0b0-py3-none-any.whl",
+      "sha256": "85c7b41d86950df13f8d044706abc85c8ad0bffe6820ac5fe74e99cbef02132c",
+      "url": "https://files.pythonhosted.org/packages/01/ff/23be1d70839fee8be747582cabf78a357ad5eaac70035e37dfd29d29820c/aixand_skill_manager-0.1.0b0-py3-none-any.whl",
+      "version": "0.1.0b0"
+    },
+    "aixand-undercurrent-sdk": {
+      "filename": "aixand_undercurrent_sdk-0.1.0b0-py3-none-any.whl",
+      "sha256": "4c452a067f41e0c6878f9b03ae8035a06ae484c0c16ec6b1fb372d2a76a88990",
+      "url": "https://files.pythonhosted.org/packages/89/c3/e73a306db423f150adbd4e2bbe1c3a14c016ddf128603a88af9dfe495c01/aixand_undercurrent_sdk-0.1.0b0-py3-none-any.whl",
+      "version": "0.1.0b0"
+    }
+  },
+  "schema": 1,
+  "sources": {
+    "undercurrent": {
+      "commit": "66e971f5ef725f409cb8cdbc2f976a5b44205cd6",
+      "repository": "Aixand/undercurrent",
+      "sha256": "667874ab5891771fe1999b913c8bfbc7cd086e33421a83e3a03d5982616a653b",
+      "url": "https://codeload.github.com/Aixand/undercurrent/tar.gz/66e971f5ef725f409cb8cdbc2f976a5b44205cd6"
+    }
+  },
+  "suiteProducts": {
+    "orchestration-mcp": {
+      "assets": {
+        "linux-x86_64-gnu": {
+          "filename": "orchestration-mcp-0.1.0-alpha.2-linux-x86_64-gnu.tar.gz",
+          "manifestSha256": "1efbea1814f0c44abe2987becf88b73cfa539a4ed065326e39bda03dbc7b6c5c",
+          "productRelease": "bb30d0437268d89523fde5c143d6a37cc61486203b1d5d8a7bda32f1e197b27a",
+          "sha256": "0c5de7018597a2f092d3792b18c6764529537205b6599d6578ce413bb869c635",
+          "url": "https://github.com/Aixand/aixand-suite/releases/download/orchestration-mcp/v0.1.0-alpha.2/orchestration-mcp-0.1.0-alpha.2-linux-x86_64-gnu.tar.gz"
+        },
+        "macos-arm64": {
+          "filename": "orchestration-mcp-0.1.0-alpha.2-macos-arm64.tar.gz",
+          "manifestSha256": "eb9ec3e06c9b69fb246e854db5f910fd009cadac449de68e815db4c09c837141",
+          "productRelease": "855b30c7d940b716fb2e61c92e2b5867bb5469122cf89d77b7c93704b442eb5a",
+          "sha256": "72636951419d2ab93daf90b420e7398d8ad8f0e3ee389ddf47b4788b2de9df40",
+          "url": "https://github.com/Aixand/aixand-suite/releases/download/orchestration-mcp/v0.1.0-alpha.2/orchestration-mcp-0.1.0-alpha.2-macos-arm64.tar.gz"
+        },
+        "windows-x86_64-msvc": {
+          "filename": "orchestration-mcp-0.1.0-alpha.2-windows-x86_64-msvc.zip",
+          "manifestSha256": "b5bcdee357d6ff9c27ba45f7fc426a1f43e81bb407cdaf335a8c5a1f046d83db",
+          "productRelease": "f65e03f1276115b5ef3f28dd36f2a667d8ffe6b69ddef2b34b5edc905f734f67",
+          "sha256": "ebd7858082139a26f420cf7a93348cf89ec288202d7f8866081c237ba99c75d1",
+          "url": "https://github.com/Aixand/aixand-suite/releases/download/orchestration-mcp/v0.1.0-alpha.2/orchestration-mcp-0.1.0-alpha.2-windows-x86_64-msvc.zip"
+        }
+      },
+      "product": "aixand-suite/orchestration-mcp",
+      "repository": "Aixand/aixand-suite",
+      "source": {
+        "commit": "b15ed87fbea34f096c922f5c2215d043bd606e7a",
+        "schema": 1,
+        "sha256": "547c19b87e0964e1a6c5aafde036f28755350e54cedb1d3fa829a3a21a3ea06c"
+      },
+      "version": "0.1.0-alpha.2"
+    },
+    "runner": {
+      "assets": {
+        "linux-x86_64-gnu": {
+          "filename": "runner-0.1.0-alpha.2-linux-x86_64-gnu.tar.gz",
+          "manifestSha256": "23265ec12530de35e293f94ec7f22b5272e1912d0977bbbb9848dbca3078ce4e",
+          "productRelease": "2b6a5343c51c4270272a512760555a11686ef10ece81b549c48724c6c8e0ab5f",
+          "sha256": "d91f1c010b6fd76e9d429c6eaa1614d7419258fab97ae90de331ae0fcca00adc",
+          "url": "https://github.com/Aixand/aixand-suite/releases/download/runner/v0.1.0-alpha.2/runner-0.1.0-alpha.2-linux-x86_64-gnu.tar.gz"
+        },
+        "macos-arm64": {
+          "filename": "runner-0.1.0-alpha.2-macos-arm64.tar.gz",
+          "manifestSha256": "e5169cb39c89e4d42c78970c842e8fc5500c7564f6b8b5249423d9e899cee72c",
+          "productRelease": "aedf73dc3d21775cd0b5deaaed246859f18a02546756a132a0a84f1007404b3d",
+          "sha256": "807d2f70b0dacb789c74f645576e49677cd8e57d3af92db70170fa9af46d8123",
+          "url": "https://github.com/Aixand/aixand-suite/releases/download/runner/v0.1.0-alpha.2/runner-0.1.0-alpha.2-macos-arm64.tar.gz"
+        },
+        "windows-x86_64-msvc": {
+          "filename": "runner-0.1.0-alpha.2-windows-x86_64-msvc.zip",
+          "manifestSha256": "55c18b44737d62b2215f0391d6f3c3074da12cbff7254b4e001331bd6d8f317f",
+          "productRelease": "42048393d47fe7e0d326b3c16c88bdc030173ae674c00b070190b50ddbe28fd3",
+          "sha256": "5d1789e6d82c83529448bc59cd1a4e1a2e12325d6a4c92f7fc0b118461f2c1eb",
+          "url": "https://github.com/Aixand/aixand-suite/releases/download/runner/v0.1.0-alpha.2/runner-0.1.0-alpha.2-windows-x86_64-msvc.zip"
+        }
+      },
+      "product": "runner",
+      "repository": "Aixand/aixand-suite",
+      "source": {
+        "commit": "b15ed87fbea34f096c922f5c2215d043bd606e7a",
+        "schema": 1,
+        "sha256": "9e5411b8e438582fb0e132bef6d76e2c52eccdbd8743c233cd9070a968706441"
+      },
+      "version": "0.1.0-alpha.2"
+    }
+  },
+  "version": "0.1.0-beta"
+}

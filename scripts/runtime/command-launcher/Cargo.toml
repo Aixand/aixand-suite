@@ -1,0 +1,10 @@
+[package]
+license = "Apache-2.0"
+repository = "https://github.com/Aixand/aixand-suite"
+name = "aixand-command"
+version = "0.1.0-alpha.1"
+edition = "2024"
+rust-version = "1.95"
+
+[dependencies]
+serde_json = "1"

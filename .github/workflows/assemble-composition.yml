@@ -1,0 +1,103 @@
+name: Assemble pinned product composition
+
+on:
+  workflow_dispatch:
+    inputs:
+      recipe:
+        description: Committed release/compositions/*.json with exact GitHub URLs, hashes and runtime pins
+        required: true
+        type: string
+      target:
+        required: true
+        type: choice
+        options: [linux-x86_64-gnu, macos-arm64, windows-x86_64-msvc]
+      native-installers:
+        description: Package the native installer on the matching host
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  select:
+    runs-on: ubuntu-24.04
+    outputs:
+      host: ${{ steps.select.outputs.host }}
+    steps:
+      - id: select
+        env:
+          TARGET: ${{ inputs.target }}
+        run: |
+          case "$TARGET" in
+            linux-x86_64-gnu) echo 'host=ubuntu-22.04' >> "$GITHUB_OUTPUT" ;;
+            macos-arm64) echo 'host=macos-15' >> "$GITHUB_OUTPUT" ;;
+            windows-x86_64-msvc) echo 'host=windows-2022' >> "$GITHUB_OUTPUT" ;;
+            *) exit 1 ;;
+          esac
+  assemble:
+    needs: select
+    runs-on: ${{ needs.select.outputs.host }}
+    timeout-minutes: 120
+    env:
+      RUSTUP_TOOLCHAIN: '1.95.0'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - if: runner.os == 'Windows'
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
+        with:
+          # Bootstrap CPython has native installers on all hosts; packaged runtimes use uv's pinned 3.12.14.
+          python-version: '3.12.10'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24.21.0'
+      - uses: astral-sh/setup-uv@eb1897b8dc4b5d5bfe39a428a8f2304605e0983c
+        with:
+          version: '0.12.7'
+      - name: Validate recipe and fetch exact released inputs
+        env:
+          RECIPE: ${{ inputs.recipe }}
+          TARGET: ${{ inputs.target }}
+        run: |
+          python -B - <<'PYTHON'
+          import json, os, subprocess
+          from pathlib import Path
+          recipe = Path(os.environ['RECIPE'])
+          if recipe.is_symlink() or not recipe.resolve().is_relative_to(Path('release/compositions').resolve()):
+              raise SystemExit('Use a committed release/compositions recipe')
+          subprocess.run(['git', 'ls-files', '--error-unmatch', '--', str(recipe)], check=True)
+          if json.loads(recipe.read_text())['composition']['target'] != os.environ['TARGET']:
+              raise SystemExit('Recipe target differs from selected host')
+          subprocess.run(['python', '-B', 'scripts/release/fetch-composition.py', '--recipe', str(recipe), '--output', 'build/composition-inputs'], check=True)
+          PYTHON
+      - if: runner.os == 'Linux' && inputs.native-installers
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libssl-dev librsvg2-dev patchelf
+      - if: inputs.native-installers
+        run: rustup toolchain install 1.95.0 --profile minimal
+      - name: Compose components and optionally package the native installer
+        env:
+          NATIVE: ${{ inputs.native-installers }}
+        run: |
+          args=()
+          if [ "$NATIVE" = true ]; then args+=(--native-installers --desktop apps/desktop); fi
+          python -B scripts/release/compose.py --runtime build/composition-inputs/base/runtime --lock build/composition-inputs/composition-lock.json --output build/composed "${args[@]}"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: composed-${{ inputs.target }}
+          path: |
+            build/composed/composition.json
+            build/composed/*.tar.gz
+            build/composed/*.exe
+            build/composed/*-setup
+            build/composed/native/*.json
+            build/composed/native/*.deb
+            build/composed/native/*.dmg
+            build/composed/native/*.exe
+            build/composed/native/*.tar.gz
+          if-no-files-found: error

@@ -1,0 +1,130 @@
+{
+  "url": "http://10.10.0.7:5174",
+  "verifiedAt": "2026-09-22T21:42:42.080Z",
+  "runs": [
+    {
+      "id": "9fb85efb-4eaa-4258-91f5-2699c0920ea2",
+      "source": "{\"body\":{\"kind\":\"sequence\",\"steps\":[{\"id\":\"verify_1\",\"inputs\":{\"document\":{\"fields\":{\"body\":{\"kind\":\"ref\",\"name\":\"task\",\"source\":\"input\"},\"labels\":{\"items\":[],\"kind\":\"array\"},\"title\":{\"kind\":\"literal\",\"value\":\"Review\"}},\"kind\":\"object\"},\"required_terms\":{\"items\":[{\"kind\":\"literal\",\"value\":\"workflow\"}],\"kind\":\"array\"}},\"kind\":\"operation\",\"operation\":{\"id\":\"verifier.verify\",\"version\":\"1.0.0\"}},{\"condition\":{\"kind\":\"ref\",\"output\":\"result\",\"path\":[\"passed\"],\"source\":\"step\",\"step\":\"verify_1\"},\"else\":{\"kind\":\"sequence\",\"steps\":[{\"id\":\"verify_3\",\"inputs\":{\"document\":{\"fields\":{\"body\":{\"kind\":\"literal\",\"value\":\"Please describe the workflow.\"},\"labels\":{\"items\":[],\"kind\":\"array\"},\"title\":{\"kind\":\"literal\",\"value\":\"Needs revision\"}},\"kind\":\"object\"}},\"kind\":\"operation\",\"operation\":{\"id\":\"verifier.verify\",\"version\":\"1.0.0\"}}]},\"id\":\"branch_1\",\"kind\":\"branch\",\"then\":{\"kind\":\"sequence\",\"steps\":[{\"id\":\"verify_2\",\"inputs\":{\"document\":{\"fields\":{\"body\":{\"kind\":\"literal\",\"value\":\"The workflow passed review.\"},\"labels\":{\"items\":[],\"kind\":\"array\"},\"title\":{\"kind\":\"literal\",\"value\":\"Accepted\"}},\"kind\":\"object\"}},\"kind\":\"operation\",\"operation\":{\"id\":\"verifier.verify\",\"version\":\"1.0.0\"}}]}},{\"id\":\"verify_4\",\"inputs\":{\"document\":{\"fields\":{\"body\":{\"kind\":\"ref\",\"name\":\"task\",\"source\":\"input\"},\"labels\":{\"items\":[],\"kind\":\"array\"},\"title\":{\"kind\":\"literal\",\"value\":\"Review complete\"}},\"kind\":\"object\"}},\"kind\":\"operation\",\"operation\":{\"id\":\"verifier.verify\",\"version\":\"1.0.0\"}}]},\"inputs\":{\"task\":{\"type\":{\"kind\":\"string\"}}},\"ir_version\":\"0.2\",\"name\":\"review_document\",\"outputs\":{\"passed\":{\"type\":{\"kind\":\"boolean\"},\"value\":{\"kind\":\"ref\",\"output\":\"result\",\"path\":[\"passed\"],\"source\":\"step\",\"step\":\"verify_1\"}},\"summary\":{\"type\":{\"kind\":\"string\"},\"value\":{\"kind\":\"ref\",\"output\":\"result\",\"path\":[\"summary\"],\"source\":\"step\",\"step\":\"verify_1\"}}}}",
+      "inputs": {
+        "task": "Document this workflow."
+      },
+      "events": [
+        {
+          "event": "prepared",
+          "warnings": []
+        },
+        {
+          "event": "started",
+          "invocation": "verify_1",
+          "operation": {
+            "id": "verifier.verify",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "event": "published",
+          "invocation": "verify_1"
+        },
+        {
+          "event": "branch_evaluated",
+          "invocation": "branch_1",
+          "result": true,
+          "selected": "then"
+        },
+        {
+          "event": "started",
+          "invocation": "verify_2",
+          "operation": {
+            "id": "verifier.verify",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "event": "published",
+          "invocation": "verify_2"
+        },
+        {
+          "event": "started",
+          "invocation": "verify_4",
+          "operation": {
+            "id": "verifier.verify",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "event": "published",
+          "invocation": "verify_4"
+        },
+        {
+          "event": "completed"
+        }
+      ],
+      "outputs": {
+        "passed": true,
+        "summary": "Verification passed"
+      }
+    },
+    {
+      "id": "4a84f43b-9a72-40ac-af4a-fa7f19a8c233",
+      "source": "{\"body\":{\"kind\":\"sequence\",\"steps\":[{\"id\":\"verify_1\",\"inputs\":{\"document\":{\"fields\":{\"body\":{\"kind\":\"ref\",\"name\":\"task\",\"source\":\"input\"},\"labels\":{\"items\":[],\"kind\":\"array\"},\"title\":{\"kind\":\"literal\",\"value\":\"Review\"}},\"kind\":\"object\"},\"required_terms\":{\"items\":[{\"kind\":\"literal\",\"value\":\"workflow\"}],\"kind\":\"array\"}},\"kind\":\"operation\",\"operation\":{\"id\":\"verifier.verify\",\"version\":\"1.0.0\"}},{\"condition\":{\"kind\":\"ref\",\"output\":\"result\",\"path\":[\"passed\"],\"source\":\"step\",\"step\":\"verify_1\"},\"else\":{\"kind\":\"sequence\",\"steps\":[{\"id\":\"verify_3\",\"inputs\":{\"document\":{\"fields\":{\"body\":{\"kind\":\"literal\",\"value\":\"Please describe the workflow.\"},\"labels\":{\"items\":[],\"kind\":\"array\"},\"title\":{\"kind\":\"literal\",\"value\":\"Needs revision\"}},\"kind\":\"object\"}},\"kind\":\"operation\",\"operation\":{\"id\":\"verifier.verify\",\"version\":\"1.0.0\"}}]},\"id\":\"branch_1\",\"kind\":\"branch\",\"then\":{\"kind\":\"sequence\",\"steps\":[{\"id\":\"verify_2\",\"inputs\":{\"document\":{\"fields\":{\"body\":{\"kind\":\"literal\",\"value\":\"The workflow passed review.\"},\"labels\":{\"items\":[],\"kind\":\"array\"},\"title\":{\"kind\":\"literal\",\"value\":\"Accepted\"}},\"kind\":\"object\"}},\"kind\":\"operation\",\"operation\":{\"id\":\"verifier.verify\",\"version\":\"1.0.0\"}}]}},{\"id\":\"verify_4\",\"inputs\":{\"document\":{\"fields\":{\"body\":{\"kind\":\"ref\",\"name\":\"task\",\"source\":\"input\"},\"labels\":{\"items\":[],\"kind\":\"array\"},\"title\":{\"kind\":\"literal\",\"value\":\"Review complete\"}},\"kind\":\"object\"}},\"kind\":\"operation\",\"operation\":{\"id\":\"verifier.verify\",\"version\":\"1.0.0\"}}]},\"inputs\":{\"task\":{\"type\":{\"kind\":\"string\"}}},\"ir_version\":\"0.2\",\"name\":\"review_document\",\"outputs\":{\"passed\":{\"type\":{\"kind\":\"boolean\"},\"value\":{\"kind\":\"ref\",\"output\":\"result\",\"path\":[\"passed\"],\"source\":\"step\",\"step\":\"verify_1\"}},\"summary\":{\"type\":{\"kind\":\"string\"},\"value\":{\"kind\":\"ref\",\"output\":\"result\",\"path\":[\"summary\"],\"source\":\"step\",\"step\":\"verify_1\"}}}}",
+      "inputs": {
+        "task": "Document this project."
+      },
+      "events": [
+        {
+          "event": "prepared",
+          "warnings": []
+        },
+        {
+          "event": "started",
+          "invocation": "verify_1",
+          "operation": {
+            "id": "verifier.verify",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "event": "published",
+          "invocation": "verify_1"
+        },
+        {
+          "event": "branch_evaluated",
+          "invocation": "branch_1",
+          "result": false,
+          "selected": "else"
+        },
+        {
+          "event": "started",
+          "invocation": "verify_3",
+          "operation": {
+            "id": "verifier.verify",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "event": "published",
+          "invocation": "verify_3"
+        },
+        {
+          "event": "started",
+          "invocation": "verify_4",
+          "operation": {
+            "id": "verifier.verify",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "event": "published",
+          "invocation": "verify_4"
+        },
+        {
+          "event": "completed"
+        }
+      ],
+      "outputs": {
+        "passed": false,
+        "summary": "Verification failed"
+      }
+    }
+  ]
+}

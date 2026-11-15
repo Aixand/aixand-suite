@@ -1,0 +1,16 @@
+{
+  "crate": "glib",
+  "version": "0.18.5",
+  "license": "MIT",
+  "upstreamCrateSha256": "233daaf6e83ae6a12a52055f568f9d7cf4671dabb78ff9560ab6da230ce00ee5",
+  "advisory": "RUSTSEC-2024-0429 / GHSA-wrw7-89jp-8q8g",
+  "upstreamFixCommit": "05dff0ee696f9bcd8617cd48c4b812d046d440cb",
+  "upstreamFix": "https://github.com/gtk-rs/gtk-rs-core/pull/1343",
+  "reason": "GTK3 requires the 0.18 API; this is the identical upstream mutable out-pointer fix.",
+  "patchedFiles": {
+    "src/variant_iter.rs": {
+      "beforeSha256": "1fd02859333761c45321b32f28b24233446b97d0022a90d3a937ed162585b90e",
+      "afterSha256": "a0f5ee8acb8faa089bcdfbc9a57372609fce7654026ccef7d9a224d05a654ccc"
+    }
+  }
+}

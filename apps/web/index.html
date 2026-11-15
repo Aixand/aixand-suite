@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#FAFAFA" />
+    <meta
+      name="description"
+      content="Aixand — a considered workspace for AI workflow orchestration."
+    />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Aixand · Home</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <div id="boot-recovery" hidden style="padding: 2rem; font-family: system-ui">
+      The workspace couldn’t load. <a href="/recovery.html">Recover a chat</a>
+    </div>
+    <script>
+      window.addEventListener('error', function () {
+        if (!document.documentElement.dataset.suiteStarted) document.getElementById('boot-recovery').hidden = false;
+      }, true);
+    </script>
+    <script type="module">
+      import('/src/main.tsx').catch(function () {
+        document.getElementById('boot-recovery').hidden = false;
+      });
+    </script>
+  </body>
+</html>

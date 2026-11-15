@@ -1,0 +1,8 @@
+FROM docker.io/library/ubuntu:22.04
+ARG DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates libwebkit2gtk-4.1-0 libgtk-3-0 libssl3 libstdc++6 libgomp1 \
+    libasound2 libespeak-ng1 ffmpeg git curl bash \
+    xvfb xauth dbus-x11 webkit2gtk-driver fonts-dejavu-core \
+    && useradd --create-home --uid 1000 aixand-test \
+    && rm -rf /var/lib/apt/lists/*

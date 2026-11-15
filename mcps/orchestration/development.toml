@@ -1,0 +1,22 @@
+# Local contributor commands follow installation-template revision 2.
+# Paths are consulted only with explicit --local; installed packages use wheels.
+[development]
+import = "orchestration_mcp"
+extras = ["agents", "resources", "conversations", "tasks"]
+tools = ["ruff==0.15.7", "setuptools==84.2.1", "wheel==0.48.0", "pip==26.2", "PyYAML==6.0.3", "websockets==16.0", "jsonschema==4.25.1"]
+
+[sources]
+"aixand-lib-filesystem" = "../../../aixand-libraries/filesystem"
+"aixand-lib-local-runtime" = "../../../aixand-libraries/local-runtime"
+"aixand-lib-github-source" = "../../../aixand-libraries/github-source"
+"aixand-prompt-manager" = "../../../manager-suites/prompt-manager"
+"aixand-skill-manager" = "../../../manager-suites/skill-manager"
+"aixand-mcp-manager" = "../../../manager-suites/mcp-manager"
+"aixand-agent-manager" = "../../../manager-suites/agent-manager"
+"aixand-conversation-manager" = "../../../manager-suites/conversation-manager"
+
+"aixand-carrier-mcp" = "../../../carrier"
+
+[release]
+suite = "../.."
+product = "aixand-suite/orchestration-mcp"

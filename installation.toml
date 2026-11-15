@@ -1,0 +1,65 @@
+schema = 2
+profile = "workspace"
+
+[workspace]
+name = "suite-tools"
+version = "0.1.0-alpha.2"
+default-product = "aixand-suite/orchestration-mcp"
+targets = ["linux-x86_64-gnu", "linux-arm64-gnu", "macos-x86_64", "macos-arm64", "windows-x86_64-msvc"]
+
+[components.orchestration]
+adapter = "payload"
+path = "mcps/orchestration"
+manifest = "pyproject.toml"
+build = [["{python}", "-B", "{root}/scripts/package-orchestration.py", "--output", "{output}", "--target", "{target}"]]
+
+[products."aixand-suite/orchestration-mcp"]
+adapter = "python"
+version = "0.1.0-alpha.2"
+components = ["orchestration"]
+dependencies = []
+python = "3.12.14"
+runtimes = ["python"]
+stateful = true
+verification = [["{command:orchestration-mcp}", "--version"], ["{command:orchestration-mcp}", "--help"], ["{python}", "-I", "-c", "import orchestration_mcp.executions, orchestration_mcp.workflows, runner_client, aixand_connect"]]
+
+[products."aixand-suite/orchestration-mcp".extras]
+aixand-suite-orchestration-mcp = ["runtime", "resources", "runner", "carrier", "connect"]
+
+[products."aixand-suite/orchestration-mcp".commands.orchestration-mcp]
+program = "bin/orchestration-mcp"
+runtime = "python"
+
+[runtimes.python]
+role = "python"
+version = "3.12.14"
+
+[runtimes.python.targets.linux-x86_64-gnu]
+path = "build/runtimes/linux-x86_64-gnu.tar.gz"
+sha256 = "7ce4a71285d913955a76053cc7605ea96da8ecada54dba9cf395245961816421"
+executable = "bin/python3"
+strip = 1
+
+[runtimes.python.targets.linux-arm64-gnu]
+path = "build/runtimes/linux-arm64-gnu.tar.gz"
+sha256 = "4c250ec7cea2aedde2b2e8925d7aaf5ba4924895469d6b5c81c7bdc453341c65"
+executable = "bin/python3"
+strip = 1
+
+[runtimes.python.targets.macos-x86_64]
+path = "build/runtimes/macos-x86_64.tar.gz"
+sha256 = "bd486eadd20259ad1fece28c800205baac0113c3b9cc663ddae495c19ba9db38"
+executable = "bin/python3"
+strip = 1
+
+[runtimes.python.targets.macos-arm64]
+path = "build/runtimes/macos-arm64.tar.gz"
+sha256 = "8b0f1fa71eab7ca644e482c631807a1116fa848491051cd1c8d9429491de63a6"
+executable = "bin/python3"
+strip = 1
+
+[runtimes.python.targets.windows-x86_64-msvc]
+path = "build/runtimes/windows-x86_64-msvc.tar.gz"
+sha256 = "8e6aad12ef6fc9685e67ce66253f8f72d6e8fa02cb7187e5850bd4db5ecd9e2a"
+executable = "python.exe"
+strip = 1

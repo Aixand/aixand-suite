@@ -1,0 +1,81 @@
+{
+  "ir_version": "0.1",
+  "name": "managed_codex_two_turns",
+  "description": "Two receipt-bound turns using an existing Agent Manager profile, followed by an explicit stop.",
+  "inputs": {
+    "task": { "type": { "kind": "string" } }
+  },
+  "body": {
+    "kind": "sequence",
+    "steps": [
+      {
+        "kind": "operation",
+        "id": "spawn",
+        "operation": { "id": "aixand.agents.spawn", "version": "1.0.0" },
+        "inputs": {
+          "provider": { "kind": "literal", "value": "codex" },
+          "profile": { "kind": "literal", "value": "backup" },
+          "cwd": { "kind": "literal", "value": ".." }
+        }
+      },
+      {
+        "kind": "operation",
+        "id": "send_task",
+        "operation": { "id": "aixand.agent.send", "version": "1.0.0" },
+        "inputs": {
+          "agent": { "kind": "ref", "source": "step", "step": "spawn", "output": "agent" },
+          "text": { "kind": "ref", "source": "input", "name": "task" }
+        }
+      },
+      {
+        "kind": "operation",
+        "id": "wait_task",
+        "operation": { "id": "aixand.agent.wait", "version": "1.0.0" },
+        "inputs": {
+          "agent": { "kind": "ref", "source": "step", "step": "spawn", "output": "agent" },
+          "after": { "kind": "ref", "source": "step", "step": "send_task", "output": "receipt" }
+        }
+      },
+      {
+        "kind": "operation",
+        "id": "send_summary",
+        "operation": { "id": "aixand.agent.send", "version": "1.0.0" },
+        "inputs": {
+          "agent": { "kind": "ref", "source": "step", "step": "spawn", "output": "agent" },
+          "text": { "kind": "literal", "value": "Summarize your findings." }
+        }
+      },
+      {
+        "kind": "operation",
+        "id": "wait_summary",
+        "operation": { "id": "aixand.agent.wait", "version": "1.0.0" },
+        "inputs": {
+          "agent": { "kind": "ref", "source": "step", "step": "spawn", "output": "agent" },
+          "after": { "kind": "ref", "source": "step", "step": "send_summary", "output": "receipt" }
+        }
+      },
+      {
+        "kind": "operation",
+        "id": "stop",
+        "operation": { "id": "aixand.agent.stop", "version": "1.0.0" },
+        "inputs": {
+          "agent": { "kind": "ref", "source": "step", "step": "spawn", "output": "agent" }
+        }
+      }
+    ]
+  },
+  "outputs": {
+    "run_id": {
+      "type": { "kind": "string" },
+      "value": { "kind": "ref", "source": "step", "step": "spawn", "output": "run_id" }
+    },
+    "task_observation": {
+      "type": { "kind": "json" },
+      "value": { "kind": "ref", "source": "step", "step": "wait_task", "output": "observation" }
+    },
+    "summary_observation": {
+      "type": { "kind": "json" },
+      "value": { "kind": "ref", "source": "step", "step": "wait_summary", "output": "observation" }
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "include": [
+    "*.md",
+    "apps/desktop/src-tauri/windows/*.md",
+    "apps/server/*.md",
+    "apps/server/agent-bridge/application/*.md",
+    "apps/server/docs/*.md",
+    "apps/web/*.md",
+    "apps/web/docs/*.md",
+    "docs/*.md",
+    "docs/_standards/*.md",
+    "docs/decisions/*.md",
+    "mcps/*.md",
+    "mcps/orchestration/*.md",
+    "mcps/orchestration/docs/*.md",
+    "sdks/python/*.md",
+    "services/connect/*.md",
+    "services/vox/*.md",
+    "workflow/ir/*.md",
+    "workflow/ir/docs/*.md",
+    "workflow/ir/examples/branching/*.md",
+    "workflow/ir/examples/python/*.md",
+    "workflow/ir/examples/real-agent/*.md",
+    "workflow/runner/*.md",
+    "workflow/runner/docs/*.md",
+    "docs/reference/*.md",
+    "docs/development/*.md"
+  ],
+  "exclude": [],
+  "allow_placeholders": false
+}

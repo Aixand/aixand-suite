@@ -1,0 +1,120 @@
+name: Build an independent component
+
+on:
+  push:
+    tags:
+      - 'server/v*'
+      - 'web/v*'
+      - 'desktop/v*'
+      - 'client/v*'
+      - 'orchestration-mcp/v*'
+      - 'connect/v*'
+      - 'vox/v*'
+      - 'runner/v*'
+      - 'ir/v*'
+      - 'runner-client/v*'
+      - 'python-sdk/v*'
+  workflow_dispatch:
+    inputs:
+      component:
+        description: Component to build without publication
+        required: true
+        type: choice
+        options: [server, web, desktop, client, orchestration-mcp, connect, vox, runner, ir, runner-client, python-sdk]
+
+      target:
+        description: Native target to build
+        type: choice
+        default: all
+        options: [all, linux-x86_64-gnu, macos-arm64, windows-x86_64-msvc]
+      release-sequence:
+        description: Reviewed native application sequence; zero is build-only
+        type: number
+        default: 0
+      baseline-artifact-id:
+        description: Trusted default-branch Desktop runtime artifact for Server/Vox reuse (one target)
+        type: string
+      baseline-run-id:
+        description: Successful default-branch run that produced the baseline
+        type: string
+      baseline-archive-sha256:
+        description: Reviewed Desktop runtime archive SHA-256
+        type: string
+      clean-build:
+        description: Cold verification without restoring artifact, compiler or download caches
+        type: boolean
+        default: false
+      repeat-build:
+        description: Measure a repeat build
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: component-build-${{ github.ref }}-${{ inputs.component }}
+  cancel-in-progress: false
+
+jobs:
+  select:
+    runs-on: ubuntu-24.04
+    outputs:
+      component: ${{ steps.select.outputs.component }}
+      role: ${{ steps.select.outputs.role }}
+      matrix: ${{ steps.targets.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
+        with:
+          # Bootstrap CPython has native installers on all hosts; packaged runtimes use uv's pinned 3.12.14.
+          python-version: '3.12.10'
+      - id: select
+        env:
+          COMPONENT: ${{ inputs.component }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          python -B scripts/check-release-versions.py
+          python -B scripts/release/preflight.py >> "$GITHUB_OUTPUT"
+      - id: targets
+        env:
+          TARGET: ${{ inputs.target }}
+          BASELINE: ${{ inputs.baseline-artifact-id }}
+          SELECTED_COMPONENT: ${{ steps.select.outputs.component }}
+        run: |
+          python -B - <<'PYTHON'
+          import json, os, sys
+          sys.path.insert(0, 'scripts/release')
+          from build_plan import TARGETS
+          target = os.environ['TARGET']
+          if os.environ['BASELINE'] and target in ('', 'all'):
+              raise SystemExit('A runtime baseline requires one exact target')
+          if target and target != 'all' and target not in TARGETS:
+              raise SystemExit('Unsupported target')
+          rows = [{'os': host, 'target': name} for name, host in TARGETS.items() if target in ('', 'all', name)]
+          if os.environ['SELECTED_COMPONENT'] in ('python-sdk', 'runner-client'):
+              rows = rows[:1]
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('matrix=' + json.dumps({'include': rows}) + '\n')
+          PYTHON
+  build:
+    needs: select
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.select.outputs.matrix) }}
+    uses: ./.github/workflows/component-build.yml
+    with:
+      component: ${{ needs.select.outputs.component }}
+      target: ${{ matrix.target }}
+      os: ${{ matrix.os }}
+      role: ${{ needs.select.outputs.role }}
+      release-sequence: ${{ fromJSON(format('{0}', inputs.release-sequence || 0)) }}
+      clean-build: ${{ inputs.clean-build == true }}
+      repeat-build: ${{ inputs.repeat-build == true }}
+      baseline-artifact-id: ${{ inputs.baseline-artifact-id || '' }}
+      baseline-run-id: ${{ inputs.baseline-run-id || '' }}
+      baseline-archive-sha256: ${{ inputs.baseline-archive-sha256 || '' }}
