@@ -7,8 +7,8 @@ import subprocess
 import sys
 import tempfile
 
-from aixand_platform import endpoint
-from aixand_platform.websocket import connect
+from aixand_local_runtime import endpoint
+from aixand_local_runtime.websocket import connect
 
 
 async def handshake(path):

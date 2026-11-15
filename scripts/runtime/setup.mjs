@@ -8,19 +8,20 @@ import { randomUUID } from 'node:crypto'
 import { tmpdir } from 'node:os'
 
 import { windows, binary, pythonPath, pythonSite, toolStore, cliDirectory as defaultCliDirectory, inside } from './platform.mjs'
-import { productLocation, installProducts } from './products.mjs'
 
 const execute = promisify(execFile)
 export const pythonCommands = ['agent', 'agent-manager-mcp', 'mcp-manager', 'prompt-manager',
-  'skill-manager', 'server-manager', 'orchestration-mcp', 'aixand-connect', 'aixand-mcp', 'carrier']
+  'skill-manager', 'conversation-manager', 'orchestration-mcp', 'aixand-connect', 'carrier']
 export const modules = ['agent_manager', 'mcp_manager', 'prompt_manager', 'skill_manager',
-  'server_manager', 'orchestration_mcp', 'resource_sources', 'undercurrent', 'carrier',
-  'aixand', 'runner_client', 'aixand_connect', 'aixand_mcp']
+  'conversation_manager', 'orchestration_mcp', 'aixand_filesystem', 'aixand_local_runtime', 'github_source', 'undercurrent', 'carrier',
+  'aixand', 'runner_client', 'aixand_connect']
 const quote = value => "'" + value.replaceAll("'", "'\\''") + "'"
 
 export function bundledTools(root) {
   return { uc: join(root, 'bin', binary('uc')), runner: join(root, 'bin', binary('runner')),
     python: pythonPath(join(root, 'python')), pythonHome: join(root, 'python'),
+    pythonExecutable: pythonPath(join(root, 'python')),
+    pythonPrefix: join(root, 'python'), pythonBaseExecutable: pythonPath(join(root, 'python')),
     pythonPaths: [pythonSite(join(root, 'python'))],
     voicePython: pythonPath(join(root, 'voice/python')),
     bridge: join(root, 'bin', binary('uc-python-bridge')), binDirectory: join(root, 'bin') }
@@ -41,22 +42,6 @@ export function options(value = {}) {
     }
   }
   return result
-}
-
-export function readSelection(base) {
-  const path = join(base, 'config/setup.json')
-  if (!existsSync(path)) return { configured: false, mode: 'bundled', reuseConfig: false }
-  const saved = JSON.parse(readFileSync(path, 'utf8'))
-  if (saved.schema !== 1) throw new Error('Unsupported local setup format. Run aixand-runtime setup save with a supported mode.')
-  return { ...saved, ...options(saved.options || saved), configured: true }
-}
-
-export async function saveSelection(base, selected, tools, managerEnvironment = {}) {
-  const directory = join(base, 'config')
-  await mkdir(directory, { recursive: true, mode: 0o700 })
-  const temporary = join(directory, `setup-${randomUUID()}.tmp`)
-  await writeFile(temporary, JSON.stringify({ schema: 1, options: options(selected), tools, managerEnvironment }, null, 2) + '\n', { mode: 0o600 })
-  await rename(temporary, join(directory, 'setup.json'))
 }
 
 async function output(program, args, env, timeout = 20_000) {
@@ -101,6 +86,7 @@ for name in ${JSON.stringify(modules)}:
     try: importlib.import_module(name)
     except Exception as error: errors.append(name + ': ' + str(error))
 print(json.dumps({'version': list(sys.version_info[:2]), 'home': sys.base_prefix,
+    'executable': sys.executable, 'prefix': sys.prefix, 'base_executable': sys._base_executable,
     'paths': site.getsitepackages(), 'packages': {d.metadata['Name'].lower().replace('_','-'): d.version for d in m.distributions()}, 'errors': errors}))`
 
 export async function inspectSystem(root, input, rawOptions = {}) {
@@ -146,7 +132,8 @@ export async function inspectSystem(root, input, rawOptions = {}) {
         if (info.packages[name.toLowerCase().replaceAll('_', '-')] !== version) errors.push(`${name}==${version} is required.`)
       }
       if (errors.length) { pythonError = `${python}: ${errors.slice(0, 8).join(' ')}`; continue }
-      Object.assign(tools, { python, pythonHome: info.home, pythonPaths: info.paths })
+      Object.assign(tools, { python, pythonExecutable: info.executable, pythonHome: info.home, pythonPrefix: info.prefix,
+        pythonBaseExecutable: info.base_executable, pythonPaths: info.paths })
       break
     } catch (error) { pythonError = `${python}: ${error.stderr?.trim() || error.message}` }
   }
@@ -199,94 +186,4 @@ export async function inspectSystem(root, input, rawOptions = {}) {
     cliDirectory: selected.cliDirectory || defaultCliDirectory(input),
     installationDirectory: toolStore(input),
     pathIncludesCliDirectory: (input.PATH || '').split(delimiter).includes(selected.cliDirectory || defaultCliDirectory(input)) }
-}
-
-async function script(path, body) { await writeFile(path, '#!/bin/sh\n' + body + '\n', { mode: 0o755 }); await chmod(path, 0o755) }
-async function atomicJson(path, value) {
-  const temporary = path + `.${randomUUID()}.tmp`
-  await writeFile(temporary, JSON.stringify(value, null, 2) + '\n', { mode: 0o600 })
-  await rename(temporary, path)
-}
-
-export async function installTools(root, input, rawOptions = {}) {
-  const base = input.AIXAND_LOCAL_HOME || (windows
-    ? join(input.LOCALAPPDATA || join(input.HOME, 'AppData/Local'), 'Aixand/local')
-    : join(input.XDG_DATA_HOME || join(input.HOME, '.local/share'), 'aixand/local'))
-  if (productLocation(root, input, base)) return installProducts(root, input, base, rawOptions)
-  const selected = options({ ...rawOptions, mode: 'system' })
-  if (windows) return (await import('./windows-tools.mjs')).installWindowsTools(root, input, selected)
-  const manifest = JSON.parse(await readFile(join(root, 'manifest.json'), 'utf8'))
-  const store = toolStore(input)
-  const prefix = join(store, 'versions', manifest.build)
-  const cliDirectory = selected.cliDirectory || defaultCliDirectory(input)
-  if (inside(cliDirectory, root)) throw new Error('Choose a CLI directory outside the Aixand application installation.')
-  await mkdir(join(store, 'versions'), { recursive: true, mode: 0o700 })
-  const lock = join(store, 'install.lock')
-  try { await mkdir(lock, { mode: 0o700 }) }
-  catch (error) {
-    if (error.code !== 'EEXIST') throw error
-    let owner
-    try { owner = Number(await readFile(join(lock, 'pid'), 'utf8')); process.kill(owner, 0) }
-    catch (error) {
-      if (error.code === 'ESRCH') { await rm(lock, { recursive: true }); return installTools(root, input, selected) }
-      if (error.code === 'ENOENT' && Date.now() - (await stat(lock)).mtimeMs > 120_000) {
-        await rm(lock, { recursive: true }); return installTools(root, input, selected)
-      }
-    }
-    throw new Error('Another tool installation is in progress. Try again after it finishes.')
-  }
-  await writeFile(join(lock, 'pid'), String(process.pid), { mode: 0o600 })
-  const staging = join(store, 'versions', `.install-${randomUUID()}`)
-  try {
-    if (!existsSync(join(prefix, 'toolset.json'))) {
-      if (existsSync(prefix)) throw new Error(`An incomplete tool installation exists at ${prefix}. Move it aside before retrying.`)
-      await mkdir(join(staging, 'bin'), { recursive: true, mode: 0o700 })
-      await mkdir(join(staging, 'libexec'))
-      for (const name of ['python', 'node', 'notices', ...(manifest.features.voice ? ['voice'] : [])])
-        await cp(join(root, name), join(staging, name), { recursive: true, preserveTimestamps: true, verbatimSymlinks: true })
-      for (const name of ['uc', 'uc-daemon', 'uc-session-host', 'uc-python-bridge', 'uv', 'uvx'])
-        await cp(join(root, 'bin', name), join(staging, 'bin', name))
-      for (const name of ['node', 'npm', 'npx']) await symlink(`../node/bin/${name}`, join(staging, 'bin', name))
-      await cp(join(root, 'bin', binary('runner')), join(staging, 'libexec/runner'))
-      await cp(join(root, 'python-entry.py'), join(staging, 'console.py'))
-      await script(join(staging, 'bin/runner'), `export PYTHONHOME=${quote(join(prefix, 'python'))}\nexec ${quote(join(prefix, 'libexec/runner'))} "$@"`)
-      const exposed = ['uc', 'uc-daemon', 'uc-session-host', 'uc-python-bridge', 'runner', ...pythonCommands, 'node', 'npm', 'npx', 'uv', 'uvx',
-        ...(manifest.features.voice ? ['aixand-vox', 'aixand-vox-prepare'] : [])]
-      for (const name of [...pythonCommands, ...(manifest.features.voice ? ['aixand-vox', 'aixand-vox-prepare'] : [])]) {
-        const python = join(prefix, name.startsWith('aixand-vox') ? 'voice/python/bin/python3' : 'python/bin/python3')
-        await script(join(staging, 'bin', name), `exec ${quote(python)} -B ${quote(join(prefix, 'console.py'))} ${quote(name)} "$@"`)
-      }
-      await atomicJson(join(staging, 'toolset.json'), { schema: 1, build: manifest.build, prefix, commands: exposed, distributions: manifest.distributions })
-      await rename(staging, prefix)
-    }
-    const descriptor = JSON.parse(await readFile(join(prefix, 'toolset.json'), 'utf8'))
-    if (descriptor.build !== manifest.build || descriptor.prefix !== prefix) throw new Error('The installed toolset metadata does not match this installation.')
-    await mkdir(cliDirectory, { recursive: true })
-    const retained = []
-    for (const name of descriptor.commands) {
-      const destination = join(cliDirectory, name)
-      let existing
-      try { existing = await lstat(destination) } catch (error) { if (error.code !== 'ENOENT') throw error }
-      if (existing) {
-        let managed = false
-        if (existing.isSymbolicLink()) {
-          try { managed = inside(realpathSync(destination), join(store, 'versions')) } catch { /* Keep unknown broken links. */ }
-        }
-        if (!managed) { retained.push(destination); continue }
-        const temporary = destination + `.${randomUUID()}.tmp`
-        await symlink(join(prefix, 'bin', name), temporary)
-        await rename(temporary, destination)
-      } else {
-        try { await symlink(join(prefix, 'bin', name), destination) }
-        catch (error) { if (error.code === 'EEXIST') retained.push(destination); else throw error }
-      }
-    }
-    await atomicJson(join(store, 'current.json'), { schema: 1, prefix })
-    const report = await inspectSystem(root, input, { ...selected, python: pythonPath(join(prefix, 'python')),
-      voicePython: manifest.features.voice ? pythonPath(join(prefix, 'voice/python')) : undefined })
-    return { ...report, installed: true, prefix, retained }
-  } finally {
-    await rm(staging, { recursive: true, force: true })
-    await rm(lock, { recursive: true, force: true })
-  }
 }

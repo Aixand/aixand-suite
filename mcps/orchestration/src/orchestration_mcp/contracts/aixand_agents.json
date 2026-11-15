@@ -1,0 +1,401 @@
+{
+  "type": "namespace",
+  "name": "aixand_agents",
+  "description": "Manage Agent Manager profiles and provider sign-in.",
+  "tools": [
+    {
+      "name": "list_providers",
+      "description": "List configured providers and their supported profile and login actions.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "list_profiles",
+      "description": "Find profiles by provider and optional name query. Reads configuration without account checks.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "query": {
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "get_profile",
+      "description": "Inspect an exact profile and its current revision before a change.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "profile": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          }
+        },
+        "required": [
+          "provider",
+          "profile"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "create_profile",
+      "description": "Create an isolated profile, optionally assigning an existing saved login. Sign-in is a separate job.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "profile": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "auth": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "model": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "requestId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "provider",
+          "profile"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "rename_profile",
+      "description": "Rename an idle profile while retaining its settings and history.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "profile": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "expectedRevision": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "requestId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "newName": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          }
+        },
+        "required": [
+          "provider",
+          "profile",
+          "newName",
+          "expectedRevision"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "duplicate_profile",
+      "description": "Copy model, instruction, MCP and skill settings into a new profile with empty history. Reuse saved login assignments where supported.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "profile": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "expectedRevision": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "requestId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "newName": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          }
+        },
+        "required": [
+          "provider",
+          "profile",
+          "newName",
+          "expectedRevision"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "delete_profile",
+      "description": "Delete an explicitly requested profile's local configuration and provider history, including recovered homes. Preserve saved logins. Default and busy profiles cannot be deleted.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "profile": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "expectedRevision": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "requestId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "confirmed": {
+            "const": true
+          }
+        },
+        "required": [
+          "provider",
+          "profile",
+          "expectedRevision",
+          "confirmed"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "list_logins",
+      "description": "List reusable saved logins and their assigned profiles; native-login providers report unsupported.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          }
+        },
+        "required": [
+          "provider"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "assign_login",
+      "description": "Assign an existing saved login to a profile. Active sessions keep their original credentials.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "profile": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "expectedRevision": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "requestId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "auth": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          }
+        },
+        "required": [
+          "provider",
+          "profile",
+          "auth",
+          "expectedRevision"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "unassign_login",
+      "description": "Clear an idle profile's saved-login assignment and current credential copies.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "profile": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "expectedRevision": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "requestId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "provider",
+          "profile",
+          "expectedRevision"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "start_login",
+      "description": "Start a retained provider login. For file-auth providers supply a new auth name, optionally a target profile/revision. For native providers supply the profile/revision. Return the operation and Suite link; complete sign-in in the web UI.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "profile": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "auth": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "expectedRevision": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "device",
+              "terminal"
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "provider"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "reauthenticate_login",
+      "description": "Reauthenticate an existing saved login, or an idle native profile, in a retained job.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "profile": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "auth": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "expectedRevision": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "device",
+              "terminal"
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "provider"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "get_login_status",
+      "description": "Inspect a returned operation without restarting it. Contains no login challenges or credentials.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "operationId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "operationId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "cancel_login",
+      "description": "Cancel a returned login operation when requested; retain any already confirmed saved login.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "operationId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "operationId"
+        ],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "instructions": "Use aixand_agents to manage local Agent Manager profiles when requested.\nResolve the provider and exact profile with list_providers/list_profiles/get_profile;\nclarify ambiguous names. A profile's identity includes its provider. Read the current\nrevision before editing, renaming, duplicating or deleting. Delete only on an explicit\nrequest: it removes local configuration and provider history, preserves saved logins,\nand refuses default or busy profiles. A clear deletion request needs no second question.\nCreate without login unless the user selects a saved login or requests sign-in.\nLogin uses a retained job. Share its Suite link and finish the reply; the authenticated\nweb UI displays the challenge. Do not request passwords, auth files or tokens in chat.\nReport creation, login completion, account verification and assignment separately.\nNever replay an uncertain mutation or login; inspect its profile or operation first.\nNative-login providers may not support reusable saved logins or account verification.\nThese tools manage profiles on the Suite host, independently of the browser computer.\n"
+}

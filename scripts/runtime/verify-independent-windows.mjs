@@ -27,7 +27,7 @@ const moved = root + '.independence-check'
 await rename(root, moved)
 try {
   for (const command of ['uc', 'runner', 'carrier', 'agent', 'agent-manager-mcp', 'mcp-manager', 'prompt-manager',
-    'skill-manager', 'server-manager', 'orchestration-mcp', 'aixand-connect', 'aixand-mcp'])
+    'skill-manager', 'conversation-manager', 'orchestration-mcp', 'aixand-connect'])
     assert.ok((await run(command, '--help')).length, command)
   for (const provider of ['codex', 'claude']) await assert.rejects(access(join(prefix, 'bin', provider + '.exe')))
   assert.match(await run('node', '--version'), /v24/)
@@ -35,7 +35,7 @@ try {
   assert.match(await run('git', '--version'), /git version/)
   assert.match(await run('UC', '--version'), /uc/)
   const python = join(prefix, 'python/python.exe')
-  await run(python, '-B', '-c', 'import agent_manager,carrier,aixand,runner_client,orchestration_mcp,aixand_platform')
+  await run(python, '-B', '-c', 'import agent_manager,carrier,aixand,runner_client,orchestration_mcp,aixand_filesystem,aixand_local_runtime')
   const manifest = JSON.parse(await readFile(join(moved, 'manifest.json')))
   if (manifest.features.voice)
     await run(join(prefix, 'voice/python/python.exe'), '-I', '-B', '-c', 'import aixand_vox.speech,sherpa_onnx')
@@ -49,6 +49,7 @@ try {
   } finally { await execute('uc', ['daemon', 'stop'], { env: defaults, timeout: 60_000 }).catch(() => {}) }
   const config = join(directory, 'sdk.json')
   await writeFile(config, JSON.stringify({ python_paths: [join(prefix, 'python/Lib/site-packages')],
+    python_interpreter: { executable: python, home: join(prefix, 'python') },
     connection: { bridge: join(prefix, 'bin/uc-python-bridge.exe'), state_dir: join(directory, 'sdk'), timeout: 10 } }))
   await run('uc', 'start', 'standalone-runner', '--profile', 'server', '--cwd', directory, '--',
     join(prefix, 'bin/runner.exe'), '--home', env.RUNNER_HOME, 'serve', '--sdk-config', config)

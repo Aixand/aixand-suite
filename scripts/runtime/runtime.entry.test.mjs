@@ -14,9 +14,12 @@ test('runtime entry point returns JSON from desktop launch paths and stays idle 
   try {
     const root = join(temporary, 'runtime')
     await mkdir(root)
-    for (const name of ['runtime.mjs', 'package-model.mjs', 'setup.mjs', 'platform.mjs', 'products.mjs', 'uc-connections.mjs', 'cleanup.mjs'])
+    for (const name of ['activation.mjs', 'component-updates.mjs', 'component-update-worker.mjs', 'component-launcher.mjs', 'updates.mjs', 'runtime.mjs', 'package-model.mjs', 'setup.mjs', 'platform.mjs', 'products.mjs', 'uc-connections.mjs', 'installation-plan.mjs', 'component-inventory.mjs', 'terminal-ui.mjs', 'cleanup.mjs'])
       await copyFile(fileURLToPath(new URL(name, import.meta.url)), join(root, name))
-    const env = { ...process.env, AIXAND_LOCAL_HOME: join(temporary, 'state'),
+    const env = { HOME: join(temporary, 'home'), USERPROFILE: join(temporary, 'home'), PATH: '',
+      SystemRoot: process.env.SystemRoot, LOCALAPPDATA: join(temporary, 'home/AppData/Local'),
+      APPDATA: join(temporary, 'home/AppData/Roaming'), TEMP: temporary, TMP: temporary,
+      AIXAND_LOCAL_HOME: join(temporary, 'state'),
       AIXAND_LOCAL_PORT: '18753', AIXAND_LOCAL_CARRIER_PORT: '18765' }
     const paths = process.platform === 'win32' ? [root, toNamespacedPath(root)] : [root]
     for (const path of paths) {

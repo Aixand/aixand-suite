@@ -20,7 +20,8 @@ export function ucConnectionStatus(base) {
   return value
 }
 
-export async function registerUcConnection(program, input, base, role = 'desktop') {
+export async function registerUcConnection(program, input, base, role = 'desktop', verification = role === 'server' ? 'configuration' : 'live-daemon') {
+  if (!['configuration', 'live-daemon'].includes(verification)) throw new Error('Invalid Undercurrent connection verification mode.')
   const previous = ucConnectionStatus(base)
   const profile = previous?.profile || (role === 'server' ? 'aixand-server-' + createHash('sha256').update(base).digest('hex').slice(0, 12) : 'aixand-suite')
   const owner = previous?.owner || (role === 'server' ? 'aixand-server' : 'aixand-suite')
@@ -41,17 +42,17 @@ export async function registerUcConnection(program, input, base, role = 'desktop
   const registered = await run(['settings', 'profiles', 'register', profile,
     '--home', join(base, 'uc'), '--owner', owner, '--auto-start', 'never',
     ...(!previous && role !== 'server' ? ['--select-if-new'] : [])])
-  // Desktop onboarding already runs a daemon. Terminal Server setup installs
-  // tools first, so verify its exact saved configuration without starting one.
-  if (role === 'server') {
+  // Onboarding verifies a live daemon. Server setup and update repair can
+  // register the exact connection while services are stopped, before restart.
+  if (verification === 'configuration') {
     const listing = await run(['settings', 'profiles', 'list'])
     const saved = listing.profiles?.[profile]
     if (saved?.home !== join(base, 'uc') || saved?.owner !== owner)
-      throw new Error('The saved Undercurrent Server connection does not match this workspace.')
+      throw new Error('The saved Undercurrent connection does not match this workspace.')
   } else await run(['--connection', profile, 'daemon', 'status'])
   const report = { schema: 1, profile, owner, home: join(base, 'uc'),
     activeProfile: registered.active_profile, autoStart: 'never', verified: true,
-    verification: role === 'server' ? 'configuration' : 'live-daemon' }
+    verification }
   const path = markerPath(base), temporary = path + '.' + randomUUID() + '.tmp'
   await mkdir(dirname(path), { recursive: true, mode: 0o700 })
   await writeFile(temporary, JSON.stringify(report, null, 2) + '\n', { mode: 0o600 })

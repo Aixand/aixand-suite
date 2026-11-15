@@ -6,10 +6,12 @@ import { existsSync, readFileSync } from 'node:fs'
 import { mkdir, readFile, readlink, lstat, realpath, rename, symlink, writeFile, open, rm, stat } from 'node:fs/promises'
 import { dirname, join, resolve, isAbsolute } from 'node:path'
 import { binary, pythonPath, pythonSite, cliDirectory, windows, inside, addUserPath } from './platform.mjs'
+import { readInstallationPlan } from './installation-plan.mjs'
 import { registerUcConnection, ucConnectionStatus } from './uc-connections.mjs'
 
 const sha = value => createHash('sha256').update(value).digest('hex')
-const labels = { undercurrent: 'Undercurrent', runner: 'Runner', carrier: 'Carrier', 'manager-suite': 'Manager Suite' }
+const labels = { undercurrent: 'Undercurrent', runner: 'Runner', carrier: 'Carrier', 'agent-manager': 'Agent Manager', 'conversation-manager': 'Conversation Manager',
+  'mcp-manager': 'MCP Manager', 'prompt-manager': 'Prompt Manager', 'skill-manager': 'Skill Manager', 'orchestration-mcp': 'Orchestration MCP' }
 
 function processBirth(root, pid) {
   try {
@@ -19,7 +21,7 @@ function processBirth(root, pid) {
       return fields[0] === 'Z' ? null : readFileSync('/proc/sys/kernel/random/boot_id', 'utf8').trim() + ':' + fields[19]
     }
     return JSON.parse(execFileSync(pythonPath(join(root, 'python')), ['-I', '-B', '-c',
-      'import json,sys; from aixand_platform import process_start; print(json.dumps(process_start(int(sys.argv[1]))))', String(pid)],
+      'import json,sys; from aixand_local_runtime import process_start; print(json.dumps(process_start(int(sys.argv[1]))))', String(pid)],
     { encoding: 'utf8', timeout: 5000, windowsHide: true }))
   } catch { return null }
 }
@@ -37,8 +39,8 @@ export function productCatalog(root) {
   const manifestPath = join(root, 'manifest.json')
   if (!existsSync(manifestPath)) return null
   const installation = JSON.parse(readFileSync(manifestPath, 'utf8')).installation
-  if (!installation) return null // Existing installers keep their existing setup route.
-  if (installation.schema !== 1 || !['standalone', 'distributed'].includes(installation.edition))
+  if (!installation) return null
+  if (installation.schema !== 1 || installation.edition !== 'distributed')
     throw new Error('Unsupported Suite installation edition.')
   if (installation.role && !['desktop', 'server'].includes(installation.role)) throw new Error('Unsupported Aixand package role.')
   const path = join(root, 'products/catalog.json'), bytes = readFileSync(path)
@@ -47,10 +49,13 @@ export function productCatalog(root) {
   const target = { linux: 'linux', darwin: 'macos', win32: 'windows' }[process.platform] + '-' +
     ({ x64: 'x86_64', arm64: 'arm64' }[process.arch]) +
     (process.platform === 'linux' ? '-gnu' : process.platform === 'win32' ? '-msvc' : '')
-  if (value.schema !== 1 || value.target !== target || value.assemblies.length !== 4 ||
-      new Set(value.assemblies.map(row => row.id)).size !== 4 ||
+  if (value.schema !== 1 || value.target !== target || value.assemblies.length !== 9 ||
+      new Set(value.assemblies.map(row => row.id)).size !== value.assemblies.length ||
       value.assemblies.some(row => !labels[row.id] || row.artifact !== 'artifacts/' + row.id))
     throw new Error('The product kit does not match this computer.')
+  const required = Object.keys(labels)
+  if (required.some(id => !value.assemblies.some(row => row.id === id)))
+    throw new Error('The product kit is incomplete.')
   for (const [name, digest] of Object.entries(value.consumer)) {
     if (!/^consumer\/[A-Za-z0-9_.-]+$/.test(name) || sha(readFileSync(join(root, 'products', name))) !== digest)
       throw new Error('Installer engine integrity check failed.')
@@ -61,12 +66,13 @@ export function productCatalog(root) {
 export function productLocation(root, input, base) {
   const catalog = productCatalog(root)
   if (!catalog) return null
-  const mode = catalog.edition === 'standalone' ? 'bundled' : 'system'
-  const prefix = mode === 'bundled' ? join(base, 'software/products') : sharedProductPrefix(input)
+  const plan = readInstallationPlan(base)
+  const mode = plan ? (plan.mode === 'isolated' ? 'bundled' : 'system') : 'unconfigured'
+  const prefix = mode !== 'system' ? join(base, 'software/products') : sharedProductPrefix(input)
   if (mode === 'system' && (inside(prefix, root) || inside(prefix, base)))
     throw new Error('Shared products must live outside the Suite installation and workspace.')
-  return { catalog, mode, scope: mode === 'bundled' ? 'private' : 'shared',
-    owner: mode === 'bundled' ? 'aixand-suite' : 'user',
+  return { catalog, mode, scope: mode !== 'system' ? 'private' : 'shared',
+    owner: mode !== 'system' ? 'aixand-suite' : 'user',
     prefix }
 }
 
@@ -81,9 +87,14 @@ export function productStatus(root, input, base) {
   const { catalog, prefix, scope, owner } = location, receipt = receiptAt(prefix)
   if (receipt && (receipt.schema !== 2 || receipt.scope !== scope || receipt.owner !== owner))
     throw new Error('The product installation belongs to a different owner.')
+  const plan = readInstallationPlan(base)
+  const reused = plan?.reusedProducts || {}
   const assemblies = catalog.assemblies.map(row => ({
     id: row.id, name: labels[row.id], versions: Object.values(row.products).map(p => p.version),
-    installed: Object.entries(row.products).every(([id, product]) => receipt?.products[id]?.product?.release === product.release),
+    currentVersions: Object.keys(row.products).map(id => reused[id]?.version || receipt?.products[id]?.product?.version).filter(Boolean),
+    installed: Boolean(plan) && Object.entries(row.products).every(([id, product]) => receipt?.products[id]?.product?.release === product.release ||
+      reused[id]?.version === product.version && product.commands.every(name => existsSync(reused[id].commands[name] || ''))),
+    reused: Object.keys(row.products).filter(id => reused[id]),
   }))
   let job = null
   const path = join(base, 'config/product-installation.json')
@@ -95,9 +106,9 @@ export function productStatus(root, input, base) {
         job = { ...job, status: 'interrupted', message: 'Setup was interrupted. Retry to resume the installed products.' }
     }
   }
-  const ucConnection = scope === 'shared' ? ucConnectionStatus(base) : null
-  return { available: true, edition: catalog.edition, ready: assemblies.every(row => row.installed),
-    role: catalog.role || 'desktop', legacyPrivateTools: scope === 'shared' && existsSync(join(base, 'software/products/installation-receipt.json')),
+  const ucConnection = plan && !plan.undercurrent.owned ? { ...plan.undercurrent, verified: true } : scope === 'shared' ? ucConnectionStatus(base) : null
+  return { available: true, setupMode: plan?.mode, edition: catalog.edition, ready: assemblies.every(row => row.installed),
+    role: catalog.role || 'desktop',
     connectionSetupRequired: scope === 'shared' && !ucConnection, ucConnection,
     commandSetupRequired: scope === 'shared' && windows && input.AIXAND_SKIP_PATH_REGISTRATION !== '1' && !job?.terminal?.registered,
     prefix, mode: location.mode, scope, assemblies, licenses: catalog.assemblies.flatMap(row => row.licenses), job,
@@ -108,13 +119,16 @@ export function installedProductTools(root, input, base) {
   const status = productStatus(root, input, base)
   if (!status.available || !status.ready) return null
   const receipt = receiptAt(status.prefix), bin = join(status.prefix, 'bin')
-  const commands = Object.fromEntries(Object.values(receipt.products).flatMap(entry =>
+  const commands = Object.fromEntries(Object.values(receipt?.products || {}).flatMap(entry =>
     Object.keys(entry.product.commands).map(name => [name, join(bin, binary(name))])))
+  for (const product of Object.values(readInstallationPlan(base)?.reusedProducts || {})) Object.assign(commands, product.commands)
   return {
     uc: commands.uc, runner: commands.runner, bridge: commands['uc-python-bridge'],
-    carrierPython: receipt.products.carrier.python, commands, binDirectory: bin,
+    carrierPython: receipt?.products.carrier?.python || pythonPath(join(root, 'python')), commands, binDirectory: bin,
     // These are API dependencies of the Suite, not independent CLI installations.
     python: pythonPath(join(root, 'python')), pythonHome: join(root, 'python'),
+    pythonExecutable: pythonPath(join(root, 'python')),
+    pythonPrefix: join(root, 'python'), pythonBaseExecutable: pythonPath(join(root, 'python')),
     pythonPaths: [pythonSite(join(root, 'python'))], voicePython: pythonPath(join(root, 'voice/python')),
     // SDK workflows retain their existing Suite-owned worker. The independent
     // Runner product has no embedded Suite SDK and remains usable on its own.
@@ -155,7 +169,15 @@ async function consumer(root, args, onEvent) {
 export async function validateInstalledProducts(root, input, base) {
   const status = productStatus(root, input, base)
   if (!status.available || !status.ready) throw new Error('Product setup is incomplete.')
-  await consumer(root, ['inspect', '--prefix', status.prefix])
+  if (receiptAt(status.prefix)) await consumer(root, ['inspect', '--prefix', status.prefix])
+  const reused = readInstallationPlan(base)?.reusedProducts || {}
+  for (const product of Object.values(reused)) {
+    const primary = Object.entries(product.commands).find(([name]) => ['uc', 'runner', 'carrier', 'agent', 'prompt-manager', 'skill-manager', 'mcp-manager', 'conversation-manager', 'orchestration-mcp'].includes(name))
+    if (!primary) throw new Error('The reused tool selection is incomplete. Run setup again.')
+    const result = await promisify(execFile)(primary[1], ['--version'], { env: input, windowsHide: true, timeout: 15000, maxBuffer: 65536 })
+    if (!result.stdout.trim().split(/\s+/).map(value => value.replace(/^v/, '').replace(/b0$/, '-beta')).includes(product.version))
+      throw new Error('A reused tool changed version: ' + primary[0] + '. Repair the shared tool selection.')
+  }
 }
 
 async function commandReport(root, prefix, input, names, policy) {
@@ -203,10 +225,16 @@ async function expose(prefix, input, names) {
 }
 
 export async function installProducts(root, input, base, raw = {}, activate) {
+  if (!readInstallationPlan(base)) throw new Error('Choose shared or isolated setup before installing products.')
   const location = productLocation(root, input, base)
   if (!location) throw new Error('This package does not contain product installers.')
   const { catalog, prefix, scope, owner } = location
+  const reused = readInstallationPlan(base)?.reusedProducts || {}
   if (raw.repair !== undefined && typeof raw.repair !== 'boolean') throw new Error('Repair must be explicitly enabled or disabled.')
+  const connectionVerification = raw.connectionVerification ?? (catalog.role === 'server' ? 'configuration' : 'live-daemon')
+  if (!['configuration', 'live-daemon'].includes(connectionVerification)) throw new Error('Invalid Undercurrent connection verification mode.')
+  if (catalog.role !== 'server' && connectionVerification === 'configuration' && raw.repair !== true)
+    throw new Error('Offline connection verification requires an explicit repair.')
   const terminalPolicy = raw.terminalPolicy ?? 'keep'
   if (!['keep', 'prefer'].includes(terminalPolicy) || terminalPolicy === 'prefer' && (!windows || scope !== 'shared'))
     throw new Error('Choose a supported terminal command policy.')
@@ -248,12 +276,13 @@ export async function installProducts(root, input, base, raw = {}, activate) {
       job.product = row.id; job.message = 'Installing ' + labels[row.id]
       await atomic(jobPath, job)
       const current = receiptAt(prefix)
-      if (raw.repair || !Object.entries(row.products).every(([id, product]) => current?.products[id]?.product?.release === product.release)) {
+      const missing = Object.keys(row.products).filter(id => !reused[id])
+      if (missing.length && (raw.repair || !missing.every(id => current?.products[id]?.product?.release === row.products[id].release))) {
         const changed = Object.entries(row.products).some(([id, product]) =>
           current?.products[id] && current.products[id].product.release !== product.release)
         const operation = raw.repair && (current?.groups?.[row.id] || current?.products?.[row.id]) ? 'reinstall' : changed ? 'upgrade' : 'install'
-        const selections = raw.repair && row.id === 'manager-suite' && !current?.groups?.[row.id] && !current?.products?.[row.id]
-          ? Object.keys(row.products) : [null]
+        const selections = missing.length !== Object.keys(row.products).length
+          ? missing : [null]
         for (const selection of selections) await consumer(root, [
           selection && current?.products?.[selection] ? 'reinstall' : operation, '--artifact', join(root, 'products', row.artifact),
           ...(selection ? ['--product', selection] : []),
@@ -261,17 +290,17 @@ export async function installProducts(root, input, base, raw = {}, activate) {
           // The engine fingerprints the operation. Uninstall preserves request
           // history, so a later install must not reuse an earlier upgrade ID.
           '--request-id', 'suite-' + catalog.digest.slice(0, 20) + '-' + row.id + '-' + operation +
-            (raw.repair ? '-' + job.repairToken + (selection ? '-' + selection.replaceAll('/', '-') : '') : ''), '--events', 'jsonl',
+            (raw.repair ? '-' + job.repairToken : '') + (selection ? '-' + selection.replaceAll('/', '-') : ''), '--events', 'jsonl',
           ...required.flatMap(license => ['--accept-license', license.sha256]),
         ], event => { if (event.product) job.product = event.product })
       }
       job.completed.push(row.id); await atomic(jobPath, job)
     }
     // Check the receipt through the actual engine before publishing CLI links.
-    await consumer(root, ['inspect', '--prefix', prefix])
+    await validateInstalledProducts(root, input, base)
     if (!productStatus(root, input, base).ready) throw new Error('Some tools are incomplete. Retry setup.')
-    if (scope === 'shared') {
-      const names = catalog.assemblies.flatMap(row => Object.values(row.products).flatMap(product => product.commands))
+    if (scope === 'shared' && Object.keys(receiptAt(prefix)?.products || {}).length) {
+      const names = catalog.assemblies.flatMap(row => Object.entries(row.products).filter(([id]) => !reused[id]).flatMap(([, product]) => product.commands))
       if (windows && input.AIXAND_SKIP_PATH_REGISTRATION !== '1') {
         job.message = 'Registering and checking your terminal commands.'; await atomic(jobPath, job)
         job.terminal = await commandReport(root, prefix, input, names, terminalPolicy)
@@ -283,10 +312,10 @@ export async function installProducts(root, input, base, raw = {}, activate) {
       await atomic(jobPath, job)
       await activate()
     }
-    if (scope === 'shared') {
+    if (scope === 'shared' && !readInstallationPlan(base)) {
       job.status = 'activating'; job.message = 'Configuring your Undercurrent connection profile.'
       await atomic(jobPath, job)
-      job.ucConnection = await registerUcConnection(join(prefix, 'bin', binary('uc')), input, base, catalog.role || 'desktop')
+      job.ucConnection = await registerUcConnection(join(prefix, 'bin', binary('uc')), input, base, catalog.role || 'desktop', connectionVerification)
     }
     job.status = 'complete'; job.runningProcessesRetained = true
     job.message = scope === 'shared' ? 'Tools installed for your user account.' : 'Included tools are ready.'
@@ -303,16 +332,13 @@ export async function installProducts(root, input, base, raw = {}, activate) {
 export async function removePrivateProducts(root, input, base) {
   const location = productLocation(root, input, base)
   if (!location) return { sharedProductsPreserved: true }
-  // Also clean a former standalone edition after switching to distributed.
   // The shared prefix is never a deletion target.
   const prefix = join(base, 'software/products')
   if (!existsSync(prefix)) return { removed: false, userDataPreserved: true, sharedProductsPreserved: true }
   await consumer(root, ['inspect', '--prefix', prefix])
   const receipt = receiptAt(prefix)
-  if (receipt.scope !== 'private' || receipt.owner !== 'aixand-suite')
+  if (receipt.schema !== 2 || receipt.scope !== 'private' || receipt.owner !== 'aixand-suite')
     throw new Error('Refusing to remove products owned by another installation.')
-  for (const name of ['manager-suite', 'carrier', 'runner', 'undercurrent'])
-    await consumer(root, ['uninstall', '--prefix', prefix, '--product', name, '--stopped'])
   const known = new Set(location.catalog.assemblies.flatMap(row => Object.keys(row.products)))
   let remaining = receiptAt(prefix).products
   if (Object.keys(remaining).some(name => !known.has(name))) throw new Error('Unrecognized private products were retained; review their ownership before removal.')
@@ -359,4 +385,16 @@ export async function removeSharedProducts(root, input, base, ids) {
     }
   }
   return report
+}
+
+export async function purgeSharedProductStore(root, input, base) {
+  const prefix = sharedProductPrefix({ ...input, HOME: input.HOME || input.USERPROFILE })
+  if (inside(prefix, base) || inside(prefix, root)) throw new Error('Invalid shared product directory.')
+  const env = { ...process.env, ...input, PYTHONDONTWRITEBYTECODE: '1' }
+  delete env.PYTHONHOME; delete env.PYTHONPATH; delete env.VIRTUAL_ENV
+  const result = await promisify(execFile)(pythonPath(join(root, 'python')),
+    ['-I', '-B', join(root, 'product-cleanup.py'), prefix, '--purge-store'],
+    { env, windowsHide: true, timeout: 300000, maxBuffer: 1024 * 1024 })
+    .catch(error => { throw new Error(error.stderr?.trim() || error.message) })
+  return JSON.parse(result.stdout)
 }

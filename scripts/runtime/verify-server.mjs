@@ -20,11 +20,12 @@ async function freePort() {
   const port = server.address().port; await new Promise(ready => server.close(ready)); return port
 }
 const env = { ...process.env, HOME: home, USERPROFILE: home, LOCALAPPDATA: join(home, 'AppData/Local'),
+  ...(process.platform === 'darwin' ? { TMPDIR: '/tmp' } : {}),
   APPDATA: join(home, 'AppData/Roaming'), XDG_CONFIG_HOME: join(home, 'config'), XDG_DATA_HOME: join(home, 'data'),
   XDG_STATE_HOME: join(home, 'state'), AIXAND_LOCAL_HOME: base, AIXAND_LOCAL_PORT: String(await freePort()),
   AIXAND_LOCAL_CARRIER_PORT: String(await freePort()), AIXAND_SKIP_PATH_REGISTRATION: '1',
   AIXAND_SHARED_PRODUCT_PREFIX: join(home, 'products'), PATH: windows ? join(process.env.SystemRoot || 'C:/Windows', 'System32') : '/usr/bin:/bin' }
-for (const name of ['PYTHONHOME', 'PYTHONPATH', 'VIRTUAL_ENV', 'UNDERCURRENT_HOME', 'AGENT_MANAGER_HOME', 'AGENT_MANAGER_CONFIG', 'AIXAND_PRODUCTION_ORIGINS', 'AIXAND_PRODUCTION_TRANSPORT', 'AIXAND_PRODUCTION_TRUST_PROXY']) delete env[name]
+for (const name of ['AIXAND_SETUP_USER_ENV', 'AIXAND_SUITE_INSTANCE_ID', 'PYTHONHOME', 'PYTHONPATH', 'VIRTUAL_ENV', 'UNDERCURRENT_HOME', 'AGENT_MANAGER_HOME', 'AGENT_MANAGER_CONFIG', 'AIXAND_PRODUCTION_ORIGINS', 'AIXAND_PRODUCTION_TRANSPORT', 'AIXAND_PRODUCTION_TRUST_PROXY']) delete env[name]
 const run = async (file, args = []) => (await execute(nodePath(root), [join(root, file), ...args],
   { env, cwd: root, timeout: 30 * 60_000, windowsHide: true, maxBuffer: 4 * 1024 * 1024 })).stdout
 const runtime = async (...args) => JSON.parse(await run('runtime.mjs', args))
@@ -33,12 +34,13 @@ let cookie
 try {
   assert.equal(existsSync(join(root, 'web')), false, 'Server must exclude frontend files')
   assert.equal(manifest.installation?.role || manifest.role, 'server')
-  assert.match(await run('server-cli.mjs', ['--version']), /0\.1\.0-beta/)
+  assert.ok((await run('server-cli.mjs', ['--version'])).includes(manifest.version))
   if (!windows) {
     const proof = await execute(pythonPath(join(root, 'python')),
       [join(import.meta.dirname, 'verify-password-terminal.py'), root], { env, timeout: 45_000, maxBuffer: 1024 * 1024 })
     assert.equal(JSON.parse(proof.stdout).passed, true)
   }
+  await runtime('setup', 'choose', JSON.stringify({ mode: 'isolated' }))
   const products = await runtime('setup', 'products')
   if (products.available) {
     await runtime('setup', 'install', JSON.stringify({ acceptedLicenses: products.licenses.map(row => row.sha256) }))

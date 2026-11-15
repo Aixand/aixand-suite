@@ -18,7 +18,7 @@ assert.equal(installed.ready, true, JSON.stringify(installed.checks))
 await execute('/usr/bin/dpkg', ['--remove', 'aixand'], { timeout: 120_000 })
 await assert.rejects(access('/usr/bin/aixand-desktop'))
 await assert.rejects(access('/usr/lib/Aixand/runtime/node/bin/node'))
-for (const name of ['uc', 'runner', 'carrier', 'agent', 'mcp-manager', 'prompt-manager', 'skill-manager', 'server-manager', 'orchestration-mcp', 'aixand-mcp', 'aixand-connect'])
+for (const name of ['uc', 'runner', 'carrier', 'agent', 'mcp-manager', 'prompt-manager', 'skill-manager', 'conversation-manager', 'orchestration-mcp', 'aixand-connect'])
   assert.ok((await user(name, ['--help'])).length)
 for (const provider of ['codex', 'claude']) await assert.rejects(access(home + '/.local/bin/' + provider))
 assert.match(await user('node', ['--version']), /^v24\./)
@@ -32,6 +32,7 @@ try {
   await user(installed.tools.python, ['-I', '-B', '-c', 'import asyncio\nfrom undercurrent import Client\nasync def check():\n    async with Client() as client:\n        assert isinstance(await client.list(), list)\nasyncio.run(check())'])
   const config = home + '/standalone-sdk.json'
   await writeFile(config, JSON.stringify({ python_paths: installed.tools.pythonPaths,
+    python_interpreter: { executable: installed.tools.python, home: installed.tools.pythonHome },
     connection: { bridge: installed.tools.bridge, state_dir: home + '/standalone-effects', stable_for: 2, timeout: 300 } }), { mode: 0o644 })
   const args = ['--home', home + '/standalone-runner', 'serve', '--sdk-config', config, '--suite-socket', home + '/standalone-host.sock']
   runner = spawn('/usr/sbin/runuser', ['-u', 'aixand-test', '--', '/usr/bin/env', ...environment, 'runner', ...args], { detached: true, stdio: ['ignore', 'inherit', 'inherit'] })

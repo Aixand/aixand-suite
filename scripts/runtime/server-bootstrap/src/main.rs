@@ -48,7 +48,13 @@ impl Drop for Temporary {
 
 fn temporary() -> Result<Temporary, Box<dyn std::error::Error>> {
     let instant = SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos();
-    let path = std::env::temp_dir().join(format!(
+    // Linux /tmp is often a quota-limited tmpfs. A server runtime needs disk
+    // staging space; retain TMPDIR as an explicit administrator override.
+    let mut base = std::env::temp_dir();
+    if cfg!(target_os = "linux") && std::env::var_os("TMPDIR").is_none() {
+        base = PathBuf::from("/var/tmp");
+    }
+    let path = base.join(format!(
         "aixand-server-setup-{}-{instant}",
         std::process::id()
     ));
@@ -70,7 +76,7 @@ fn run() -> Result<i32, Box<dyn std::error::Error>> {
     }
     if arguments.len() == 1 && arguments[0] == "--help" {
         println!(
-            "Aixand Server Setup: install | update | repair | reset | uninstall [--directory PATH] [--configure-later] [--yes] [--accept-license SHA256]"
+            "Aixand Server Setup: install | update | repair | reset | uninstall [--directory PATH] [--configure-later] [--existing-files backup|remove] [--remove-target application|tools|both|everything] [--yes] [--accept-license SHA256]"
         );
         return Ok(0);
     }
@@ -178,6 +184,12 @@ fn main() -> ExitCode {
         Ok(code) => ExitCode::from(code as u8),
         Err(error) => {
             eprintln!("Aixand Server setup: {error}");
+            let mut cause = error.source();
+            while let Some(error) = cause {
+                eprintln!("  Caused by: {error}");
+                cause = error.source();
+            }
+            eprintln!("If temporary storage is full or quota-limited, set TMPDIR to a directory with sufficient disk space and retry.");
             ExitCode::FAILURE
         }
     }

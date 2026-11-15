@@ -33,20 +33,20 @@ function argument(args, key) {
 
 export async function stopSuite({ root, config, uc, dryRun }) {
   if (process.platform !== 'linux') throw new Error('Suite stop currently requires Linux process inspection.')
-  const serverDir = join(root, 'aixand-server')
+  const serverDir = join(root, 'apps/server')
   const absolute = value => {
     if (value === '~' || value.startsWith('~/')) value = homedir() + value.slice(1)
     return isAbsolute(value) ? value : resolve(serverDir, value)
   }
-  const workflowCwd = absolute(config.WORKFLOW_CWD || join(root, 'aixand-ir'))
+  const workflowCwd = absolute(config.WORKFLOW_CWD || join(root, 'workflow/ir'))
   const stateDir = absolute(config.XDG_STATE_HOME || join(homedir(), '.local/state'))
   const runnerHome = absolute(config.WORKFLOW_RUNNER_HOME || config.RUNNER_HOME || join(stateDir, 'runner'))
   const carrierDb = absolute(config.CARRIER_DATABASE || join(homedir(), '.aixand/carrier/carrier.db'))
   const carrierUrl = new URL(config.CARRIER_URL || 'http://127.0.0.1:8765')
   const localCarrier = ['localhost', '127.0.0.1', '[::1]'].includes(carrierUrl.hostname)
   const expectedDirs = new Map([
-    ['aixand-web', join(root, 'aixand-web')], ['aixand-runner', workflowCwd],
-    ['aixand-server', serverDir], ['aixand-carrier', resolve(root, '../carrier')],
+    ['aixand-web', join(root, 'apps/web')], ['aixand-runner', workflowCwd],
+    ['aixand-server', serverDir], ['aixand-carrier', root],
   ])
   const failures = []
   let online = false
@@ -62,7 +62,8 @@ export async function stopSuite({ root, config, uc, dryRun }) {
         if (!expectedDirs.has(row.name) && row.labels?.app !== 'aixand-suite') continue
         if (expectedDirs.has(row.name)) {
           const detail = JSON.parse(await uc(['--json', 'inspect', row.name]))
-          if (resolve(detail.configuration.working_directory) !== expectedDirs.get(row.name))
+          if (resolve(detail.configuration.working_directory) !== expectedDirs.get(row.name) &&
+              !(row.name === 'aixand-carrier' && resolve(detail.configuration.working_directory) === resolve(root, '../carrier')))
             throw new Error(`The uc name ${row.name} belongs to another working directory; it was left untouched.`)
         }
         selected.push(row)
@@ -85,9 +86,9 @@ export async function stopSuite({ root, config, uc, dryRun }) {
     return carrierProcesses.includes(item)
       || args.includes(join(serverDir, 'node_modules/.bin/nest'))
       || args.includes(join(serverDir, 'dist/main')) || args.includes(join(serverDir, 'dist/main.js'))
-      || args.includes(join(root, 'aixand-web/node_modules/.bin/vite'))
+      || args.includes(join(root, 'apps/web/node_modules/.bin/vite'))
       || cwd === serverDir && args[0] === 'npm run start:dev'
-      || cwd === join(root, 'aixand-web') && args[0] === 'npm run dev'
+      || cwd === join(root, 'apps/web') && args[0] === 'npm run dev'
       || args.includes('serve') && basename(args[0] || '') === 'runner' && argument(args, '--home') === runnerHome
       || python && workerPaths.some(path => args.includes(path))
       || python && [serverDir, workflowCwd].includes(cwd) && argument(args, '-m') === 'agent_manager.supervisor'

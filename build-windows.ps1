@@ -1,6 +1,6 @@
 param([switch]$WithoutVoice, [switch]$RuntimeOnly, [string]$OutputDirectory,
     [ValidateSet('distributed')][string]$Edition='distributed',
-    [ValidateSet('desktop','server','both')][string]$Package='both',
+    [ValidateSet('desktop','client','server','both','all')][string]$Package='all',
     [string]$ProductReleases)
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'

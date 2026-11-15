@@ -12,7 +12,10 @@ import sys
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
-PRODUCTS = ("undercurrent", "runner", "carrier", "manager-suite")
+sys.path.insert(0, str(ROOT / "scripts/runtime"))
+import dependencies
+
+PRODUCTS = ("undercurrent", "runner", "carrier", *dependencies.MANAGERS, "orchestration-mcp")
 
 
 def digest(path):
@@ -42,10 +45,7 @@ def collect(handoffs, output, helper):
             check_baseline(manifest["baseline"])
             if not proof.get("verified") or not proof.get("installation_tested") or proof["manifest_sha256"] != digest(artifact / MANIFEST):
                 raise ValueError("Missing matching installed-product verification: " + name)
-            expected = {name} if name != "manager-suite" else {
-                "manager-suite/" + part for part in ("agent-manager", "mcp-manager", "prompt-manager",
-                    "skill-manager", "server-manager", "orchestration-mcp")
-            }
+            expected = {"aixand-suite/orchestration-mcp" if name == "orchestration-mcp" else "manager-suite/" + name if name in dependencies.MANAGERS else name}
             if set(manifest["products"]) != expected:
                 raise ValueError("Unexpected product selection: " + name)
             if name == 'undercurrent' and ['{command:uc}', 'settings', '--help'] not in manifest['products']['undercurrent']['verification']:
@@ -79,13 +79,17 @@ def collect(handoffs, output, helper):
 
 
 def build(source, work):
+    """External handoffs retain their public release identities; Suite builds its tools."""
+    sys.path.insert(0, str(source / "aixand-suite/scripts/dev"))
+    from catalog import host
     work.mkdir(parents=True, exist_ok=False)
-    handoffs = {}
-    for name in PRODUCTS:
-        project = source / ("manager-suites" if name == "manager-suite" else name)
+    handoffs = dependencies.handoffs(work / "published", host())
+    for name in ("runner", "orchestration-mcp"):
+        suite = source / "aixand-suite"
+        project = suite / "workflow/runner" if name == "runner" else suite
         artifact, report = work / name / "artifact", work / name / "verification.json"
         def run(*args):
-            subprocess.run([sys.executable, "-B", str(project / "scripts/dev/cli.py"),
+            subprocess.run([sys.executable, "-B", str(suite / "scripts/dev/cli.py"),
                 "--project", str(project), *map(str, args)], cwd=project, check=True)
         run("package", "--output", artifact)
         run("verify", "--artifact", artifact, "--install", "--report", report)
@@ -98,7 +102,7 @@ def build(source, work):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", type=Path, default=ROOT.parent)
-    parser.add_argument("--build", action="store_true", help="Build native product releases from the source snapshot")
+    parser.add_argument("--build", action="store_true", help="Download pinned external releases and build Suite-owned Runner and MCP")
     parser.add_argument("--work", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     for name in PRODUCTS:
@@ -111,13 +115,11 @@ def main():
         handoffs = build(source, args.work.resolve())
     else:
         defaults = {
-            "runner": source / "runner/dist/installers/handoff/runner",
-            "carrier": source / "carrier/dist/handoff",
-            "undercurrent": source / "undercurrent/dist/handoff",
-            "manager-suite": source / "manager-suites/dist/installers/handoff/manager-suite",
+            name: source / "aixand-suite/dist/handoffs" / name for name in PRODUCTS
         }
+        defaults["runner"] = source / "aixand-suite/workflow/runner/dist/installers/handoff/runner"
         handoffs = {name: getattr(args, name.replace("-", "_")) or defaults[name] for name in PRODUCTS}
-    print(collect(handoffs, args.output.resolve(), source / "runner/scripts/dev"))
+    print(collect(handoffs, args.output.resolve(), source / "aixand-suite/scripts/dev"))
 
 
 if __name__ == "__main__":

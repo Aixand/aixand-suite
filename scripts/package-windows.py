@@ -18,8 +18,9 @@ def main():
     parser.add_argument('--without-voice', action='store_true')
     parser.add_argument('--runtime-only', action='store_true')
     parser.add_argument('--edition', choices=['distributed'], default='distributed')
-    parser.add_argument('--package', choices=['desktop', 'server', 'both'], default='both')
+    parser.add_argument('--package', choices=['desktop', 'client', 'server', 'both', 'all'], default='all')
     parser.add_argument('--product-releases', type=Path)
+    parser.add_argument('--local-sources', action='store_true', help='Use the sibling Undercurrent source for platform adapters')
     args = parser.parse_args()
     if os.name != 'nt' or platform.machine().lower() not in ('amd64', 'x86_64'):
         parser.error('Build this package in native x64 Windows PowerShell. Use scripts/export-windows.py on the Linux source machine.')
@@ -44,7 +45,7 @@ def main():
         source = output/'source'
         if source.exists():
             shutil.rmtree(source)
-        module.snapshot(source)
+        module.snapshot(source, local_sources=args.local_sources)
         command = [sys.executable, source/'aixand-suite/scripts/runtime/build-windows.py',
                    '--source', source, '--output', output/'output', '--cache', output/'cache',
                    '--edition', args.edition, '--package', args.package]

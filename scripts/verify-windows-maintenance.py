@@ -31,7 +31,7 @@ def main():
     parser.add_argument('--languages', type=Path, required=True,
         help='Directory containing the generated Tauri English.nsh')
     parser.add_argument('--template', type=Path,
-        default=Path(__file__).resolve().parents[1] / 'aixand-web/src-tauri/windows/installer.nsi')
+        default=Path(__file__).resolve().parents[1] / 'apps/desktop/src-tauri/windows/installer.nsi')
     parser.add_argument('--runtime', type=Path, required=True,
         help='Qualified previous runtime with the old cleanup helper and managed Python')
     parser.add_argument('--native', type=Path, required=True,

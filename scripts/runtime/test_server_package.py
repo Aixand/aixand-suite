@@ -6,18 +6,66 @@ import os
 from pathlib import Path
 import struct
 import subprocess
+import sys
 import tarfile
 import tempfile
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
-from editions import prepare
+from editions import prepare, windows_installer
 from server_package import build_installer, MAGIC
 
 SUITE = Path(__file__).resolve().parents[2]
 
 
 class ServerPackageTests(unittest.TestCase):
+    def test_bootstrap_stamps_incoming_windows_version_and_preserves_codesign_argv(self):
+        for system in ('windows', 'macos'):
+            with self.subTest(system=system), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                runtime, output, cache = root / 'runtime', root / 'output', root / 'cargo'
+                runtime.mkdir(); output.mkdir()
+                version = '4.7.2-beta.3'
+                (runtime / 'manifest.json').write_text(json.dumps({
+                    'platform': system, 'architecture': 'x86_64', 'version': version}))
+                target = 'x86_64-pc-windows-msvc' if system == 'windows' else ''
+                stub = cache / target / 'release' / ('aixand-server-setup.exe' if target else 'aixand-server-setup')
+                stub.parent.mkdir(parents=True)
+                stub.write_bytes(b'inert bootstrap')
+                with patch('server_package.os', SimpleNamespace(name='nt' if target else 'posix',
+                           environ={'CARGO_TARGET_DIR': str(cache)})), \
+                     patch('server_package.sys', SimpleNamespace(executable=sys.executable,
+                           platform='win32' if target else 'darwin')), \
+                     patch('server_package.subprocess.run') as run:
+                    installer = build_installer(runtime, output, root)
+                calls = [call.args[0] for call in run.call_args_list]
+                self.assertEqual(calls[0][:3], ['cargo', 'build', '--locked'])
+                if system == 'windows':
+                    self.assertEqual(len(calls), 2)
+                    self.assertEqual(calls[1][-2:], [str(installer), version])
+                    self.assertIn('stamp(sys.argv[2], sys.argv[3],', calls[1][3])
+                    self.assertNotIn('0.1.0-beta', calls[1][3])
+                else:
+                    self.assertEqual(calls[1:], [
+                        ['codesign', '--force', '--sign', '-', str(installer)],
+                        ['codesign', '--verify', '--strict', str(installer)]])
+
+    def test_windows_packaging_excludes_cached_other_products_and_architectures(self):
+        with tempfile.TemporaryDirectory(prefix="aixand-package-selection-") as temporary:
+            base = Path(temporary)
+            (base / "desktop/src-tauri").mkdir(parents=True)
+            (base / "desktop/src-tauri/tauri.conf.json").write_text('{"productName":"Aixand"}')
+            bundle = base / "bundle/nsis"; bundle.mkdir(parents=True)
+            expected = bundle / "Aixand_0.1.0-beta_x64-setup.exe"
+            for name in [expected.name, "Aixand Update Qualification_0.1.0-beta_x64-setup.exe",
+                         "Aixand_0.1.0-beta_arm64-setup.exe", "Aixand_0.0.1_x64-setup.exe"]:
+                (bundle / name).write_bytes(b"fixture")
+            self.assertEqual(windows_installer(base / "bundle", {"version":"0.1.0-beta"}, base / "desktop"), expected)
+            expected.unlink()
+            with self.assertRaisesRegex(ValueError, "expected Windows"):
+                windows_installer(base / "bundle", {"version":"0.1.0-beta"}, base / "desktop")
+
     def test_roles_share_distributed_products_without_mutating_the_base(self):
         with tempfile.TemporaryDirectory(prefix="aixand-package-roles-") as temporary:
             base = Path(temporary)
@@ -30,7 +78,10 @@ class ServerPackageTests(unittest.TestCase):
             (runtime / "bin/aixand-command.exe").write_bytes(b"fixture launcher")
             (runtime / "bin/commands.json").write_text('{"commands":{}}')
             kit.mkdir()
-            catalog = {"assemblies": [{"id": "fixture", "products": {"fixture": {"version": "0.1.0-beta"}}}]}
+            names = ["undercurrent", "runner", "carrier", "agent-manager", "conversation-manager",
+                     "mcp-manager", "prompt-manager", "skill-manager", "orchestration-mcp"]
+            catalog = {"assemblies": [{"id": name, "products": {name: {"version": f"0.{index}.0-beta", "release": "a" * 64}}}
+                                      for index, name in enumerate(names)]}
             (kit / "catalog.json").write_text(json.dumps(catalog))
             before = (runtime / "manifest.json").read_bytes()
             # This policy fixture has a dummy launcher. Native qualification
@@ -46,8 +97,13 @@ class ServerPackageTests(unittest.TestCase):
             self.assertEqual((runtime / "manifest.json").read_bytes(), before)
             self.assertTrue((runtime / "web/index.html").is_file())
             self.assertNotEqual(desktop["build"], server["build"])
-            with self.assertRaisesRegex(ValueError, "retired"):
+            with self.assertRaisesRegex(ValueError, "current product package model"):
                 prepare(runtime, kit, base / "standalone", edition="standalone")
+            catalog["assemblies"] = catalog["assemblies"][:3] + [{"id": "manager-suite", "products": {}}]
+            (kit / "catalog.json").write_text(json.dumps(catalog))
+            with self.assertRaisesRegex(ValueError, "nine-component"):
+                prepare(runtime, kit, base / "unsupported-kit")
+            self.assertFalse((base / "unsupported-kit").exists())
 
     @unittest.skipIf(os.name == "nt", "POSIX shell payload fixture; Windows qualifies the real Node payload")
     def test_console_bootstrap_verifies_payload_and_preserves_arguments(self):
@@ -67,6 +123,12 @@ class ServerPackageTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn("ARG:space path; literal $()", result.stdout)
             self.assertEqual(list(Path(env["TMPDIR"]).iterdir()), [], "bootstrap temporary runtime must be removed")
+            if sys.platform == 'linux':
+                default_env = {key: value for key, value in env.items() if key != 'TMPDIR'}
+                default = subprocess.run([installer, 'install'], env=default_env, text=True, capture_output=True, timeout=30)
+                self.assertEqual(default.returncode, 0, default.stderr)
+                script = next(line[4:] for line in default.stdout.splitlines() if line.startswith('ARG:/var/tmp/'))
+                self.assertFalse(Path(script).parent.parent.exists(), 'disk staging must be removed')
             image = installer.read_bytes()
             offset = image.index(b'\x1f\x8b\x08') + 24
             with installer.open("r+b") as stream:

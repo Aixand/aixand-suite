@@ -25,7 +25,7 @@ test('Windows configuration respects case-insensitive overrides and isolates pri
     assert.equal(config.env.PYTHONIOENCODING, 'utf-8')
     const powershell = join(config.env.SystemRoot, 'System32/WindowsPowerShell/v1.0/powershell.exe')
     // This is the actual platform guard in Codex's official install.ps1.
-    const { platformEnvironment } = await import('../../aixand-server/src/platform-environment.ts')
+    const { platformEnvironment } = await import('../../apps/server/src/platform-environment.ts')
     for (const env of [config.env, platformEnvironment()])
       execFileSync(powershell, ['-NoProfile', '-NonInteractive', '-Command',
         'if ($env:OS -ne "Windows_NT") { exit 1 }'], { env, windowsHide: true })

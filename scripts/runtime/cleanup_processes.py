@@ -17,7 +17,7 @@ import subprocess
 import sys
 import time
 
-from aixand_platform import process_start
+from aixand_local_runtime import process_start
 
 
 def display_path(path):
@@ -969,7 +969,7 @@ def repair_permissions(report, targets, base, reviewed, backend=None):
         return dict(report, changed=True)
     if not current:
         return report
-    from aixand_platform.windows import sid
+    from aixand_filesystem import current_user_sid as sid
     account = sid()
     profile = profile_directory(account)
     selected = [target for target in targets if permission_scope(profile, Path(base), target) and any(

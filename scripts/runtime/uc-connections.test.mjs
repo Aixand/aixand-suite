@@ -66,6 +66,26 @@ test('a failed connection never reports successful setup and retry preserves use
   } finally { await f.cleanup() }
 })
 
+test('offline Desktop repair retains its profile owner and terminal default before live verification', native, async () => {
+  const f = await fixture()
+  try {
+    const first = await registerUcConnection(uc, f.env, f.base, 'desktop', 'configuration')
+    assert.equal(first.profile, 'aixand-suite')
+    assert.equal(first.owner, 'aixand-suite')
+    assert.equal(first.verification, 'configuration')
+    assert.equal((await f.run(['--connection', first.profile, 'ls']).catch(() => null)), null)
+    await f.run(['settings', 'set', 'profile', 'default'])
+    const repaired = await registerUcConnection(uc, f.env, f.base, 'desktop', 'configuration')
+    assert.equal(repaired.activeProfile, 'default')
+    assert.equal(repaired.home, join(f.base, 'uc'))
+    await assert.rejects(registerUcConnection(uc, f.env, f.base), /Could not configure/)
+    await f.run(['daemon', 'start'], true)
+    assert.equal((await registerUcConnection(uc, f.env, f.base)).verification, 'live-daemon')
+    assert.equal((await f.run(['--connection', first.profile, 'ls'])).items.length, 0)
+    assert.equal((await f.run(['settings', 'show'])).active_profile, 'default')
+  } finally { await f.cleanup() }
+})
+
 test('Suite does not overwrite another connection owner', native, async () => {
   const f = await fixture()
   try {

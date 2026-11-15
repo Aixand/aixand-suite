@@ -28,10 +28,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True, help="Fresh build directory")
     parser.add_argument("--edition", choices=["distributed"], default="distributed")
-    parser.add_argument("--package", choices=["desktop", "server", "both"], default="both")
+    parser.add_argument("--package", choices=["desktop", "client", "server", "both", "all"], default="all")
     parser.add_argument("--product-releases", type=Path)
     parser.add_argument("--without-voice", action="store_true")
     parser.add_argument("--runtime-only", action="store_true")
+    parser.add_argument('--local-sources', action='store_true', help='Use the sibling Undercurrent source for platform adapters')
     args = parser.parse_args()
     if sys.platform != "darwin":
         parser.error("Build and qualify macOS installers on native macOS")
@@ -51,7 +52,7 @@ def main():
         source = output / "source"
         if source.exists():
             shutil.rmtree(source)
-        module.snapshot(source)
+        module.snapshot(source, local_sources=args.local_sources)
         architecture = "arm64" if platform.machine() == "arm64" else "x64"
         cache = output / "cache"
         cache.mkdir(exist_ok=True)

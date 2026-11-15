@@ -9,12 +9,19 @@ import { setTimeout as delay } from 'node:timers/promises'
 
 const execute = promisify(execFile)
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const serverDir = join(root, 'aixand-server')
-const irDir = join(root, 'aixand-ir')
+const serverDir = join(root, 'apps/server')
+const irDir = join(root, 'workflow/ir')
 const envFile = join(serverDir, '.env')
 const productionEnvFile = join(serverDir, '.env.production')
 const suiteGroup = 'aixand-suite'
-const usage = `Usage: ./dev.sh serve [--production] [--dry-run]
+const usage = `Usage: ./dev.sh prepare [--local-sources]
+       ./dev.sh doctor | develop | check | test [--component ID]
+       ./dev.sh build --release [--component ID]
+       ./dev.sh package --component ID --stage PATH --target TARGET --output ARCHIVE [--runtime PATH]
+       ./dev.sh package --product ID [PRODUCT OPTIONS]
+       ./dev.sh verify --artifact PATH [--component ID]
+       ./dev.sh install | reinstall | uninstall | plan | inspect | export-release [PRODUCT OPTIONS]
+       ./dev.sh serve [--production] [--dry-run]
        ./dev.sh stop [--production] [--dry-run]
 
 Requires an already running Undercurrent daemon. Starts missing Suite services
@@ -34,12 +41,12 @@ stopped separately. To switch back, stop aixand-server before ./dev.sh serve.
 Production reads .env.production over .env. Use stop --production when its runtime
 paths differ from development. Healthy production sessions are not rebuilt or restarted.
 
-Services load aixand-server/.env after launch; credentials stay out of uc state.
+Services load apps/server/.env after launch; credentials stay out of uc state.
 Exported non-secret configuration takes precedence; put credentials in .env.
-Uses the sibling Runner checkout (target/debug/runner, then target/release/runner)
+Uses Suite’s workflow/runner build (target/debug/runner, then target/release/runner)
 or runner on PATH. Override executables with AIXAND_RUNNER_BIN / AIXAND_CARRIER_BIN.
 Runner uses WORKFLOW_SDK_CONFIG and WORKFLOW_CWD (defaults: the prepared real-agent
-example and aixand-ir), WORKFLOW_RUNNER_HOME / RUNNER_HOME, and SUITE_WORKFLOW_SOCKET.
+example and workflow/ir), WORKFLOW_RUNNER_HOME / RUNNER_HOME, and SUITE_WORKFLOW_SOCKET.
 AIXAND_WEB_PORT defaults to 5173; AIXAND_SERVE_TIMEOUT defaults to 60 seconds.
 
 --dry-run checks prerequisites and prints planned commands without starting them.
@@ -227,7 +234,7 @@ async function serve(dryRun, production) {
   const suiteSocket = absolute(config.SUITE_WORKFLOW_SOCKET || join(absolute(config.AGENTS_STATE_DIR || join(stateDir, 'aixand/chats')), 'native-workflows.sock'))
   const sdkConfig = absolute(config.WORKFLOW_SDK_CONFIG || join(irDir, 'examples/real-agent/runtime.example.json'))
   const workflowCwd = absolute(config.WORKFLOW_CWD || irDir)
-  const pythonBin = absolute(config.WORKFLOW_PYTHON_BIN || join(irDir, '.venv/bin'))
+  const pythonBin = absolute(config.WORKFLOW_PYTHON_BIN || join(root, process.platform === 'win32' ? '.venv/Scripts' : '.venv/bin'))
   const developmentPort = production ? Number(development.PORT || '3000') : port(development.PORT || '3000', 'PORT')
   const developmentHost = ['0.0.0.0', '::'].includes(development.HOST) ? '127.0.0.1' : (development.HOST || '127.0.0.1')
   const developmentUrl = Number.isInteger(developmentPort) && developmentPort > 0 && developmentPort <= 65535
@@ -246,7 +253,7 @@ async function serve(dryRun, production) {
   const carrierDb = absolute(config.CARRIER_DATABASE || join(homedir(), '.aixand/carrier/carrier.db'))
   const runnerBin = config.AIXAND_RUNNER_BIN
     ? executable(config.AIXAND_RUNNER_BIN)
-    : [join(root, '../runner/target/debug/runner'), join(root, '../runner/target/release/runner'), 'runner'].map(executable).find(Boolean)
+    : [join(root, 'workflow/runner/target/debug/runner'), join(root, 'workflow/runner/target/release/runner'), 'runner'].map(executable).find(Boolean)
   const carrierBin = executable(config.AIXAND_CARRIER_BIN || 'carrier')
   const npmBin = executable('npm')
   const timeout = Number(config.AIXAND_SERVE_TIMEOUT || 60) * 1000
@@ -257,16 +264,16 @@ async function serve(dryRun, production) {
   const overrides = Object.fromEntries(Object.entries(process.env).filter(([key]) =>
     /^(AGENTS?_|AGENT_MANAGER_|UNDERCURRENT_|WORKFLOW_|RUNNER_|SUITE_|CARRIER_|VOX_|AIXAND_|PROMPT_|PROMPTS_|SKILL_|SKILLS_|MCP_|MCPS_|SERVER_MANAGER_|SERVERS_|RESOURCE_|XDG_|TERMINAL_|HF_)/.test(key)))
   for (const [key, value] of Object.entries(overrides)) {
-    if (credentialLike(key, value)) fail(`Exported ${key} cannot be persisted as a uc launch variable. Put it in aixand-server/.env so the service can load it after launch.`)
+    if (credentialLike(key, value)) fail(`Exported ${key} cannot be persisted as a uc launch variable. Put it in apps/server/.env so the service can load it after launch.`)
   }
   const shared = { ...overrides, PATH: process.env.PATH ?? '', HOME: homedir(),
     WORKFLOW_RUNNER_HOME: runnerHome, SUITE_WORKFLOW_SOCKET: suiteSocket,
     CARRIER_URL: carrierUrl.href.replace(/\/$/, ''), CARRIER_DATABASE: carrierDb }
 
   const productionEntry = join(serverDir, 'dist/production-main.js')
-  const productionWeb = absolute(config.AIXAND_PRODUCTION_WEB_DIST || join(root, 'aixand-web/dist'))
+  const productionWeb = absolute(config.AIXAND_PRODUCTION_WEB_DIST || join(root, 'apps/web/dist'))
   const services = [
-    { name: 'aixand-carrier', cwd: resolve(root, '../carrier'), command: [carrierBin, 'serve', '--host', carrierUrl.hostname.replace(/^\[|\]$/g, ''), '--port', String(port(carrierUrl.port || 80, 'CARRIER_URL port')), '--db', carrierDb],
+    { name: 'aixand-carrier', cwd: root, command: [carrierBin, 'serve', '--host', carrierUrl.hostname.replace(/^\[|\]$/g, ''), '--port', String(port(carrierUrl.port || 80, 'CARRIER_URL port')), '--db', carrierDb],
       health: httpHealth(new URL('/health', carrierUrl).href),
       ready: () => httpReady(new URL('/health', carrierUrl), 'carrier'),
       preflight() {
@@ -283,7 +290,7 @@ async function serve(dryRun, production) {
       ready: async () => await httpReady(`${serverUrl}/api/health`, 'aixand-server') &&
         (!production || await httpReady(`${serverUrl}/`) && await httpReady(`${serverUrl}/recovery.html`)),
       preflight() {
-        if ((!production && !npmBin) || !existsSync(join(serverDir, 'node_modules'))) fail('Prepare aixand-server first: cd aixand-server && npm ci')
+        if ((!production && !npmBin) || !existsSync(join(serverDir, 'node_modules'))) fail('Prepare aixand-server first: cd apps/server && npm ci')
         if (production && (!existsSync(productionEntry) || !existsSync(join(serverDir, 'dist/production.js')) || !existsSync(join(productionWeb, 'index.html')) || !existsSync(join(productionWeb, 'recovery.html'))))
           fail('Build production first: node scripts/production.mjs build')
       } },
@@ -296,15 +303,15 @@ async function serve(dryRun, production) {
         return result
       },
       preflight() {
-        if (!runnerBin) fail('Build Runner first: cd ../runner && cargo build --locked --features sdk (or set AIXAND_RUNNER_BIN).')
-        if (!existsSync(sdkConfig)) fail(`Runner SDK configuration is missing: ${sdkConfig}. Set WORKFLOW_SDK_CONFIG in aixand-server/.env.`)
+        if (!runnerBin) fail('Build Runner first: cd workflow/runner && cargo build --locked --features sdk (or set AIXAND_RUNNER_BIN).')
+        if (!existsSync(sdkConfig)) fail(`Runner SDK configuration is missing: ${sdkConfig}. Set WORKFLOW_SDK_CONFIG in apps/server/.env.`)
         if (!existsSync(workflowCwd)) fail(`WORKFLOW_CWD does not exist: ${workflowCwd}`)
       } },
-    ...(!production ? [{ name: 'aixand-web', cwd: join(root, 'aixand-web'), command: [npmBin, 'run', 'dev', '--', '--port', String(webPort), '--strictPort'],
+    ...(!production ? [{ name: 'aixand-web', cwd: join(root, 'apps/web'), command: [npmBin, 'run', 'dev', '--', '--port', String(webPort), '--strictPort'],
       env: { ...overrides, PATH: process.env.PATH ?? '', HOME: homedir(), AIXAND_SERVER_URL: serverUrl }, envFile: false,
       health: httpHealth(`${webUrl}/`),
       ready: async () => await httpReady(webUrl) && await httpReady(`${webUrl}/api/health`, 'aixand-server'),
-      preflight() { if (!npmBin || !existsSync(join(root, 'aixand-web/node_modules'))) fail('Prepare aixand-web first: cd aixand-web && npm ci') } }] : []),
+      preflight() { if (!npmBin || !existsSync(join(root, 'apps/web/node_modules'))) fail('Prepare aixand-web first: cd apps/web && npm ci') } }] : []),
   ]
 
   // Check all prerequisites before creating any sessions.
@@ -350,7 +357,7 @@ async function serve(dryRun, production) {
     const current = await session('aixand-web')
     if (current) {
       const detail = JSON.parse(await uc(['--json', 'inspect', 'aixand-web']))
-      if (resolve(detail.configuration.working_directory) !== join(root, 'aixand-web'))
+      if (resolve(detail.configuration.working_directory) !== join(root, 'apps/web'))
         fail('The uc name aixand-web belongs to another working directory; it was left untouched.')
       retiredWeb = { name: 'aixand-web', current }
     }
@@ -405,6 +412,18 @@ try {
   const flags = args.slice(1)
   const validFlags = flags.every(value => ['--production', '--dry-run'].includes(value)) && new Set(flags).size === flags.length
   if (!args.length || ['help', '--help', '-h'].includes(args[0])) console.log(usage)
+  else if (['doctor', 'develop', 'check', 'test', 'build', 'package', 'verify', 'install', 'reinstall', 'uninstall', 'plan', 'inspect', 'export-release'].includes(args[0])) {
+    const { spawnSync } = await import('node:child_process')
+    const result = spawnSync(process.env.AIXAND_DEV_PYTHON || (process.platform === 'win32' ? 'python' : 'python3'), [join(root, 'scripts/workspace.py'), ...args], { stdio: 'inherit' })
+    if (result.error) throw result.error
+    process.exitCode = result.status ?? 1
+  }
+  else if (args[0] === 'prepare' && flags.every(value => value === '--local-sources')) {
+    const { spawnSync } = await import('node:child_process')
+    const result = spawnSync(process.env.AIXAND_DEV_PYTHON || (process.platform === 'win32' ? 'python' : 'python3'), [join(root, 'scripts/prepare-dependencies.py'), ...flags], { stdio: 'inherit' })
+    if (result.error) throw result.error
+    process.exitCode = result.status ?? 1
+  }
   else if (args[0] === 'serve' && validFlags) await serve(flags.includes('--dry-run'), flags.includes('--production'))
   else if (args[0] === 'stop' && validFlags) {
     const { stopSuite } = await import('./stop.mjs')

@@ -5,7 +5,7 @@ import { promisify } from 'node:util'
 import { lstat, mkdtemp, mkdir, readFile, readlink, realpath, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve, delimiter, toNamespacedPath } from 'node:path'
-import { windows, binary, nodePath, pythonPath, cliDirectory } from './platform.mjs'
+import { windows, binary, nodePath, pythonPath } from './platform.mjs'
 import { createServer } from 'node:net'
 import { createRequire } from 'node:module'
 import { randomUUID } from 'node:crypto'
@@ -14,12 +14,10 @@ import { verifyCarrier } from './verify-carrier.mjs'
 
 const execute = promisify(execFile)
 const root = resolve(process.argv[2])
-const installedCommands = process.argv.includes('--installed-commands')
-const systemTools = process.argv.includes('--system-tools')
 const require = createRequire(join(root, 'server/package.json'))
 const { WebSocket } = require('ws')
 const directory = await realpath(await mkdtemp(join(process.platform === 'darwin' ? '/tmp' : tmpdir(), 'aixand-installed-')))
-const home = join(directory, systemTools ? 'home with spaces' : 'home')
+const home = join(directory, 'home with spaces')
 await mkdir(home)
 async function freePort() {
   const server = createServer()
@@ -29,7 +27,7 @@ async function freePort() {
   return port
 }
 const port = await freePort(), carrierPort = await freePort()
-const env = { HOME: home, PATH: installedCommands || systemTools ? '/usr/bin:/bin' : '/unavailable-development-tools',
+const env = { HOME: home, PATH: '/unavailable-development-tools',
   AIXAND_LOCAL_HOME: join(directory, 'state'), AIXAND_LOCAL_PORT: String(port), AIXAND_LOCAL_CARRIER_PORT: String(carrierPort) }
 if (windows) {
   Object.assign(env, { SystemRoot: process.env.SystemRoot || process.env.SYSTEMROOT, WINDIR: process.env.WINDIR,
@@ -40,13 +38,12 @@ if (windows) {
 async function runtime(...args) {
   // Tauri canonicalizes Windows resources to extended-length (\\?\) paths.
   const desktopRoot = windows ? toNamespacedPath(root) : root
-  const program = installedCommands ? (args[0] === 'exec' ? args[1] : 'aixand-runtime') : nodePath(desktopRoot)
-  const argv = installedCommands ? (args[0] === 'exec' ? args.slice(2) : args) : [join(desktopRoot, 'runtime.mjs'), ...args]
+  const program = nodePath(desktopRoot)
+  const argv = [join(desktopRoot, 'runtime.mjs'), ...args]
   const result = await execute(program, argv, { env, cwd: desktopRoot, windowsHide: true, timeout: 300_000, maxBuffer: 4 * 1024 * 1024 })
   return result.stdout
 }
 let cookie
-let systemSelection
 const address = `http://127.0.0.1:${port}`
 async function request(path, body) {
   const response = await fetch(address + path, { method: body ? 'POST' : 'GET',
@@ -89,57 +86,15 @@ try {
     assert.equal((await lstat(join(root, name))).isSymbolicLink(), true, `Runtime link was materialized: ${name}`)
     assert.equal(await readlink(join(root, name)), target)
   }
-  if (systemTools) {
-    assert.equal(JSON.parse(await runtime('setup', 'info')).configured, false)
-    const checked = JSON.parse(await runtime('setup', 'check', JSON.stringify({ mode: 'system' })))
-    assert.equal(checked.ready, false, 'A clean system must not silently use the app bundle')
-    const existingCommand = join(cliDirectory(env), binary('uvx'))
-    await mkdir(cliDirectory(env), { recursive: true })
-    await writeFile(existingCommand, '#!/bin/sh\necho existing-user-command\n', { mode: 0o755 })
-    const installed = JSON.parse(await runtime('setup', 'install', JSON.stringify({ mode: 'system' })))
-    assert.equal(installed.ready, true, JSON.stringify(installed.checks.filter(item => !item.ready)))
-    assert.ok(!installed.prefix.startsWith(root + '/'))
-    assert.ok(!installed.prefix.startsWith(env.AIXAND_LOCAL_HOME + '/'))
-    assert.ok(installed.retained.includes(existingCommand))
-    assert.equal(await readFile(existingCommand, 'utf8'), '#!/bin/sh\necho existing-user-command\n')
-    env.PATH = installed.cliDirectory + delimiter + (windows ? join(env.SystemRoot, 'System32') : '/usr/bin:/bin')
-    for (const name of ['uc', 'runner', 'carrier', 'agent', 'mcp-manager', 'prompt-manager', 'skill-manager', 'server-manager', 'orchestration-mcp'])
-      assert.ok((await execute(name, ['--help'], { env, timeout: 30_000 })).stdout.length)
-    assert.ok(JSON.parse((await execute('agent', ['codex', 'profile', 'list', '--json'], { env, timeout: 30_000 })).stdout))
-    const venv = join(home, 'existing Python environment')
-    await execute(join(root, 'bin', binary('uv')), ['venv', '--system-site-packages', '--python', installed.tools.python, venv], { env: { ...env, UV_PYTHON_DOWNLOADS: 'never' }, timeout: 30_000 })
-    systemSelection = { mode: 'system', python: join(venv, windows ? 'Scripts/python.exe' : 'bin/python3'), voicePython: installed.tools.voicePython }
-    const saved = JSON.parse(await runtime('setup', 'save', JSON.stringify(systemSelection)))
-    assert.equal(saved.configured, true)
-    assert.notEqual(saved.tools.pythonHome, venv, 'Embedded Python must use the base interpreter, not the virtual environment home')
-    assert.deepEqual(JSON.parse(await readFile(join(env.AIXAND_LOCAL_HOME, 'config/setup.json'), 'utf8')).managerEnvironment, {})
-    assert.equal(JSON.parse(await runtime('setup', 'info')).mode, 'system')
-    await writeFile(join(directory, 'system-tools.json'), JSON.stringify(installed))
-  }
-  if (installedCommands) {
-    const manifest = JSON.parse(await readFile(join(root, 'manifest.json'), 'utf8'))
-    for (const name of ['aixand-runtime', ...manifest.commands]) {
-      const found = await execute('/bin/bash', ['--noprofile', '--norc', '-c', 'test "$(type -t "$1")" = file && command -v "$1"', 'installed-cli-check', name], { env })
-      assert.equal(found.stdout.trim(), `/usr/bin/${name}`)
-    }
-    const help = await execute('/bin/bash', ['--noprofile', '--norc', '-c', 'uc --help && runner --help && carrier --help && agent --help'], { env })
-    assert.ok(help.stdout.length)
-    const profiles = await execute('agent', ['codex', 'profile', 'list', '--json'], { env, timeout: 30_000 })
-    assert.ok(JSON.parse(profiles.stdout))
-    assert.equal(JSON.parse(await runtime('status')).running, false, 'CLI setup must not start desktop services')
-    const failure = await execute('uc', ['--aixand-invalid-option'], { env }).then(() => null, error => error)
-    assert.ok(Number.isInteger(failure?.code) && failure.code !== 0, 'Installed CLI must preserve failure exit codes')
-  }
+
+
   const doctor = JSON.parse(await runtime('doctor'))
   assert.equal(doctor.ready, true)
   await mkdir(join(env.AIXAND_LOCAL_HOME, 'config'), { recursive: true })
   await writeFile(join(env.AIXAND_LOCAL_HOME, 'config/runtime.env'), 'AIXAND_PACKAGING_TEST_SECRET=private-installation-canary\n', { mode: 0o600 })
   const first = JSON.parse(await runtime('start'))
   assert.equal(first.running, true)
-  if (systemTools) {
-    await assert.rejects(runtime('setup', 'save', JSON.stringify({ mode: 'bundled' })), /Stop local services/)
-    assert.equal(JSON.parse(await runtime('status')).running, true)
-  }
+
   const initial = JSON.parse(await runtime('exec', 'uc', '--json', 'ls'))
   const receipt = await readFile(join(env.AIXAND_LOCAL_HOME, 'runtime.json'), 'utf8')
   assert.equal(JSON.parse(await runtime('start')).running, true)
@@ -162,7 +117,10 @@ try {
   assert.equal(providers.schema, 'agent-manager/provider-catalog-1')
   assert.equal(providers.inventoryComplete, true,
     JSON.stringify(providers.providers.filter(provider => provider.configured === null).map(({ provider, error }) => ({ provider, error }))))
-  if (windows) assert.equal(providers.providers.find(provider => provider.provider === 'claude').authentication.authMode, 'native')
+  if (windows) {
+    for (const provider of ['codex', 'opencode'])
+      assert.equal(providers.providers.find(row => row.provider === provider).authentication.authMode, 'native')
+  }
   assert.equal((await request('/api/auth/onboarding/status')).needed, true, 'A fresh installation must offer agent setup')
   agents.close()
   const terminals = await socket('/api/terminals/ws')
@@ -190,7 +148,7 @@ try {
     await delay(250)
   }
   assert.equal(result.state, 'completed', JSON.stringify(result))
-  for (const name of ['agent', 'mcp-manager', 'prompt-manager', 'skill-manager', 'server-manager', 'orchestration-mcp', 'aixand-mcp', 'carrier', 'aixand-connect'])
+  for (const name of ['agent', 'mcp-manager', 'prompt-manager', 'skill-manager', 'conversation-manager', 'orchestration-mcp', 'carrier', 'aixand-connect'])
     assert.ok((await runtime('exec', name, '--help')).length, name)
   const providerManifest = JSON.parse(await readFile(join(root, 'manifest.json'), 'utf8'))
   for (const provider of ['codex', 'claude']) {
@@ -198,9 +156,7 @@ try {
     await assert.rejects(lstat(join(root, 'bin', binary(provider))))
   }
   // Exercise the shipped stdio MCP adapter, not just its help output.
-  const child = installedCommands
-    ? spawn('orchestration-mcp', ['serve'], { env, stdio: ['pipe', 'pipe', 'pipe'] })
-    : spawn(nodePath(root), [join(root, 'runtime.mjs'), 'exec', 'orchestration-mcp', 'serve'], { env, stdio: ['pipe', 'pipe', 'pipe'] })
+  const child = spawn(nodePath(root), [join(root, 'runtime.mjs'), 'exec', 'orchestration-mcp', 'serve'], { env, stdio: ['pipe', 'pipe', 'pipe'] })
   let stdout = '', stderr = ''
   child.stdout.on('data', data => { stdout += data })
   child.stderr.on('data', data => { stderr += data })
@@ -226,18 +182,10 @@ try {
     await assert.rejects(runtime('start'), /already in use/)
     assert.equal(foreign.listening, true)
   } finally { await new Promise(resolve => foreign.close(resolve)) }
-  if (systemTools) {
-    env.PROMPT_MANAGER_HOME = join(home, 'existing prompts')
-    await mkdir(env.PROMPT_MANAGER_HOME)
-    await writeFile(join(env.PROMPT_MANAGER_HOME, 'user-data'), 'preserve-existing-data')
-    await runtime('setup', 'save', JSON.stringify({ ...systemSelection, reuseConfig: true }))
-    const saved = JSON.parse(await readFile(join(env.AIXAND_LOCAL_HOME, 'config/setup.json'), 'utf8'))
-    assert.equal(saved.managerEnvironment.PROMPT_MANAGER_HOME, env.PROMPT_MANAGER_HOME)
-    assert.equal(await readFile(join(env.PROMPT_MANAGER_HOME, 'user-data'), 'utf8'), 'preserve-existing-data')
-  }
+
   await runtime('start')
   cookie = undefined
   await request('/api/auth/login', { password })
   assert.equal((await request('/api/auth/session')).authenticated, true)
-  console.log(JSON.stringify({ passed: true, checks: ['runtime symlink integrity', ...(systemTools ? ['system tool discovery', 'no bundled fallback', 'independent user-level installation', 'standalone normal CLI commands', 'existing commands preserved', 'external virtual environment', 'explicit manager configuration reuse', 'persisted system selection', 'active mode-switch refusal'] : []), ...(installedCommands ? ['normal installed commands', 'fresh shell without aliases', 'first use before desktop startup', 'CLI failure exit codes'] : []), 'private state', 'startup', 'idempotent start', 'frontend', 'recovery', 'password setup', 'Carrier stdio and exclusive ownership', 'authenticated Carrier synchronization', 'agent bridge', 'complete provider inventory', 'fresh installation onboarding', 'terminal creation', 'workflow catalogs', 'Runner workflow execution', 'CLIs', 'MCP handshake', 'shutdown', 'occupied-port refusal', 'restart with preserved authentication'], voice: doctor.voice, state: directory }))
+  console.log(JSON.stringify({ passed: true, checks: ['runtime symlink integrity', 'private state', 'startup', 'idempotent start', 'frontend', 'recovery', 'password setup', 'Carrier stdio and exclusive ownership', 'authenticated Carrier synchronization', 'agent bridge', 'complete provider inventory', 'fresh installation onboarding', 'terminal creation', 'workflow catalogs', 'Runner workflow execution', 'CLIs', 'MCP handshake', 'shutdown', 'occupied-port refusal', 'restart with preserved authentication'], voice: doctor.voice, state: directory }))
 } finally { await runtime('stop').catch(error => console.error(error.message)) }

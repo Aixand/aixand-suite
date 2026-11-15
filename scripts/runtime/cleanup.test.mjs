@@ -5,6 +5,7 @@ import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { cleanupPlan, applyCleanup, stopCleanupProcesses, repairCleanupPermissions, restoreCleanupProvider } from './cleanup.mjs'
+import { saveInstallationPlan } from './installation-plan.mjs'
 
 async function fixture() {
   const temporary = await realpath(await mkdtemp(join(tmpdir(), 'aixand-cleanup-')))
@@ -26,6 +27,70 @@ test('preview does not initialize or write a never-started workspace', async () 
   const f = await fixture()
   try { const plan = await cleanupPlan(f.config, f.deps); assert.ok(plan.items.length >= 3); assert.equal(existsSync(f.config.base), false); assert.deepEqual(f.calls, []) }
   finally { await f.cleanup() }
+})
+
+test('workspace removal clears its installation plan after tool removal finishes', async () => {
+  const f = await fixture()
+  try {
+    await saveInstallationPlan(f.config.root, f.config.input, f.config.base, 'isolated')
+    await f.put('software/products/installation-receipt.json', JSON.stringify({ schema: 2, scope: 'private', owner: 'aixand-suite', products: {} }))
+    const path = join(f.config.base, 'config/installation-plan.json')
+    f.deps.removePrivateProducts = async () => {
+      assert.equal(existsSync(path), true, 'Process and tool operations retain ownership data')
+      await rm(join(f.config.base, 'software/products'), { recursive: true })
+    }
+    const result = await f.apply(['workspace', 'private-products'])
+    assert.equal(result.failed, null)
+    assert.deepEqual(result.completed, ['private-products', 'workspace'])
+    assert.equal(existsSync(path), false)
+    assert.equal(existsSync(join(f.config.base, 'software/products')), false)
+  } finally { await f.cleanup() }
+})
+
+test('shared data can be purged without an application or tool receipt', async () => {
+  const f = await fixture()
+  try {
+    const path = join(f.config.env.HOME, '.aixand/carrier/carrier.db')
+    await mkdir(join(path, '..'), { recursive: true }); await writeFile(path, 'data')
+    const plan = await cleanupPlan(f.config, f.deps)
+    assert.equal(plan.items.find(item => item.id === 'tool-data:carrier_home').shared, true)
+    assert.equal((await f.apply(['workspace'])).failed, null)
+    assert.equal(existsSync(path), true)
+    assert.equal((await f.apply(['tool-data:carrier_home'])).failed, null)
+    assert.equal(existsSync(path), false)
+  } finally { await f.cleanup() }
+})
+
+test('shared store records require every installed product to be selected', async () => {
+  const f = await fixture()
+  try {
+    const prefix = f.config.input.AIXAND_SHARED_PRODUCT_PREFIX
+    await mkdir(prefix, { recursive: true })
+    await writeFile(join(prefix, 'installation-receipt.json'), JSON.stringify({ schema: 2, scope: 'shared', owner: 'user', products: { runner: { dependency_releases: {} } } }))
+    f.deps.purgeSharedProductStore = async () => {
+      assert.deepEqual(f.calls.at(-1), ['runner'])
+      await rm(prefix, { recursive: true })
+    }
+    await assert.rejects(f.apply(['shared-store-data']), /Also select/)
+    assert.deepEqual(f.calls, [])
+    const result = await f.apply(['product:runner', 'shared-store-data'])
+    assert.equal(result.failed, null)
+    assert.deepEqual(result.completed, ['product:runner', 'shared-store-data'])
+    assert.equal(existsSync(prefix), false)
+  } finally { await f.cleanup() }
+})
+
+test('private tool data removal preserves application authentication and chats', async () => {
+  const f = await fixture()
+  try {
+    for (const path of ['auth/auth.db', 'chats/history', 'uc/state', 'carrier/carrier.db', 'runner/state']) await f.put(path)
+    assert.equal((await f.apply(['private-tool-data'])).failed, null)
+    assert.equal(existsSync(join(f.config.base, 'uc')), false)
+    assert.equal(existsSync(join(f.config.base, 'carrier')), false)
+    assert.equal(existsSync(join(f.config.base, 'runner')), false)
+    assert.equal(existsSync(join(f.config.base, 'auth/auth.db')), true)
+    assert.equal(existsSync(join(f.config.base, 'chats/history')), true)
+  } finally { await f.cleanup() }
 })
 
 test('administrator access repair needs a fresh review and never applies component removal', async () => {
@@ -212,5 +277,26 @@ test('stop actions require reviewed identities, separate force confirmation, and
     const report = await stopCleanupProcesses(f.config, { ...options, force: true, forceConfirmed: true }, f.deps)
     assert.equal(report.blocked, false)
     assert.equal(existsSync(join(f.config.base, 'auth/auth.db')), true, 'stopping a process does not erase history')
+  } finally { await f.cleanup() }
+})
+
+test('shared provider runtime is explicitly removed after its dependent CLIs', async () => {
+  const f = await fixture()
+  try {
+    let applied
+    f.deps.providers = async (_config, action = 'plan', options = {}) => {
+      if (action === 'plan') return { revision: {}, items: [
+        { id: 'provider:copilot', available: true, paths: ['/shared/packages/copilot'] },
+        { id: 'provider-shared-runtime', available: true, paths: ['/shared/node'], requires: ['provider:copilot'] },
+      ] }
+      if (action === 'apply') { applied = options.selected; return { completed: options.selected } }
+      return { blockers: [], errors: [] }
+    }
+    await assert.rejects(f.apply(['provider-shared-runtime']), /dependent provider CLIs/)
+    assert.equal(applied, undefined)
+    const result = await f.apply(['provider:copilot', 'provider-shared-runtime'])
+    assert.equal(result.failed, null)
+    assert.deepEqual(applied, ['provider:copilot', 'provider-shared-runtime'])
+    assert.deepEqual(result.completed, ['provider:copilot', 'provider-shared-runtime'])
   } finally { await f.cleanup() }
 })

@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools==80.9.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aixand-runner-client"
+version = "0.1.0a1"
+description = "Standard-library Python client for the local Aixand job runner"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+dependencies = ["aixand-lib-local-runtime>=0.1.0b0,<0.2"]
+
+[tool.setuptools]
+py-modules = ["runner_client"]

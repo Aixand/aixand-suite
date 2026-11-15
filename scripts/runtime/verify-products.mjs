@@ -32,6 +32,7 @@ async function port() {
 }
 const localPort = await port(), carrierPort = await port()
 const env = { ...process.env, HOME: home, USERPROFILE: home, AIXAND_LOCAL_HOME: base,
+  ...(process.platform === 'darwin' ? { TMPDIR: '/tmp' } : {}),
   AIXAND_LOCAL_PORT: String(localPort), AIXAND_LOCAL_CARRIER_PORT: String(carrierPort),
   AIXAND_SKIP_PATH_REGISTRATION: '1', LOCALAPPDATA: join(home, 'AppData/Local'),
   APPDATA: join(home, 'AppData/Roaming'), PATH: windows ? join(process.env.SystemRoot || 'C:/Windows', 'System32') : '/usr/bin:/bin',
@@ -63,10 +64,15 @@ async function request(path, body, expected = 200, authenticated = true) {
 }
 const manifest = JSON.parse(await readFile(join(root, 'manifest.json'), 'utf8'))
 const catalog = JSON.parse(await readFile(join(root, 'products/catalog.json'), 'utf8'))
-const productVersions = new Set(catalog.assemblies.flatMap(row =>
-  Object.values(row.products).map(product => product.version)))
-assert.equal(productVersions.size, 1, 'Product releases must use the coordinated Suite version')
-const [releaseVersion] = productVersions
+const commandVersions = new Map()
+for (const assembly of catalog.assemblies) {
+  for (const product of Object.values(assembly.products)) {
+    for (const command of product.commands) {
+      assert.ok(!commandVersions.has(command), 'Product command ownership must be unique: ' + command)
+      commandVersions.set(command, product.version)
+    }
+  }
+}
 const distributed = manifest.installation.edition === 'distributed'
 let hidden = false
 let existingUndercurrent
@@ -75,7 +81,7 @@ const sharedReceiptPath = join(sharedPrefix, 'installation-receipt.json')
 const settingsPath = join(home, '.aixand/undercurrent-cli/settings.toml')
 const normalCli = async (...args) => JSON.parse((await execute(join(sharedPrefix, 'bin', binary('uc')),
   ['--json', ...args], { env, windowsHide: true, timeout: 30_000 })).stdout)
-let sharedReceipt, settings, independentSession
+let sharedReceipt, settings, independentSession, previousProfile
 try {
   {
     // Begin with an independently installed product. Distributed must reuse it;
@@ -89,6 +95,7 @@ try {
       { env, windowsHide: true, timeout: 180_000, maxBuffer: 4 * 1024 * 1024 })
     sharedReceipt = await readFile(sharedReceiptPath, 'utf8')
     existingUndercurrent = JSON.parse(sharedReceipt).products.undercurrent.payload
+    previousProfile = (await normalCli('settings', 'show')).active_profile
     if (!distributed) {
       await normalCli('settings', 'set', 'profile', 'default')
       settings = await readFile(settingsPath, 'utf8')
@@ -98,6 +105,7 @@ try {
       independentSession = (await normalCli('ls')).items.find(item => item.name === 'independent-terminal-proof').id
     }
   }
+  const chosenPlan = await runtime('setup', 'choose', JSON.stringify({ mode: distributed ? 'shared' : 'isolated' }))
   const initial = await runtime('setup', 'products')
   assert.equal(initial.ready, false)
   if (distributed) assert.equal(initial.assemblies.find(row => row.id === 'undercurrent').installed, true)
@@ -148,8 +156,10 @@ try {
     const uc = join(installed.prefix, 'bin', binary('uc'))
     const cli = async (...args) => JSON.parse((await execute(uc, ['--json', ...args],
       { env, windowsHide: true, timeout: 30_000 })).stdout)
-    assert.equal(installed.ucConnection.profile, 'aixand-suite')
-    assert.equal((await cli('settings', 'show')).active_profile, 'aixand-suite')
+    const suiteProfile = chosenPlan.undercurrent.profile || 'aixand-suite'
+    assert.equal(installed.ucConnection.profile, suiteProfile)
+    assert.equal((await cli('settings', 'show')).active_profile, previousProfile, 'Setup must preserve the existing CLI selection')
+    await cli('settings', 'set', 'profile', suiteProfile)
     const { WebSocket } = createRequire(join(root, 'server/package.json'))('ws')
     const socket = new WebSocket(address.replace('http:', 'ws:') + '/api/terminals/ws',
       { origin: address, headers: { Cookie: cookie } })
@@ -170,12 +180,16 @@ try {
       })
       const terminalId = result.session.id
       assert.ok((await cli('ls')).items.some(item => item.id === terminalId), 'Normal uc ls must show the actual app terminal')
-      await cli('settings', 'set', 'profile', 'default')
-      assert.ok(!(await cli('ls')).items.some(item => item.id === terminalId), 'Default must remain independent')
-      assert.ok((await cli('--connection', 'aixand-suite', 'ls')).items.some(item => item.id === terminalId))
-      await cli('settings', 'set', 'profile', 'aixand-suite')
-      // Stop only this verifier's independent daemon before normal Suite cleanup.
-      await cli('--connection', 'default', 'daemon', 'stop')
+      const alternate = 'qualification-independent'
+      await cli('settings', 'profiles', 'register', alternate, '--home', join(directory, 'independent-uc'),
+        '--owner', 'qualification', '--auto-start', 'never')
+      await cli('--connection', alternate, 'daemon', 'start')
+      await cli('settings', 'set', 'profile', alternate)
+      assert.ok(!(await cli('ls')).items.some(item => item.id === terminalId), 'A separate instance must remain independent')
+      assert.ok((await cli('--connection', suiteProfile, 'ls')).items.some(item => item.id === terminalId))
+      assert.equal((await cli('settings', 'show')).active_profile, alternate, 'One-off connections must preserve selection')
+      await cli('settings', 'set', 'profile', suiteProfile)
+      await cli('--connection', alternate, 'daemon', 'stop')
     } finally { socket.close() }
   } else {
     assert.equal(installed.ucConnection, null)
@@ -186,13 +200,15 @@ try {
     assert.ok(!privateSessions.some(item => item.id === independentSession), 'Private Suite must not adopt independent sessions')
     assert.ok((await normalCli('ls')).items.some(item => item.id === independentSession), 'Independent work must survive Suite setup')
   }
-  for (const command of ['uc', 'runner', 'carrier', 'agent', 'prompt-manager', 'skill-manager', 'mcp-manager', 'server-manager', 'orchestration-mcp']) {
+  for (const command of ['uc', 'runner', 'carrier', 'agent', 'prompt-manager', 'skill-manager', 'mcp-manager', 'conversation-manager', 'orchestration-mcp']) {
     await execute(join(installed.prefix, 'bin', binary(command)), ['--help'],
       { env, cwd: directory, windowsHide: true, timeout: 30_000, maxBuffer: 1024 * 1024 })
     const { stdout } = await execute(join(installed.prefix, 'bin', binary(command)), ['--version'],
       { env, cwd: directory, windowsHide: true, timeout: 30_000, maxBuffer: 1024 * 1024 })
-    assert.ok(stdout.trim().split(/\s+/).includes(releaseVersion),
-      `${command} must report ${releaseVersion}: ${stdout.trim()}`)
+    const versions = stdout.trim().split(/\s+/).map(value => value.replace(/b0$/, '-beta'))
+    const expectedVersion = commandVersions.get(command)
+    assert.ok(expectedVersion && versions.includes(expectedVersion),
+      `${command} must report its owning product version ${expectedVersion}: ${stdout.trim()}`)
   }
   const runner = join(installed.prefix, 'bin', binary('runner'))
   const examples = join(installed.prefix, receipt.products.runner.payload, 'share/runner/examples')
@@ -218,7 +234,7 @@ try {
   if (distributed) {
     await runtime('uninstall-products')
     if (!installedPackage) { await rename(root, root + '.offline'); hidden = true }
-    for (const command of ['uc', 'runner', 'carrier', 'agent', 'prompt-manager', 'skill-manager', 'mcp-manager', 'server-manager', 'orchestration-mcp'])
+    for (const command of ['uc', 'runner', 'carrier', 'agent', 'prompt-manager', 'skill-manager', 'mcp-manager', 'conversation-manager', 'orchestration-mcp'])
       await execute(join(installed.prefix, 'bin', binary(command)), ['--help'],
         { env, cwd: directory, windowsHide: true, timeout: 30_000, maxBuffer: 1024 * 1024 })
     if (hidden) { await rename(root + '.offline', root); hidden = false }
@@ -236,8 +252,8 @@ try {
       'nine independent product receipts', 'normal native and Python CLIs', 'CLI release versions', 'live workspace retained',
       'authenticated Carrier synchronization with Suite SDK',
       'restart with installed tools', 'Runner job retained', 'authentication retained', 'software ownership', 'user data retained',
-      ...(distributed ? ['normal product installation reused', 'CLI conflicts preserved', 'saved UC profile selected',
-        'actual app terminal visible through plain uc ls', 'default UC instance isolated', 'one-off connection preserves selection',
+      ...(distributed ? ['normal product installation reused', 'CLI conflicts preserved', 'existing CLI selection preserved', 'explicit Suite CLI profile selection',
+        'actual app terminal visible through plain uc ls', 'separate UC instance isolated', 'one-off connection preserves selection',
         installedPackage ? 'commands survive product unregistration' : 'commands run with Suite payload unavailable'] : ['private software cleanup', 'global UC settings untouched',
         'independent product receipt untouched', 'independent sessions remain separate', 'independent work survives private removal'])],
     state: directory, nativeDesktopInstallationTested: false }))

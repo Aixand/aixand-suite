@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { startClient, backendUrl } from './desktop-client.mjs'
 
-const { WebSocket, WebSocketServer } = createRequire(new URL('../../aixand-server/package.json', import.meta.url))('ws')
+const { WebSocket, WebSocketServer } = createRequire(new URL('../../apps/server/package.json', import.meta.url))('ws')
 async function fixture() {
   const directory = await mkdtemp(join(tmpdir(), 'aixand-desktop-client-'))
   const web = join(directory, 'web'); await mkdir(web)
@@ -131,4 +131,36 @@ test('a redirected settings file cannot overwrite an unrelated file', { skip: pr
     await assert.rejects(startClient({ backend: f.origin, web: f.web, profile: 'fixture', stateFile: link }), /link or junction/)
     assert.equal(await readFile(target, 'utf8'), 'must not be served')
   } finally { await f.close() }
+})
+
+test('replaces an occupied saved port and preserves the replacement on the next start', async () => {
+  const f = await fixture()
+  const occupied = createServer()
+  let current
+  try {
+    const oldCookie = await open(f.client), oldOrigin = f.client.origin
+    await f.client.close()
+    await new Promise((ready, fail) => {
+      occupied.once('error', fail)
+      occupied.listen(Number(new URL(oldOrigin).port), '127.0.0.1', ready)
+    })
+    const options = { backend: f.origin, web: f.web, profile: 'fixture', stateFile: join(f.directory, 'client.json') }
+    current = await startClient(options)
+    assert.notEqual(current.origin, oldOrigin)
+    assert.equal((await fetch(current.origin, { headers: { Cookie: oldCookie } })).status, 403)
+    const cookie = await open(current)
+    assert.deepEqual(await (await fetch(current.origin + '/api/health', { headers: { Cookie: cookie } })).json(), { api: true })
+    assert.equal(JSON.parse(await readFile(options.stateFile, 'utf8')).port, Number(new URL(current.origin).port))
+    const replacement = current.origin
+    await current.close()
+    current = await startClient(options)
+    assert.equal(current.origin, replacement)
+    // An explicitly requested port is not a saved preference and still fails.
+    await assert.rejects(startClient({ backend: f.origin, web: f.web, profile: 'explicit', port: Number(new URL(oldOrigin).port) }),
+      { code: 'EADDRINUSE' })
+  } finally {
+    if (current) await current.close()
+    await new Promise(ready => occupied.close(ready))
+    await f.close()
+  }
 })

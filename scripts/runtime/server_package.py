@@ -45,8 +45,8 @@ def build_installer(runtime, output, suite, *, native=None):
         subprocess.run(command, env=environment, check=True)
         shutil.copy2(stub, installer)
         if os.name == "nt":
-            code = "import sys; sys.path.insert(0, sys.argv[1]); from windows_metadata import stamp; stamp(sys.argv[2], '0.1.0-beta', 'Aixand Server', 'aixand-server-setup')"
-            subprocess.run([sys.executable, "-I", "-c", code, str(runtime / "products/consumer"), str(installer)], check=True)
+            code = "import sys; sys.path.insert(0, sys.argv[1]); from windows_metadata import stamp; stamp(sys.argv[2], sys.argv[3], 'Aixand Server', 'aixand-server-setup')"
+            subprocess.run([sys.executable, "-I", "-c", code, str(runtime / "products/consumer"), str(installer), manifest["version"]], check=True)
         if sys.platform == 'darwin':
             subprocess.run(['codesign', '--force', '--sign', os.environ.get('APPLE_SIGNING_IDENTITY', '-'), str(installer)], check=True)
             subprocess.run(['codesign', '--verify', '--strict', str(installer)], check=True)

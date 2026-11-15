@@ -18,10 +18,10 @@ async function fixture(t, { offline = false, externalCarrier = false } = {}) {
   const root = join(temp, 'aixand-suite')
   const stateFile = join(temp, 'state.json')
   const bin = join(temp, 'bin')
-  for (const path of ['scripts', 'aixand-server/node_modules', 'aixand-server/dist', 'aixand-web/node_modules', 'aixand-web/dist', 'aixand-ir']) mkdirSync(join(root, path), { recursive: true })
-  writeFileSync(join(root, 'aixand-server/dist/production-main.js'), '// fixture production entry')
-  writeFileSync(join(root, 'aixand-server/dist/production.js'), 'export function loadProductionEnvironment() {}\nexport function productionConfiguration() { if (process.env.TEST_REJECT_PRODUCTION_CONFIG) throw new Error("fixture production config rejected") }\n')
-  for (const file of ['index.html', 'recovery.html']) writeFileSync(join(root, 'aixand-web/dist', file), '<html>Aixand</html>')
+  for (const path of ['scripts', 'apps/server/node_modules', 'apps/server/dist', 'apps/web/node_modules', 'apps/web/dist', 'workflow/ir']) mkdirSync(join(root, path), { recursive: true })
+  writeFileSync(join(root, 'apps/server/dist/production-main.js'), '// fixture production entry')
+  writeFileSync(join(root, 'apps/server/dist/production.js'), 'export function loadProductionEnvironment() {}\nexport function productionConfiguration() { if (process.env.TEST_REJECT_PRODUCTION_CONFIG) throw new Error("fixture production config rejected") }\n')
+  for (const file of ['index.html', 'recovery.html']) writeFileSync(join(root, 'apps/web/dist', file), '<html>Aixand</html>')
   mkdirSync(bin)
   mkdirSync(join(temp, 'carrier'))
   copyFileSync(join(source, 'dev.mjs'), join(root, 'scripts/dev.mjs'))
@@ -171,8 +171,8 @@ else if (args.includes('stop') && state.systemdCarrier) {
   const sdkConfig = join(temp, 'sdk config.json')
   writeFileSync(sdkConfig, '{}')
   const carrierDb = join(temp, 'data with spaces', 'carrier;literal.db')
-  writeFileSync(join(root, 'aixand-server/.env'), `CARRIER_API_TOKEN=fixture-private-value\nCARRIER_USER_CREDENTIALS=${join(temp, 'user.json')}\nPORT=${serverPort}\nHOST=127.0.0.1\nCARRIER_URL=http://127.0.0.1:${carrierPort}\nCARRIER_DATABASE=${carrierDb}\nWORKFLOW_RUNNER_HOME=${runnerHome}\nWORKFLOW_SDK_CONFIG=${sdkConfig}\nAIXAND_WEB_PORT=${webPort}\nAIXAND_SERVE_TIMEOUT=1\n`)
-  writeFileSync(join(root, 'aixand-server/.env.production'), `AIXAND_PRODUCTION_PORT=${productionPort}\n`)
+  writeFileSync(join(root, 'apps/server/.env'), `CARRIER_API_TOKEN=fixture-private-value\nCARRIER_USER_CREDENTIALS=${join(temp, 'user.json')}\nPORT=${serverPort}\nHOST=127.0.0.1\nCARRIER_URL=http://127.0.0.1:${carrierPort}\nCARRIER_DATABASE=${carrierDb}\nWORKFLOW_RUNNER_HOME=${runnerHome}\nWORKFLOW_SDK_CONFIG=${sdkConfig}\nAIXAND_WEB_PORT=${webPort}\nAIXAND_SERVE_TIMEOUT=1\n`)
+  writeFileSync(join(root, 'apps/server/.env.production'), `AIXAND_PRODUCTION_PORT=${productionPort}\n`)
   const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^(AGENTS?_|AGENT_MANAGER_|UNDERCURRENT_|WORKFLOW_|RUNNER_|SUITE_|CARRIER_|VOX_|AIXAND_|XDG_|PORT$|HOST$)/.test(key)))
   Object.assign(env, { HOME: temp, PATH: `${bin}:${process.env.PATH}`, TEST_STATE: stateFile })
   t.after(async () => {
@@ -185,7 +185,7 @@ else if (args.includes('stop') && state.systemdCarrier) {
       return { ...result, code: 0 }
     } catch (error) { return { stdout: error.stdout, stderr: error.stderr, code: error.code } }
   }
-  const cwd = name => name === 'aixand-runner' ? join(root, 'aixand-ir') : name === 'aixand-carrier' ? join(temp, 'carrier') : join(root, name)
+  const cwd = name => name === 'aixand-runner' ? join(root, 'workflow/ir') : name === 'aixand-carrier' ? root : join(root, { 'aixand-server': 'apps/server', 'aixand-web': 'apps/web' }[name] || name)
   return { root, temp, env, run, stop: (args = [], extraEnv = {}) => run(args, extraEnv, 'stop'), load, save, cwd, sdkConfig, carrierDb, carrierPort, serverPort, productionPort, webPort, runnerHome }
 }
 
@@ -197,6 +197,19 @@ test('offline Undercurrent exits before starting any service', async t => {
   assert.deepEqual(f.load().actions, [])
 })
 
+test('development discovers Runner inside the grouped workflow directory', async t => {
+  const f = await fixture(t)
+  const directory = join(f.root, 'workflow/runner/target/debug')
+  mkdirSync(directory, { recursive: true })
+  const runner = join(directory, 'runner')
+  writeFileSync(runner, '#!/bin/sh\nexit 0\n')
+  chmodSync(runner, 0o755)
+  const result = await f.run(['--dry-run'])
+  assert.equal(result.code, 0, result.stderr)
+  assert.ok(result.stdout.includes(runner), result.stdout)
+  assert.deepEqual(f.load().actions, [])
+})
+
 test('production starts the compiled combined server without Vite and is idempotent', async t => {
   const f = await fixture(t)
   const result = await f.run(['--production'])
@@ -205,8 +218,8 @@ test('production starts the compiled combined server without Vite and is idempot
   assert.deepEqual(f.load().groups['aixand-suite'].members.map(member => member.name), names.slice(0, 3))
   const backend = f.load().sessions['aixand-server']
   assert.equal(backend.labels['suite.mode'], 'production')
-  assert.equal(backend.command.arguments.at(-1), join(f.root, 'aixand-server/dist/production-main.js'))
-  assert.ok(backend.command.arguments.includes(join(f.root, 'aixand-server/.env.production')))
+  assert.equal(backend.command.arguments.at(-1), join(f.root, 'apps/server/dist/production-main.js'))
+  assert.ok(backend.command.arguments.includes(join(f.root, 'apps/server/.env.production')))
   assert.deepEqual(backend.health.rules, [{ kind: 'http_endpoint', endpoint: `http://127.0.0.1:${f.productionPort}/api/health` }])
   const start = f.load().actions.find(action => action.name === 'aixand-server')
   assert.ok(start.args.includes('NODE_ENV=production'))
@@ -276,7 +289,7 @@ test('missing production build fails before stopping existing development sessio
   const f = await fixture(t)
   assert.equal((await f.run()).code, 0)
   const before = f.load()
-  rmSync(join(f.root, 'aixand-web/dist/recovery.html'))
+  rmSync(join(f.root, 'apps/web/dist/recovery.html'))
   const result = await f.run(['--production'])
   assert.equal(result.code, 1)
   assert.match(result.stderr, /Build production first/)
@@ -337,12 +350,12 @@ test('stop supports production sessions and production dotenv settings', async t
 
 test('production dotenv overrides base configuration inside the child without leaking into uc', async t => {
   const f = await fixture(t)
-  writeFileSync(join(f.root, 'aixand-server/.env.production'), `AIXAND_PRODUCTION_PORT=${f.productionPort}\nCARRIER_API_TOKEN=production-private-value\n`)
+  writeFileSync(join(f.root, 'apps/server/.env.production'), `AIXAND_PRODUCTION_PORT=${f.productionPort}\nCARRIER_API_TOKEN=production-private-value\n`)
   const result = await f.run(['--production'])
   assert.equal(result.code, 0, result.stderr)
   assert.equal(JSON.stringify(f.load()).includes('production-private-value'), false)
   const script = `if (process.env.CARRIER_API_TOKEN !== 'production-private-value' || process.env.PORT !== '43210') process.exit(1); process.exit(37)`
-  await assert.rejects(execute(process.execPath, [join(f.root, 'scripts/launch-service.mjs'), join(f.root, 'aixand-server/.env'), join(f.root, 'aixand-server/.env.production'), '--', process.execPath, '-e', script], {
+  await assert.rejects(execute(process.execPath, [join(f.root, 'scripts/launch-service.mjs'), join(f.root, 'apps/server/.env'), join(f.root, 'apps/server/.env.production'), '--', process.execPath, '-e', script], {
     env: { ...f.env, PORT: '43210' },
   }), error => error.code === 37)
 })
@@ -516,7 +529,7 @@ test('an outdated external Runner is reported without starting a duplicate', asy
 test('service loader reads private dotenv at runtime and preserves exported overrides and exit status', async t => {
   const f = await fixture(t)
   const script = `if (process.env.CARRIER_API_TOKEN !== 'fixture-private-value' || process.env.PORT !== '43210') process.exit(1); process.exit(37)`
-  await assert.rejects(execute(process.execPath, [join(f.root, 'scripts/launch-service.mjs'), join(f.root, 'aixand-server/.env'), '--', process.execPath, '-e', script], {
+  await assert.rejects(execute(process.execPath, [join(f.root, 'scripts/launch-service.mjs'), join(f.root, 'apps/server/.env'), '--', process.execPath, '-e', script], {
     env: { ...f.env, PORT: '43210' },
   }), error => error.code === 37)
 })
@@ -525,7 +538,7 @@ test('exported credential overrides are rejected before reaching uc launch state
   const f = await fixture(t)
   const result = await f.run([], { CARRIER_API_TOKEN: 'exported-private-value' })
   assert.equal(result.code, 1)
-  assert.match(result.stderr, /Put it in aixand-server\/.env/)
+  assert.match(result.stderr, /Put it in apps\/server\/.env/)
   assert.equal(result.stderr.includes('exported-private-value'), false)
   assert.deepEqual(f.load().actions, [])
 })
@@ -546,7 +559,7 @@ test('stop handles paginated Suite services and agent sessions, cleans them, and
   assert.deepEqual(Object.keys(f.load().sessions).sort(), ['my-terminal', 'other-suite'])
   assert.deepEqual(f.load().actions.filter(action => action.op === 'stop').map(action => action.name), ['aixand-web', 'aixand-runner', 'aixand-server', 'suite-agent', 'aixand-carrier'])
   assert.equal(f.load().actions.filter(action => action.op === 'clean').length, 6)
-  assert.ok(readFileSync(join(f.root, 'aixand-server/.env'), 'utf8').includes('fixture-private-value'))
+  assert.ok(readFileSync(join(f.root, 'apps/server/.env'), 'utf8').includes('fixture-private-value'))
   assert.match(result.stdout, /Undercurrent is still running/)
   const actionCount = f.load().actions.length
   assert.equal((await f.stop()).code, 0)

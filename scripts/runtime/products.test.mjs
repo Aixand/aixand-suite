@@ -5,11 +5,12 @@ import { execFileSync } from 'node:child_process'
 import { mkdtemp, mkdir, readFile, symlink, writeFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { productCatalog, productLocation, productStatus, installedProductTools, installProducts } from './products.mjs'
+import { productCatalog, productLocation, productStatus, installedProductTools, installProducts, validateInstalledProducts } from './products.mjs'
+import { saveInstallationPlan } from './installation-plan.mjs'
 import { configuration } from './runtime.mjs'
 
 const hash = value => createHash('sha256').update(value).digest('hex')
-async function fixture(edition) {
+async function fixture(mode = 'shared') {
   const temporary = await mkdtemp(join(tmpdir(), 'product-state-'))
   const root = join(temporary, 'app'), base = join(temporary, 'state'), home = join(temporary, 'home')
   const target = { linux: 'linux', darwin: 'macos', win32: 'windows' }[process.platform] + '-' +
@@ -17,14 +18,15 @@ async function fixture(edition) {
     (process.platform === 'linux' ? '-gnu' : process.platform === 'win32' ? '-msvc' : '')
   await mkdir(join(root, 'products/consumer'), { recursive: true })
   await writeFile(join(root, 'products/consumer/consumer.py'), '# fixture')
-  const names = ['undercurrent', 'runner', 'carrier', 'manager-suite']
+  const names = ['undercurrent', 'runner', 'carrier', 'agent-manager', 'conversation-manager', 'mcp-manager', 'prompt-manager', 'skill-manager', 'orchestration-mcp']
   const catalog = { schema: 1, target, consumer: { 'consumer/consumer.py': hash('# fixture') },
     assemblies: names.map(id => ({ id, artifact: 'artifacts/' + id, licenses: [],
       products: { [id]: { version: '1', release: hash(id), commands: [id === 'undercurrent' ? 'uc' : id] } } })) }
   const text = JSON.stringify(catalog)
   await writeFile(join(root, 'products/catalog.json'), text)
-  await writeFile(join(root, 'manifest.json'), JSON.stringify({ installation: { schema: 1, edition, catalogSha256: hash(text) } }))
+  await writeFile(join(root, 'manifest.json'), JSON.stringify({ installation: { schema: 1, edition: 'distributed', catalogSha256: hash(text) } }))
   const input = { HOME: home, LOCALAPPDATA: join(home, 'AppData/Local') }
+  await saveInstallationPlan(root, input, base, mode)
   return { root, base, input, catalog, cleanup: () => rm(temporary, { recursive: true, force: true }) }
 }
 
@@ -66,11 +68,11 @@ state['requests'][args.request_id]['status'] = 'complete'
 receipt.write_text(json.dumps(state))
 `
 
-async function installationFixture() {
-  const f = await fixture('standalone')
+async function installationFixture(mode = 'isolated') {
+  const f = await fixture(mode)
   try {
     // Windows qualification supplies the packaged Python home, which also has
-    // aixand_platform for the production process identity check.
+    // aixand_local_runtime for the production process identity check.
     const pythonHome = process.env.AIXAND_TEST_PYTHON_HOME || execFileSync('python3',
       ['-I', '-c', 'import sys; print(sys.base_prefix)'], { encoding: 'utf8' }).trim()
     await symlink(pythonHome, join(f.root, 'python'), process.platform === 'win32' ? 'junction' : 'dir')
@@ -80,7 +82,7 @@ async function installationFixture() {
     const text = JSON.stringify(f.catalog)
     await writeFile(join(f.root, 'products/catalog.json'), text)
     await writeFile(join(f.root, 'manifest.json'), JSON.stringify({ installation: {
-      schema: 1, edition: 'standalone', catalogSha256: hash(text),
+      schema: 1, edition: 'distributed', catalogSha256: hash(text),
     } }))
     const { prefix } = productLocation(f.root, f.input, f.base)
     await mkdir(prefix, { recursive: true })
@@ -90,17 +92,40 @@ async function installationFixture() {
   } catch (error) { await f.cleanup(); throw error }
 }
 
+test('shared setup reuses a compatible external tool and installs only missing products', { skip: process.platform === 'win32' }, async () => {
+  const f = await installationFixture('shared')
+  await rm(join(f.base, 'config/installation-plan.json'))
+  try {
+    const bin = join(f.input.HOME, 'external-bin')
+    await mkdir(bin, { recursive: true })
+    const runner = join(bin, 'runner')
+    await writeFile(runner, '#!' + process.execPath + '\nconsole.log("runner 1")\n', { mode: 0o755 })
+    const prefix = join(f.input.HOME, 'shared-products')
+    await mkdir(prefix, { recursive: true })
+    const input = { ...f.input, PATH: bin, AIXAND_LOCAL_HOME: f.base, AIXAND_SHARED_PRODUCT_PREFIX: prefix }
+    const plan = await saveInstallationPlan(f.root, input, f.base, 'shared')
+    assert.equal(plan.reusedProducts.runner.commands.runner, runner)
+    const result = await installProducts(f.root, input, f.base)
+    assert.equal(result.ready, true)
+    const calls = (await readFile(join(prefix, 'calls.jsonl'), 'utf8')).trim().split('\n').map(line => JSON.parse(line))
+    assert.ok(!calls.some(call => call.assembly === 'runner'))
+    assert.equal(installedProductTools(f.root, input, f.base).runner, runner)
+    await writeFile(runner, '#!' + process.execPath + '\nconsole.log("runner 2")\n', { mode: 0o755 })
+    await assert.rejects(validateInstalledProducts(f.root, input, f.base), /changed version/)
+  } finally { await f.cleanup() }
+})
+
 test('explicit repair re-executes installed releases and distinct repairs use distinct requests', async () => {
   const f = await installationFixture()
   try {
     await installProducts(f.root, f.input, f.base)
     await installProducts(f.root, f.input, f.base, { repair: true })
     const first = await f.calls()
-    assert.equal(first.length, 8)
-    assert.ok(first.slice(4).every(call => call.operation === 'reinstall'))
+    assert.equal(first.length, 18)
+    assert.ok(first.slice(9).every(call => call.operation === 'reinstall'))
     await installProducts(f.root, f.input, f.base, { repair: true })
-    const second = (await f.calls()).slice(8)
-    assert.equal(second.length, 4)
+    const second = (await f.calls()).slice(18)
+    assert.equal(second.length, 9)
     assert.ok(second.every(call => !first.some(old => old.request === call.request)))
   } finally { await f.cleanup() }
 })
@@ -123,7 +148,7 @@ test('setup can install removed products while retaining earlier upgrade request
     for (const [id, previous] of Object.entries(requests)) assert.deepEqual(receipt.requests[id], previous)
     assert.equal(await readFile(join(f.prefix, 'history.txt'), 'utf8'), 'existing user history')
     const calls = await f.calls()
-    assert.deepEqual(calls.map(call => call.assembly), ['runner', 'carrier', 'manager-suite'])
+    assert.deepEqual(calls.map(call => call.assembly), f.catalog.assemblies.slice(1).map(row => row.id))
     assert.ok(calls.every(call => call.operation === 'install' && !requests[call.request]))
   } finally { await f.cleanup() }
 })
@@ -149,12 +174,12 @@ test('setup retries reuse a request but installing after removal does not reuse 
   } finally { await f.cleanup() }
 })
 
-test('edition controls ownership and never adopts another owner', async () => {
-  for (const edition of ['standalone', 'distributed']) {
-    const f = await fixture(edition)
+test('setup mode controls ownership and never adopts another owner', async () => {
+  for (const mode of ['isolated', 'shared']) {
+    const f = await fixture(mode)
     try {
       const location = productLocation(f.root, f.input, f.base)
-      assert.equal(location.scope, edition === 'standalone' ? 'private' : 'shared')
+      assert.equal(location.scope, mode === 'isolated' ? 'private' : 'shared')
       assert.equal(productStatus(f.root, f.input, f.base).ready, false)
       await mkdir(location.prefix, { recursive: true })
       await writeFile(join(location.prefix, 'installation-receipt.json'), JSON.stringify({
@@ -166,9 +191,9 @@ test('edition controls ownership and never adopts another owner', async () => {
 })
 
 test('catalog and engine changes fail before installer execution', async () => {
-  const f = await fixture('distributed')
+  const f = await fixture('shared')
   try {
-    assert.equal(productCatalog(f.root).assemblies.length, 4)
+    assert.equal(productCatalog(f.root).assemblies.length, 9)
     await writeFile(join(f.root, 'products/consumer/consumer.py'), '# changed')
     assert.throws(() => productCatalog(f.root), /engine integrity/)
     await writeFile(join(f.root, 'products/catalog.json'), '{}')
@@ -177,7 +202,7 @@ test('catalog and engine changes fail before installer execution', async () => {
 })
 
 test('an interrupted job cannot claim a live process that reused its PID', async () => {
-  const f = await fixture('distributed')
+  const f = await fixture('shared')
   try {
     await mkdir(join(f.base, 'config'), { recursive: true })
     await writeFile(join(f.base, 'config/product-installation.json'), JSON.stringify({
@@ -189,7 +214,7 @@ test('an interrupted job cannot claim a live process that reused its PID', async
 })
 
 test('service children retain the normal shared prefix while using private Suite data homes', async () => {
-  const f = await fixture('distributed')
+  const f = await fixture('shared')
   try {
     const config = configuration(f.root, { ...f.input, XDG_DATA_HOME: join(f.input.HOME, 'user-data'),
       AIXAND_LOCAL_HOME: f.base, AIXAND_SKIP_PATH_REGISTRATION: '1' })
@@ -203,7 +228,7 @@ test('service children retain the normal shared prefix while using private Suite
 })
 
 test('separate product environments do not replace the Suite API environment', async () => {
-  const f = await fixture('distributed')
+  const f = await fixture('shared')
   try {
     const location = productLocation(f.root, f.input, f.base)
     await mkdir(location.prefix, { recursive: true })
@@ -217,6 +242,9 @@ test('separate product environments do not replace the Suite API environment', a
     assert.equal(productStatus(f.root, f.input, f.base).ready, true)
     const tools = installedProductTools(f.root, f.input, f.base)
     assert.ok(tools.python.startsWith(join(f.root, 'python')))
+    assert.equal(tools.pythonPrefix, tools.pythonHome)
+    assert.equal(tools.pythonExecutable, tools.python)
+    assert.equal(tools.pythonBaseExecutable, tools.python)
     assert.ok(tools.carrierPython.startsWith(location.prefix))
     assert.ok(tools.runner.startsWith(location.prefix))
     assert.ok(tools.workflowRunner.startsWith(f.root))
@@ -231,5 +259,58 @@ test('separate product environments do not replace the Suite API environment', a
       schema: 2, scope: 'shared', owner: 'user', products,
     }))
     assert.equal(productStatus(f.root, f.input, f.base).ready, false)
+  } finally { await f.cleanup() }
+})
+
+
+test('one package supports private software ownership when isolated setup is selected', async () => {
+  const f = await fixture('isolated')
+  try {
+    await saveInstallationPlan(f.root, f.input, f.base, 'isolated')
+    const location = productLocation(f.root, f.input, f.base)
+    assert.equal(location.scope, 'private')
+    assert.equal(location.owner, 'aixand-suite')
+    assert.equal(location.prefix, join(f.base, 'software/products'))
+    const config = configuration(f.root, { ...f.input, AIXAND_LOCAL_HOME: f.base })
+    assert.equal(config.env.AGENT_MANAGER_HOME, join(f.base, 'agents'))
+    assert.equal(productStatus(f.root, f.input, f.base).edition, 'distributed')
+  } finally { await f.cleanup() }
+})
+
+test('shared setup reuses native manager state without requiring a private UC connection registration', async () => {
+  const f = await fixture('shared')
+  try {
+    await saveInstallationPlan(f.root, f.input, f.base, 'shared')
+    const config = configuration(f.root, { ...f.input, AIXAND_LOCAL_HOME: f.base })
+    assert.equal(config.env.AGENT_MANAGER_HOME, join(f.input.HOME, '.local/share/aixand/manager/agent/state'))
+    assert.equal(productStatus(f.root, f.input, f.base).connectionSetupRequired, false)
+    assert.equal(productLocation(f.root, f.input, f.base).scope, 'shared')
+  } finally { await f.cleanup() }
+})
+
+test('individual published managers and Suite-owned MCP retain distinct release identities', async () => {
+  const f = await fixture('shared')
+  try {
+    const managers = ['agent-manager', 'conversation-manager', 'mcp-manager', 'prompt-manager', 'skill-manager']
+    const names = ['undercurrent', 'runner', 'carrier', ...managers, 'orchestration-mcp']
+    f.catalog.assemblies = names.map(id => ({ id, artifact: 'artifacts/' + id, licenses: [],
+      products: { [managers.includes(id) || id === 'orchestration-mcp' ? 'manager-suite/' + id : id]: {
+        version: '0.1.0-beta', release: hash('published-' + id), commands: [id],
+      } } }))
+    const save = async () => {
+      const text = JSON.stringify(f.catalog)
+      await writeFile(join(f.root, 'products/catalog.json'), text)
+      await writeFile(join(f.root, 'manifest.json'), JSON.stringify({ installation: {
+        schema: 1, edition: 'distributed', catalogSha256: hash(text),
+      } }))
+    }
+    await save()
+    const catalog = productCatalog(f.root)
+    assert.equal(catalog.assemblies.length, 9)
+    assert.equal(catalog.assemblies.find(row => row.id === 'agent-manager').products['manager-suite/agent-manager'].release,
+      hash('published-agent-manager'))
+    f.catalog.assemblies[8] = { ...f.catalog.assemblies[8], id: 'manager-suite', artifact: 'artifacts/manager-suite' }
+    await save()
+    assert.throws(() => productCatalog(f.root), /does not match|incomplete/)
   } finally { await f.cleanup() }
 })

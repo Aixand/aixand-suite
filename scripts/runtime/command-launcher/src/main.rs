@@ -1,7 +1,24 @@
 //! Real command entry points with argument-safe dispatch, independent of Tauri.
 use std::process::{Command, exit};
 
+#[cfg(windows)]
+#[link(name = "kernel32")]
+unsafe extern "system" {
+    fn SetConsoleCtrlHandler(handler: Option<extern "system" fn(u32) -> i32>, add: i32) -> i32;
+}
+
+#[cfg(windows)]
+extern "system" fn wait_for_provider(event: u32) -> i32 {
+    // The child receives the same console events. Keep this wrapper alive to
+    // return its actual exit status instead of abandoning an interactive CLI.
+    i32::from(event <= 1)
+}
+
 fn run() -> Result<i32, Box<dyn std::error::Error>> {
+    #[cfg(windows)]
+    unsafe {
+        SetConsoleCtrlHandler(Some(wait_for_provider), 1);
+    }
     let executable = std::env::current_exe()?;
     let directory = executable.parent().ok_or("Missing command directory")?;
     let name = executable
@@ -60,7 +77,14 @@ fn run() -> Result<i32, Box<dyn std::error::Error>> {
         &std::env::var_os("PATH").unwrap_or_default(),
     ));
     command.env("PATH", std::env::join_paths(paths)?);
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::CommandExt;
+        return Err(command.exec().into());
+    }
+    #[cfg(not(unix))]
     let status = command.status()?;
+    #[cfg(not(unix))]
     Ok(status.code().unwrap_or(1))
 }
 

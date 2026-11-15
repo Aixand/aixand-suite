@@ -19,11 +19,11 @@ import uuid
 sys.path.insert(0, str(Path(__file__).parent))
 import cleanup_processes
 
-from agent_manager.core import Manager
-from agent_manager import provider_config, provider_software, claude_accounts
-from agent_manager import install
-from agent_manager.provider_catalog import active_profiles
-from agent_manager.recovery import reconcile
+from agent_manager import Manager
+from agent_manager.providers import config as provider_config
+from agent_manager.providers.installation import software as provider_software, engine as install, exports as provider_commands
+from agent_manager.providers.catalog import active_profiles
+from agent_manager.runtime.lifecycle import reconcile
 
 
 def plain_path(path):
@@ -123,7 +123,7 @@ def software_plan(manager):
 
 
 def uninstall_windows_codex(manager, reviewed):
-    from agent_manager.provider_catalog import active_profiles
+    from agent_manager.providers.catalog import active_profiles
     with provider_software.locks(manager.lock_root, 'provider-software'), \
             provider_software.locks(install.state_root() / 'locks', 'install-codex'):
         current = software_plan(manager)
@@ -131,6 +131,7 @@ def uninstall_windows_codex(manager, reviewed):
             raise ValueError('The Codex installation changed. Refresh the checklist before retrying.')
         if active_profiles(manager):
             raise ValueError('Stop Codex agents before removing their CLI.')
+        provider_commands.validate_exports(manager,current['path'])
         moved = []
         try:
             for name in current['targets']:
@@ -150,6 +151,7 @@ def uninstall_windows_codex(manager, reviewed):
                 # tree rather than following them, including the current link.
                 shutil.rmtree(cleanup_processes.filesystem_path(destination), onexc=remove_readonly)
         (install.state_root() / 'installations/codex.json').unlink(missing_ok=True)
+        provider_commands.remove(manager,current['path'])
         provider_software.atomic(provider_software.state_path(manager), json.dumps(dict(disabled=True)).encode())
 
 
@@ -223,15 +225,32 @@ def sign_out_native(name, values):
     if name == 'opencode':
         return
     manager = values[name]
-    executable = claude_accounts.executable(manager) if name == 'claude' else native_executable(name, values)
+    executable = native_executable(name, values)
     if executable is None:
         raise ValueError('Restore the ' + name + ' CLI to sign out its shared native account before deletion')
-    env = claude_accounts.environment(Path.home() / '.claude') if name == 'claude' else dict(os.environ, CODEX_HOME=str(Path.home() / '.codex'))
+    env = manager.launch_environment(Path.home() / '.claude') if name == 'claude' else dict(os.environ, CODEX_HOME=str(Path.home() / '.codex'))
     args = ['auth', 'logout'] if name == 'claude' else ['logout']
     result = subprocess.run([str(executable), *args], env=env, stdin=subprocess.DEVNULL,
                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30)
     if result.returncode:
         raise ValueError(name + ' native account sign-out failed. Its saved files were kept; use official logout and retry.')
+
+
+def prepare_private_claude_reset(manager):
+    """Use public native logout only for managed environments owned by Suite."""
+    boundary = (Path(os.environ['AIXAND_LOCAL_HOME']) / 'agents').resolve()
+    state, seen = manager.state(), set()
+    for name, profile in state.get('profiles', {}).items():
+        identifier = profile['environment_id']
+        row = state['environments'][identifier]
+        if row['ownership'] != 'managed' or identifier in seen:
+            continue
+        seen.add(identifier)
+        home = Path(row['home'])
+        if not home.resolve().is_relative_to(boundary):
+            raise ValueError('Managed Claude environment was redirected outside Aixand')
+        if home.exists() and manager.logout(manager.resolve_profile(name)) != 0:
+            raise ValueError('Claude native account sign-out failed. Managed accounts were kept; retry cleanup.')
 
 
 def managers():
@@ -257,6 +276,12 @@ def plan(values):
                 manualCommands=current['manualCommands'] if current['targets'] or current['command'] else [], docs=current.get('docs')))
             if not current['automatic'] and not current['targets'] and current['manualCommands']:
                 items[-1]['description'] += ' Locate the command (this does not uninstall it): ' + '; '.join(current['manualCommands'])
+    shared_runtime=provider_commands.runtime_status()
+    if shared_runtime:
+        items.append(dict(id='provider-shared-runtime',group='Provider software',label='Shared provider Node runtime',
+            shared=True,available=True,paths=[shared_runtime['path']],
+            requires=['provider:'+name for name in shared_runtime['providers']],
+            description='Remove the Node runtime used by shared provider CLIs. Remove its dependent CLIs first. Provider accounts have separate choices.'))
     for name in ('codex', 'claude', 'opencode'):
         if name not in values:
             continue
@@ -289,6 +314,7 @@ def process_targets(values, selected):
             if not current['automatic']:
                 raise ValueError('Provider software ownership changed. Refresh the checklist.')
             add('provider:' + name, map(Path, current['targets']))
+            add('provider:' + name, provider_commands.owned_export_paths(manager,current['path']))
             executable = Path(current['path'])
             # Verified POSIX vendor links and npm entrypoints are removed by
             # their owner. Include their physical payload in process detection.
@@ -296,12 +322,16 @@ def process_targets(values, selected):
                 add('provider:' + name, [executable.resolve()])
             if current['method'] == 'npm':
                 prefix = install.manager_prefix('npm')
-                package = provider_software.PACKAGES.get(name)
+                package = install.catalog().get(name, {}).get('npm_package')
                 if prefix and package:
                     package_root = prefix / ('node_modules' if os.name == 'nt' else 'lib/node_modules') / package
                     if json.loads((package_root / 'package.json').read_bytes()).get('name') != package:
                         raise ValueError('Provider package changed. Refresh the checklist.')
                     add('provider:' + name, [package_root])
+    if 'provider-shared-runtime' in selected:
+        shared_runtime=provider_commands.runtime_status()
+        if shared_runtime:
+            add('provider-shared-runtime',[Path(shared_runtime['path'])])
     if 'provider-accounts' in selected:
         root = base / 'agents'
         if root.exists():
@@ -423,9 +453,9 @@ def apply(values, selected):
                 # Sign out old Suite-owned accounts with their own configuration.
                 config = base / 'config/providers.toml'
                 if not config.exists():
-                    config = Path(provider_config.__file__).with_name('providers.toml')
+                    config = Path(os.environ['AIXAND_PROVIDER_BUNDLE_ROOT']) / 'providers.toml' if os.environ.get('AIXAND_PROVIDER_BUNDLE_ROOT') else None
                 claude = Manager('claude', config=config, root=manager_home)
-            claude_accounts.prepare_reset(claude, sign_out_external=False)
+            prepare_private_claude_reset(claude)
     completed = []
     try:
         for name in ('codex', 'claude', 'opencode'):
@@ -443,6 +473,9 @@ def apply(values, selected):
             else:
                 provider_software.perform(manager, 'uninstall', revision=current['revision'], confirmed=True)
             completed.append('provider:' + name)
+        if 'provider-shared-runtime' in selected:
+            provider_commands.remove_runtime()
+            completed.append('provider-shared-runtime')
         if 'provider-accounts' in selected:
             if manager_home.exists():
                 for path in manager_home.iterdir():

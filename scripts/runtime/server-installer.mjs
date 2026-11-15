@@ -11,6 +11,8 @@ import { configuration, stop, status } from './runtime.mjs'
 import { binary, nodePath, inside, addUserPath, removeUserPath } from './platform.mjs'
 import { question, parseOptions, instanceEnvironment, cleanup } from './server-cli.mjs'
 import { startup } from './server-startup.mjs'
+import { choose, confirm, color } from './terminal-ui.mjs'
+import { componentInventory, applicationAt } from './component-inventory.mjs'
 
 const source = dirname(fileURLToPath(import.meta.url))
 const marker = 'server-installation.json'
@@ -22,7 +24,7 @@ export function defaultDestination(input = process.env) {
     : join(input.XDG_DATA_HOME || join(home, '.local/share'), 'aixand-server/application')
 }
 
-export async function safeDestination(path, input = process.env, { installedSelf = false } = {}) {
+export async function safeDestination(path, input = process.env, { installedSelf = false, allowUnrecognized = false } = {}) {
   const home = resolve(input.HOME || input.USERPROFILE || homedir()), target = resolve(path)
   const self = installedSelf && resolve(source) === join(target, 'runtime') && existsSync(join(target, marker))
   if (!isAbsolute(path) || [home, parse(target).root].includes(target) || !self && (inside(source, target) || inside(target, source)))
@@ -34,14 +36,68 @@ export async function safeDestination(path, input = process.env, { installedSelf
   }
   if (existsSync(target)) {
     const entries = await readdir(target)
-    if (entries.length && !existsSync(join(target, marker))) throw new Error('This directory is not a recognized Aixand Server installation.')
-    if (entries.length) {
+    if (entries.length && !existsSync(join(target, marker)) && !allowUnrecognized) throw new Error('This directory is not a recognized Aixand Server installation. It contains files but has no server-installation.json: ' + target + '. Choose another directory or explicitly back up/remove existing files.')
+    if (entries.length && existsSync(join(target, marker))) {
       const saved = JSON.parse(await readFile(join(target, marker), 'utf8'))
       if (saved.schema !== 1 || saved.application !== 'org.aixand.server' || resolve(saved.directory) !== target)
         throw new Error('The existing Server installation owner could not be verified.')
     }
   }
   return target
+}
+
+// Explicit recovery applies only to an unrecognized directory. The path guards
+// still apply, including when automation requests permanent removal.
+export async function recoverDestination(destination, action, input = process.env) {
+  if (!['backup', 'remove'].includes(action)) throw new Error('Choose backup or remove for existing files.')
+  const target = await safeDestination(destination, input, { allowUnrecognized: true })
+  if (existsSync(join(target, marker))) throw new Error('Use Uninstall for a recognized installation before a fresh install.')
+  if (!existsSync(target) || !(await readdir(target)).length) return { directory: target }
+  const backup = target + '.backup-' + new Date().toISOString().replace(/[:.]/g, '-') + '-' + randomUUID()
+  await rename(target, backup)
+  if (action === 'remove') {
+    try { await rm(backup, { recursive: true, force: true, maxRetries: 5 }) }
+    catch (error) { throw new Error('Removal is incomplete. Remaining files: ' + backup, { cause: error }) }
+  }
+  return { directory: target, ...(action === 'backup' ? { backup } : {}) }
+}
+
+function validateLeftoverEntries(entries) {
+  if (!Array.isArray(entries) || entries.some(name => typeof name !== 'string' || !name || name === '.' || name === '..' || /[\\/\0]/.test(name)))
+    throw new Error('Invalid application leftover entry.')
+}
+
+export async function removeApplicationLeftovers(destination, entries, input = process.env) {
+  validateLeftoverEntries(entries)
+  const target = await safeDestination(destination, input, { allowUnrecognized: true })
+  if (existsSync(join(target, marker))) throw new Error('Remove the recognized application before removing leftovers.')
+  for (const name of entries) await rm(join(target, name), { recursive: true, force: true, maxRetries: 5 })
+  if (existsSync(target) && !(await readdir(target)).length) await rm(target, { recursive: true })
+}
+
+export async function prepareDestination(destination, options, input = process.env, ui = { choose, confirm, question, log: console.log }) {
+  for (;;) {
+    const target = await safeDestination(destination, input, { allowUnrecognized: true })
+    if (!existsSync(target) || existsSync(join(target, marker)) || !(await readdir(target)).length) return target
+    ui.log('This directory contains files but has no server-installation.json: ' + target)
+    for (const name of await readdir(target)) ui.log('  ' + name)
+    let action = options.existingFiles
+    if (!action && !options.yes) action = await ui.choose('How should these existing files be handled?', [
+      { value: 'backup', label: 'Back up these files and install' },
+      { value: 'remove', label: 'Remove everything in this application directory and install', detail: 'Permanent removal' },
+      { value: 'directory', label: 'Choose another directory' },
+      { value: 'cancel', label: 'Cancel' },
+    ])
+    if (action === 'directory') { destination = await ui.question('Application directory: '); continue }
+    if (action === 'cancel') throw new Error('Installation cancelled.')
+    if (!action) throw new Error('Choose another directory or use --existing-files backup|remove explicitly. --yes alone never removes existing files.')
+    if (action === 'remove' && !options.yes && !await ui.confirm('Permanently delete ALL contents of ' + target + '?')) throw new Error('Installation cancelled.')
+    // Verify the payload before moving or deleting existing files.
+    await verifyRuntime(source)
+    const result = await recoverDestination(target, action, input)
+    if (result.backup) ui.log('Existing files backed up to: ' + result.backup)
+    return target
+  }
 }
 
 async function verifyWorkspace(path, application) {
@@ -153,7 +209,7 @@ export async function install(destination, options = {}, input = process.env) {
   const config = configuration(source, env)
   const state = await status(config)
   if (state.running || state.services?.some(item => item.state === 'running')) {
-    if (!options.yes && (await question('Stop this workspace’s running services to update Server? [y/N] ')).toLowerCase() !== 'y') throw new Error('Installation cancelled.')
+    if (!options.yes && !await confirm('Stop this workspace’s services before installation?')) throw new Error('Installation cancelled.')
     await stop(config)
   }
   await verifyWorkspace(config.base, target)
@@ -167,7 +223,8 @@ export async function install(destination, options = {}, input = process.env) {
     try { await rename(staged, join(target, 'runtime')) }
     catch (error) { if (moved) await rename(retired, join(target, 'runtime')); throw error }
     const record = { ...previous, schema: 1, application: 'org.aixand.server', directory: target,
-      build: manifest.build, version: '0.1.0-beta', workspace: config.base, port: config.port, carrierPort: config.carrierPort }
+      build: manifest.build, version: manifest.version || '0.1.0-beta', workspace: config.base, port: config.port, carrierPort: config.carrierPort,
+      ...(options.updateTransaction && moved ? { updateBackup: retired.slice(target.length + 1) } : {}) }
     const recordPath = join(target, marker)
     await writeFile(recordPath + '.new', JSON.stringify(record, null, 2) + '\n', { mode: 0o600 })
     await rename(recordPath + '.new', recordPath)
@@ -176,13 +233,19 @@ export async function install(destination, options = {}, input = process.env) {
     console.log('Server application installed: ' + target)
     console.log('Workspace: ' + config.base)
     if (!previous && !options.yes) await configureInstallation(target, options, input)
+    if (options.skipSetup && options.installationMode && !previous) {
+      await new Promise((ready, fail) => {
+        const child = spawn(nodePath(join(target, 'runtime')), [join(target, 'runtime/runtime.mjs'), 'setup', 'choose', JSON.stringify({ mode: options.installationMode, settings: options.settings })], { env: { ...input, AIXAND_LOCAL_HOME: config.base }, stdio: 'inherit', windowsHide: true })
+        child.once('error', fail); child.once('exit', code => code === 0 ? ready() : fail(new Error('Installation mode could not be saved. Resume Server setup.')))
+      })
+    }
     if (!options.skipSetup) {
-      const args = [join(target, 'runtime/server-cli.mjs'), 'setup', ...options.acceptedLicenses.flatMap(value => ['--accept-license', value]), ...(options.yes ? ['--yes'] : [])]
+      const args = [join(target, 'runtime/server-cli.mjs'), 'setup', ...(options.installationMode ? ['--installation-mode', options.installationMode] : []), ...(options.settings ? ['--settings', options.settings] : []), ...(options.managerHomes ? ['--manager-homes', options.managerHomes] : []), ...options.acceptedLicenses.flatMap(value => ['--accept-license', value]), ...(options.yes ? ['--yes'] : [])]
       await new Promise((ready, fail) => {
         const child = spawn(nodePath(join(target, 'runtime')), args, { env: input, stdio: 'inherit', windowsHide: true })
         child.once('error', fail); child.once('exit', code => code === 0 ? ready() : fail(new Error('Server software is installed; setup is unfinished. Resume with ' + command + ' setup.')))
       })
-      if (!options.yes && (await question('Start Aixand Server automatically after you log in? [y/N] ')).toLowerCase() === 'y') {
+      if (!options.yes && await confirm('Start Aixand Server automatically after you log in?')) {
         const settings = await instanceEnvironment(join(target, 'runtime'), input)
         await startup(configuration(join(target, 'runtime'), settings), 'enable')
         console.log('Automatic startup enabled for your user account. It takes effect at your next login.')
@@ -198,19 +261,22 @@ export async function install(destination, options = {}, input = process.env) {
     throw error
   } finally {
     await rm(staged, { recursive: true, force: true, maxRetries: 5 })
-    if (moved) await rm(retired, { recursive: true, force: true, maxRetries: 5 })
+    if (moved && (!activated || !options.updateTransaction)) await rm(retired, { recursive: true, force: true, maxRetries: 5 })
   }
 }
 
 export async function uninstall(options, config) {
   if (!options.confirmed) throw new Error('Uninstall cancelled.')
+  validateLeftoverEntries(options.leftoverEntries || [])
   const target = await safeDestination(resolve(config.root, '..'), config.input, { installedSelf: true })
   const receipt = await readFile(join(target, marker))
   const saved = JSON.parse(receipt)
   if (saved.workspace !== config.base) throw new Error('Workspace changed. Refresh uninstall before continuing.')
-  await stop(config)
-  const automatic = await startup(config, 'status')
-  if (automatic.enabled) await startup(config, 'disable')
+  if (!options.servicesStopped) await stop(config, { migrate: false })
+  if (!options.startupDisabled) {
+    const automatic = await startup(config, 'status')
+    if (automatic.enabled) await startup(config, 'disable')
+  }
   if (process.platform === 'win32' && config.input.AIXAND_SKIP_PATH_REGISTRATION !== '1') await removeUserPath(join(target, 'bin'), config.input)
   const link = join(config.env.HOME, '.local/bin/aixand-server')
   if (process.platform !== 'win32') {
@@ -221,7 +287,7 @@ export async function uninstall(options, config) {
     // The console launcher and Node executable are mapped until this command
     // exits. An OS-owned PowerShell helper waits; it never kills a process.
     const log = join(config.input.LOCALAPPDATA || dirname(target), 'Aixand/installer-logs/server-uninstall-' + randomUUID() + '.json')
-    const payload = Buffer.from(JSON.stringify({ target, receiptHash: createHash('sha256').update(receipt).digest('hex'), pid: process.pid, log })).toString('base64')
+    const payload = Buffer.from(JSON.stringify({ target, receiptHash: createHash('sha256').update(receipt).digest('hex'), pid: process.pid, log, leftovers: options.leftoverEntries || [] })).toString('base64')
     const script = `$ErrorActionPreference='Stop'
 $task=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${payload}')) | ConvertFrom-Json
 function Remove-Owned([string]$item) {
@@ -243,7 +309,7 @@ try {
   finally { $stream.Dispose(); $hasher.Dispose() }
   if ($receiptHash -ne $task.receiptHash) { throw 'Installation changed before removal.' }
   $extended=([char]92).ToString()+[char]92+'?'+[char]92+$task.target
-  foreach ($part in @('runtime','bin')) {
+  foreach ($part in (@('runtime','bin') + @($task.leftovers))) {
     $path=[IO.Path]::Combine($extended,$part)
     for ($attempt=0; $attempt -lt 30; $attempt++) {
       try { Remove-Owned $path; break } catch { if ($attempt -eq 29) { throw }; Start-Sleep -Milliseconds 200 }
@@ -277,15 +343,17 @@ Start-Process -FilePath $launch.program -ArgumentList $launch.args -WorkingDirec
     console.log('Application removal will finish after this command exits. Result: ' + log)
     return { deferred: true, log }
   }
-  for (const name of ['runtime', 'bin']) await rm(join(target, name), { recursive: true, force: true, maxRetries: 5 })
+  for (const name of ['runtime', 'bin', ...(options.leftoverEntries || [])]) await rm(join(target, name), { recursive: true, force: true, maxRetries: 5 })
   await unlink(join(target, marker))
   if (!(await readdir(target)).length) await rm(target, { recursive: true })
-  console.log('Aixand Server removed. Unselected workspace data and independent products were kept.')
+  else if (!options.json) console.log('Retained files in ' + target + ': ' + (await readdir(target)).join(', ') + '. Move them before reinstalling, or use Install to back up or remove them.')
+  for (const name of ['runtime', 'bin', marker]) if (existsSync(join(target, name))) throw new Error('Application removal is incomplete: ' + join(target, name))
+  if (!options.json) console.log(color('Aixand Server application removed. Unselected components were kept.', 'success'))
   return { removed: true }
 }
 
 export async function main(args = process.argv.slice(2)) {
-  if (args.includes('--help')) { console.log('Aixand Server Setup: install | update | repair | reset | uninstall [--directory ABSOLUTE_PATH] [--configure-later] [--yes] [--accept-license SHA256]'); return }
+  if (args.includes('--help')) { console.log('Aixand Server Setup: install | update | repair | reset | uninstall [--directory ABSOLUTE_PATH] [--configure-later] [--existing-files backup|remove] [--remove-target application|tools|both|everything] [--yes] [--accept-license SHA256]'); return }
   let command = args[0] && !args[0].startsWith('-') ? args.shift() : undefined
   const options = parseOptions(args)
   let destination = defaultDestination()
@@ -293,26 +361,58 @@ export async function main(args = process.argv.slice(2)) {
   if (at >= 0) { destination = options.rest[at + 1]; options.rest.splice(at, 2) }
   if (!destination || options.rest.length) throw new Error('Use install, update, repair, reset or uninstall, optionally --directory ABSOLUTE_PATH.')
   if (!command) {
-    console.log('Aixand Server Setup 0.1.0-beta\n1. Install\n2. Update\n3. Repair\n4. Reset or remove components\n5. Uninstall')
-    command = ['install', 'update', 'repair', 'reset', 'uninstall'][Number(await question('Choose [1]: ') || '1') - 1]
+    if (options.yes || options.json) throw new Error('Select an explicit installer command for automated use.')
+    command = await choose('Aixand Server — choose an action', [
+      { value: 'install', label: 'Install' }, { value: 'update', label: 'Update' },
+      { value: 'repair', label: 'Repair' }, { value: 'reset', label: 'Reset', detail: 'Remove selected data. Keep software' },
+      { value: 'uninstall', label: 'Uninstall', detail: 'Remove application, tools or both' },
+      { value: 'status', label: 'Status' }, { value: 'exit', label: 'Exit' },
+    ])
   }
+  if (command === 'exit') return
   if (['install', 'update', 'repair'].includes(command)) {
     if (!options.yes) destination = await question('Application directory [' + destination + ']: ') || destination
+    if (command !== 'install' && options.existingFiles) throw new Error('--existing-files applies to fresh Install or Uninstall only.')
+    if (command === 'install') destination = await prepareDestination(destination, options)
     await install(destination, options)
     console.log(options.skipSetup ? 'Resume configuration with aixand-server setup.' : 'Start with aixand-server start, or aixand-server run for an attached terminal.')
-  } else if (['reset', 'uninstall'].includes(command)) {
-    await safeDestination(destination)
+  } else if (['reset', 'uninstall', 'status'].includes(command)) {
+    await safeDestination(destination, process.env, { allowUnrecognized: command === 'uninstall' })
+    const leftoverEntries = existsSync(destination) ? (await readdir(destination)).filter(name => !existsSync(join(destination, marker)) || !['runtime', 'bin', marker].includes(name)) : []
     const env = await instanceEnvironment(join(destination, 'runtime'))
     // Maintenance uses the new verified helper runtime, with the reviewed
     // installation's workspace. A healthy old desktop/backend is unnecessary.
+    if (options.home) env.AIXAND_LOCAL_HOME = resolve(options.home)
     const config = configuration(source, env)
-    const installation = JSON.parse(await readFile(join(destination, marker), 'utf8'))
-    if (command === 'reset') {
-      await cleanup(config, options); return
+    const inventory = await componentInventory(source, env, config.base, destination)
+    if (command === 'status') {
+      if (options.json) console.log(JSON.stringify(inventory))
+      else {
+        console.log('Application: ' + (inventory.application?.directory || 'not found'))
+        console.log('Workspace: ' + inventory.workspace.path + (inventory.workspace.present ? '' : ' (not found)'))
+        for (const tool of inventory.tools.filter(tool => tool.primary)) console.log(tool.name + ': ' + (tool.version || 'version unavailable') + ' · ' + tool.path)
+        for (const item of inventory.sharedData) console.log('Shared data: ' + item.paths.join(', '))
+        const live = await status(config)
+        for (const item of live.services) console.log(item.name + ': ' + item.state)
+      }
+      return inventory
     }
-    await cleanup(config, options)
-    if (!options.yes && (await question('Remove the Server application? Workspace and shared tools are kept unless selected separately. [y/N] ')).toLowerCase() !== 'y') throw new Error('Uninstall cancelled.')
-    await uninstall({ confirmed: true }, { ...config, root: join(destination, 'runtime'), base: installation.workspace })
+    const application = applicationAt(destination)
+    const storeReceipt = join(inventory.productPrefix, 'installation-receipt.json')
+    const privateReceipt = join(config.base, 'software/products/installation-receipt.json')
+    if (!application && !leftoverEntries.length && !inventory.found && !existsSync(storeReceipt) && !existsSync(privateReceipt)) {
+      console.log(options.json ? JSON.stringify({ removed: false, reason: 'No installation was found in the checked locations.' }) : 'No installation was found in the checked locations.')
+      if (!options.yes && await choose('Choose the next action', [{ value: false, label: 'Exit' }, { value: true, label: 'Choose another application path' }])) {
+        const path = await question('Application directory: ')
+        return main([command, '--directory', path])
+      }
+      return { removed: false }
+    }
+    for (const tool of inventory.tools.filter(tool => tool.primary && tool.location === 'external'))
+      (options.json ? console.error : console.log)(color('External tool: ' + tool.name + ' · ' + tool.path + '. Its original installer must remove it.', 'warning'))
+    // Keep the verified helper runtime for data and tool removal. The installed
+    // application path is supplied separately for application removal.
+    await cleanup(config, { ...options, applicationPresent: Boolean(application), applicationDirectory: destination, leftoverEntries }, command === 'uninstall' ? 'uninstall' : 'reset')
   } else throw new Error('Choose install, update, repair, reset or uninstall.')
 }
 

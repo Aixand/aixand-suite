@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--output', type=Path, default=ROOT/'aixand-web/artifacts/desktop/full-windows')
+    parser.add_argument('--output', type=Path, default=ROOT/'apps/desktop/artifacts/full-windows')
     parser.add_argument('--without-voice', action='store_true')
     parser.add_argument('--runtime-only', action='store_true')
     parser.add_argument('--skip-image-build', action='store_true')

@@ -7,6 +7,7 @@ import { createReadStream } from 'node:fs'
 import { readFile, writeFile, mkdir, realpath, stat, lstat, rename, rm } from 'node:fs/promises'
 import { dirname, join, resolve, extname, relative, isAbsolute } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { componentWorkspace, resolveComponentSelection } from './component-updates.mjs'
 
 const hop = new Set(['connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization', 'te', 'trailer', 'transfer-encoding', 'upgrade'])
 const sessionName = name => /^(?:__Host-)?aixand-session(?:-[A-Za-z0-9_-]+)?$/.test(name) || name === 'aixand-dev-session'
@@ -146,6 +147,7 @@ export async function startClient({ backend, web, profile, stateFile, port = 0 }
     }
     forward(incoming, socket, head)
   })
+  let savedPort = false
   if (stateFile) {
     for (let path = resolve(stateFile); ; path = dirname(path)) {
       const info = await lstat(path).catch(error => { if (error.code !== 'ENOENT') throw error })
@@ -154,12 +156,27 @@ export async function startClient({ backend, web, profile, stateFile, port = 0 }
     }
     try {
       const saved = JSON.parse(await readFile(stateFile, 'utf8'))
-      if (saved.id === id && Number.isInteger(saved.port) && saved.port >= 1024 && saved.port <= 65535) port = saved.port
+      if (saved.id === id && Number.isInteger(saved.port) && saved.port >= 1024 && saved.port <= 65535) {
+        port = saved.port
+        savedPort = true
+      }
     } catch (error) { if (error.code !== 'ENOENT') throw error }
   }
-  await new Promise((ready, fail) => { server.once('error', fail); server.listen(port, '127.0.0.1', () => {
-    origin = 'http://127.0.0.1:' + server.address().port; ready()
-  }) })
+  const listen = port => new Promise((resolveListen, rejectListen) => {
+    const ready = () => { server.off('error', fail); resolveListen() }
+    const fail = error => { server.off('listening', ready); rejectListen(error) }
+    server.once('error', fail).once('listening', ready)
+    server.listen(port, '127.0.0.1')
+  })
+  try { await listen(port) }
+  catch (error) {
+    // Keep the browser origin when possible. A saved port can later belong to
+    // another application or a Windows exclusion range; let the OS choose a
+    // replacement without changing the selected server or workspace data.
+    if (!savedPort || !['EADDRINUSE', 'EACCES'].includes(error.code)) throw error
+    await listen(0)
+  }
+  origin = 'http://127.0.0.1:' + server.address().port
   if (stateFile) {
     try {
       await mkdir(dirname(stateFile), { recursive: true, mode: 0o700 })
@@ -178,7 +195,8 @@ if (import.meta.main) {
   try {
     const options = JSON.parse(process.argv[2] || '{}')
     const root = dirname(fileURLToPath(import.meta.url))
-    const client = await startClient({ ...options, web: join(root, 'web') })
+    const selection = resolveComponentSelection(root, componentWorkspace())
+    const client = await startClient({ ...options, web: selection.paths.web || join(root, 'web') })
     console.log(JSON.stringify({ address: client.address }))
     // The native parent owns this UI gateway, never the remote runtime. Its
     // stdin pipe closes on normal exit, crash or connection replacement.

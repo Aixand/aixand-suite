@@ -16,15 +16,16 @@ import tempfile
 import tomllib
 import zipfile
 
+import dependencies
+
 SOURCE = Path('/build/source')
 SUITE = SOURCE/'aixand-suite'
 OUTPUT = Path('/build/output')
 CACHE = Path('/build/cache')
 RUNTIME = OUTPUT/'runtime'
-MANAGERS = ['resource-sources', 'mcp-manager', 'prompt-manager', 'skill-manager', 'server-manager', 'agent-manager', 'orchestration-mcp']
 PUBLIC_COMMANDS = ['uc', 'runner', 'carrier', 'agent', 'agent-manager-mcp',
-    'mcp-manager', 'prompt-manager', 'skill-manager', 'server-manager',
-    'orchestration-mcp', 'aixand-connect', 'aixand-mcp']
+    'mcp-manager', 'prompt-manager', 'skill-manager', 'conversation-manager',
+    'orchestration-mcp', 'aixand-connect']
 
 
 def run(*args, cwd=None, env=None, capture=False):
@@ -49,11 +50,18 @@ def executable(path, text):
 
 def finish(args, manifest):
     run('python3', SUITE/'scripts/runtime/provider-payload.py', RUNTIME)
+    if not (RUNTIME/'scripts/release').exists():
+        copy(SUITE/'scripts/release', RUNTIME/'scripts/release')
+    run(sys.executable, SUITE/'services/connect/build_companion.py', RUNTIME/'connect/companion.pyz')
+    target = ('macos-' if sys.platform == 'darwin' else 'linux-') + ('arm64' if platform.machine() in ('arm64', 'aarch64') else 'x86_64') + ('' if sys.platform == 'darwin' else '-gnu')
+    run(sys.executable, SUITE/'scripts/release/baseline.py', SUITE, RUNTIME, manifest['role'], target)
+    component_versions = json.loads(run(sys.executable, SUITE/'scripts/release/components.py', 'list', capture=True))
+    manifest['componentVersions'] = {name: value['version'] for name, value in component_versions.items()}
     commands = PUBLIC_COMMANDS + (['aixand-vox', 'aixand-vox-prepare'] if manifest['features']['voice'] else [])
     for name in commands:
         if not (RUNTIME/'bin'/name).is_file():
             raise RuntimeError(f'Missing public CLI: {name}')
-    manifest['commands'] = commands if args.install_clis else []
+    manifest['commands'] = []
     for path in list(RUNTIME.rglob('__pycache__')):
         shutil.rmtree(path)
     links = {}
@@ -81,58 +89,20 @@ def finish(args, manifest):
         home.mkdir(mode=0o700)
         run(RUNTIME/'bin/aixand-runtime', 'doctor', env={'HOME': str(home), 'AIXAND_LOCAL_HOME': str(Path(temporary)/'state')})
     verifier = 'verify-server.mjs' if args.package == 'server' else 'verify.mjs'
+    run(RUNTIME/'python/bin/python3', '-I', '-c',
+        'import agent_manager, conversation_manager, carrier, undercurrent; from runner_client import Client')
     run(RUNTIME/'python/bin/python3', '-B', '-m', 'unittest', 'discover',
-        '-s', SOURCE/'manager-suites/agent-manager/tests', '-p', 'test_native_catalog_launch.py', '-v',
-        env={'UC_TEST_BIN': str(RUNTIME/'bin')})
+        '-s', SUITE/'scripts/runtime', '-p', 'test_provider_cleanup.py', '-v')
     run(RUNTIME/'node/bin/node', SUITE/'scripts/runtime'/verifier, RUNTIME)
-    if args.edition != 'legacy':
-        from editions import build as build_editions
-        products = args.product_releases
-        if products is None:
-            products = OUTPUT/'products-kit'
-            run(sys.executable, SUITE/'scripts/package-products.py', '--source', SOURCE,
-                '--build', '--work', OUTPUT/'product-builds', '--output', products)
-        return build_editions(RUNTIME, products, OUTPUT/'installers', args.edition,
-            desktop=None if args.runtime_only else SUITE/'aixand-web', native=CACHE/'native/release',
-            package=args.package, native_installers=not args.runtime_only)
-    archive = OUTPUT/f'aixand-runtime-linux-{platform.machine()}.tar.gz'
-    with tarfile.open(archive, 'w:gz', compresslevel=3) as stream:
-        stream.add(RUNTIME, arcname='aixand-runtime')
-    if not args.runtime_only:
-        desktop = SUITE/'aixand-web'
-        resources = desktop/'src-tauri/resources/runtime'
-        resources.parent.mkdir(exist_ok=True)
-        if resources.exists():
-            shutil.rmtree(resources)
-        shutil.copytree(RUNTIME, resources, symlinks=True)
-        command = desktop/'src-tauri/resources/aixand-runtime'
-        executable(command, '#!/bin/sh\nexec /usr/lib/Aixand/runtime/bin/aixand-runtime "$@"\n')
-        config = json.loads((desktop/'src-tauri/tauri.full.conf.json').read_text())
-        post_install = desktop/'src-tauri/resources/post-install.sh'
-        executable(post_install, '#!/bin/sh\nset -eu\nif [ "${1:-configure}" = configure ]; then\n  /usr/lib/Aixand/runtime/node/bin/node /usr/lib/Aixand/runtime/restore-links.mjs /usr/lib/Aixand/runtime\nfi\n')
-        config['bundle']['linux']['deb']['postInstallScript'] = 'resources/post-install.sh'
-        files = config['bundle']['linux']['deb']['files']
-        entrypoints = desktop/'src-tauri/resources/cli'
-        if entrypoints.exists():
-            shutil.rmtree(entrypoints)
-        entrypoints.mkdir()
-        for name in manifest['commands']:
-            # Normal package-owned executables; no aliases, login-shell setup,
-            # system Python installation, or dependency on the desktop process.
-            executable(entrypoints/name,
-                '#!/usr/lib/Aixand/runtime/node/bin/node\n'
-                "import('/usr/lib/Aixand/runtime/runtime.mjs')\n"
-                f"  .then(({{ main }}) => main(['exec', {json.dumps(name)}, ...process.argv.slice(2)]))\n"
-                '  .catch(error => { console.error(error.message); process.exitCode = 1 })\n')
-            files[f'/usr/bin/{name}'] = f'resources/cli/{name}'
-        generated = desktop/'src-tauri/tauri.cli.generated.conf.json'
-        generated.write_text(json.dumps(config, indent=2)+'\n')
-        run('npm', 'run', 'desktop:build', '--', '--bundles', 'deb', '--config', 'src-tauri/tauri.cli.generated.conf.json', cwd=desktop)
-        destination = OUTPUT/'cli-enabled' if args.install_clis else OUTPUT
-        destination.mkdir(exist_ok=True)
-        for package in (CACHE/'native/release/bundle/deb').glob(f"Aixand_{config['version']}_*.deb"):
-            copy(package, destination/package.name)
-    print(f'Complete Linux package: {OUTPUT}', flush=True)
+    from editions import build as build_editions
+    products = args.product_releases
+    if products is None:
+        products = OUTPUT/'products-kit'
+        run(sys.executable, SUITE/'scripts/package-products.py', '--source', SOURCE,
+            '--build', '--work', OUTPUT/'product-builds', '--output', products)
+    return build_editions(RUNTIME, products, OUTPUT/'installers', args.edition,
+        desktop=None if args.runtime_only else SUITE/'apps/desktop', native=CACHE/'native/release',
+        package=args.package, native_installers=not args.runtime_only)
 
 
 def main():
@@ -143,23 +113,27 @@ def main():
     parser.add_argument('--cache', type=Path, default=CACHE)
     parser.add_argument('--node', type=Path, default=Path('/opt/node'))
     parser.add_argument('--product-releases', type=Path)
-    parser.add_argument('--edition', choices=['distributed', 'legacy'], default='distributed')
-    parser.add_argument('--package', choices=['desktop', 'server', 'both'], default='both')
+    parser.add_argument('--edition', choices=['distributed'], default='distributed')
+    parser.add_argument('--package', choices=['desktop', 'client', 'server', 'both', 'all'], default='all')
     parser.add_argument('--without-voice', action='store_true')
     parser.add_argument('--runtime-only', action='store_true')
-    parser.add_argument('--install-clis', action='store_true', help='Opt in to package-owned CLI commands in /usr/bin')
     parser.add_argument('--finish-only', action='store_true', help='Repackage an already-built runtime after local validation')
     args = parser.parse_args()
     SOURCE, OUTPUT, CACHE = args.source.resolve(), args.output.resolve(), args.cache.resolve()
     SUITE, RUNTIME = SOURCE/'aixand-suite', OUTPUT/'runtime'
-    if args.install_clis and args.edition != 'legacy':
-        parser.error('--install-clis belongs to --edition legacy; distributed tools use their own installers')
     OUTPUT.mkdir(exist_ok=True)
     CACHE.mkdir(exist_ok=True)
     # Isolated caches only; compiling cannot change the user's running checkouts.
     os.environ.update(CARGO_TARGET_DIR=str(CACHE/'native'), CARGO_PROFILE_RELEASE_LTO='false',
-        CARGO_PROFILE_RELEASE_CODEGEN_UNITS='16', CARGO_BUILD_JOBS='4',
+        CARGO_PROFILE_RELEASE_CODEGEN_UNITS='16', CARGO_BUILD_JOBS=os.environ.get('CARGO_BUILD_JOBS', '4'),
         UV_CACHE_DIR=str(CACHE/'uv'), npm_config_cache=str(CACHE/'npm'), PYTHONDONTWRITEBYTECODE='1')
+    if args.package == 'client':
+        if args.runtime_only or args.finish_only:
+            parser.error('Client has no runtime archive; build its native installer')
+        from client_package import build as build_client
+        record = build_client(SUITE/'apps/desktop', OUTPUT/'installers/client', native=CACHE/'native/release')
+        (OUTPUT/'installers/installers.json').write_text(json.dumps({'schema': 1, 'publication': 'not-published', 'editions': [record]}, indent=2)+'\n')
+        return
     if args.finish_only:
         finish(args, json.loads((RUNTIME/'manifest.json').read_text()))
         return
@@ -167,54 +141,58 @@ def main():
         shutil.rmtree(RUNTIME)
     (RUNTIME/'bin').mkdir(parents=True)
     native = CACHE/'native/release'
-    run('cargo', 'build', '--locked', '--release', '--manifest-path', SOURCE/'undercurrent/Cargo.toml',
-        '-p', 'undercurrent-cli', '-p', 'undercurrent-daemon', '-p', 'undercurrent-python-bridge')
-    for name in ['uc', 'uc-daemon', 'uc-session-host', 'uc-python-bridge']:
-        copy(native/name, RUNTIME/'bin'/name)
-    run('cargo', 'build', '--locked', '--release', '--features', 'sdk', '--manifest-path', SOURCE/'runner/Cargo.toml')
+    sys.path.insert(0, str(SUITE/'scripts/dev'))
+    from catalog import host
+    published = dependencies.handoffs(CACHE/'published-products', host())
+    dependencies.native_payload(published['undercurrent'], RUNTIME,
+        ['bin/' + name for name in ['uc', 'uc-daemon', 'uc-session-host', 'uc-python-bridge', 'uc-mcp']])
+    run('cargo', 'build', '--locked', '--release', '--features', 'sdk', '--manifest-path', SUITE/'workflow/runner/Cargo.toml')
     copy(native/'runner', RUNTIME/'bin/runner')
     for directory, binary in [('bridge', 'aixand-terminal-bridge'), ('workflow-bridge', 'aixand-workflow-bridge')]:
-        run('cargo', 'build', '--locked', '--release', '--manifest-path', SUITE/'aixand-server'/directory/'Cargo.toml')
+        run('cargo', 'build', '--locked', '--release', '--manifest-path', SUITE/'apps/server'/directory/'Cargo.toml')
         copy(native/binary, RUNTIME/'bin'/binary)
     for binary in ['runner', 'aixand-workflow-bridge']:
         # pyo3 embeds Python; its shared library travels with the private interpreter.
         if sys.platform == 'darwin':
-            run('install_name_tool', '-add_rpath', '@loader_path/../python/lib', RUNTIME/'bin'/binary)
-            # Changing load commands invalidates the linker's ad hoc signature.
-            run('codesign', '--force', '--sign', '-', RUNTIME/'bin'/binary)
+            from macos_python import relocate
+            relocate(RUNTIME/'bin'/binary, run)
         else:
             run('patchelf', '--set-rpath', '$ORIGIN/../python/lib', RUNTIME/'bin'/binary)
 
-    for name in (['aixand-server'] if args.package == 'server' else ['aixand-web', 'aixand-server']):
-        run('npm', 'ci', '--no-audit', '--no-fund', cwd=SUITE/name)
-        run('npm', 'run', 'build', cwd=SUITE/name)
+    for name in (['server'] if args.package == 'server' else ['web', 'server']):
+        run('npm', 'ci', '--no-audit', '--no-fund', cwd=SUITE/'apps'/name)
+        run('npm', 'run', 'build', cwd=SUITE/'apps'/name)
     if args.package != 'server':
-        copy(SUITE/'aixand-web/dist', RUNTIME/'web')
+        run('npm', 'ci', '--no-audit', '--no-fund', cwd=SUITE/'apps/desktop')
+        copy(SUITE/'apps/web/dist', RUNTIME/'web')
     for name in ['dist', 'agent-bridge', 'carrier-bridge', 'recovery-worker', 'shared', 'package.json', 'package-lock.json']:
-        copy(SUITE/'aixand-server'/name, RUNTIME/'server'/name)
+        copy(SUITE/'apps/server'/name, RUNTIME/'server'/name)
     run('npm', 'ci', '--omit=dev', '--no-audit', '--no-fund', cwd=RUNTIME/'server')
     copy(args.node, RUNTIME/'node')
     # A standalone interpreter, never a copied virtual environment with absolute shebangs.
     base_python = Path(run('uv', 'python', 'find', '--managed-python', '3.12.14', capture=True)).resolve().parent.parent
     copy(base_python, RUNTIME/'python')
+    if sys.platform == 'darwin':
+        from macos_python import library_id
+        library_id(RUNTIME/'python', run)
     python = RUNTIME/'python/bin/python3'
     wheelhouse = CACHE/'local-wheels'
     if wheelhouse.exists():
         shutil.rmtree(wheelhouse)
     wheelhouse.mkdir()
-    projects = [SOURCE/'manager-suites'/name for name in MANAGERS]
-    projects += [SOURCE/'carrier', SOURCE/'undercurrent/python', SOURCE/'runner/python',
-        SOURCE/'aixand-platform', SUITE/'aixand-python', SUITE/'aixand-connect', SUITE/'aixand-mcp']
+    projects = [SUITE/name for name in ['mcps/orchestration', 'workflow/runner/python',
+        'sdks/python', 'services/connect']]
     if not args.without_voice:
-        projects.append(SUITE/'aixand-vox')
-    distributions = {}
+        projects.append(SUITE/'services/vox')
+    distributions = dependencies.wheels(wheelhouse)
+    constraint = dependencies.constraints(CACHE/'first-party-constraints.txt')
     for project in projects:
         data = tomllib.loads((project/'pyproject.toml').read_text())['project']
         distributions[data['name']] = data['version']
         run('uv', 'build', '--wheel', '--no-sources', '--python', python, '--out-dir', wheelhouse, project)
     # Exact local distribution versions prevent accidental sibling-package upgrades.
-    extra = {'agent-manager': '[mcp,resources,backends,claude-sdk]',
-        'orchestration-mcp': '[runtime,runner,carrier,connect]'}
+    extra = {'aixand-lib-local-runtime': '[websocket]', 'aixand-agent-manager': '[mcp,undercurrent]',
+        'aixand-orchestration-mcp': '[runtime,resources,runner,carrier,connect]'}
     wheels = {}
     for path in wheelhouse.glob('*.whl'):
         with zipfile.ZipFile(path) as archive:
@@ -222,7 +200,7 @@ def main():
             wheels[info['Name']] = path
     requirements = [f"{name}{extra.get(name, '')} @ {wheels[name].as_uri()}" for name in distributions if name != 'aixand-vox']
     run('uv', 'pip', 'install', '--python', python, '--target', RUNTIME/'python/lib/python3.12/site-packages', '--find-links', wheelhouse,
-        '--torch-backend', 'cpu', *requirements)
+        '--constraint', constraint, '--torch-backend', 'cpu', *requirements)
     run('uv', 'pip', 'check', '--python', python)
     # Record actual resolved versions without build-directory file URLs.
     installed = json.loads(run(python, '-I', '-c',
@@ -237,11 +215,13 @@ def main():
         # The voice stack requires protobuf<7; the optional Antigravity SDK
         # requires protobuf>=7.35. They must not share a Python site-packages.
         copy(base_python, RUNTIME/'voice/python')
+        if sys.platform == 'darwin':
+            library_id(RUNTIME/'voice/python', run)
         voice_python = RUNTIME/'voice/python/bin/python3'
-        voice_extra = {**extra, 'agent-manager': '[mcp,resources,backends]'}
+        voice_extra = {**extra, 'aixand-agent-manager': '[mcp,undercurrent]'}
         voice_requirements = [f"{name}{voice_extra.get(name, '')} @ {wheels[name].as_uri()}" for name in distributions]
         run('uv', 'pip', 'install', '--python', voice_python, '--target', RUNTIME/'voice/python/lib/python3.12/site-packages',
-            '--find-links', wheelhouse, '--torch-backend', 'cpu', *voice_requirements)
+            '--find-links', wheelhouse, '--constraint', constraint, '--torch-backend', 'cpu', *voice_requirements)
         run('uv', 'pip', 'check', '--python', voice_python)
         voice_packages = json.loads(run(voice_python, '-I', '-c',
             'import importlib.metadata as m,json; print(json.dumps(sorted([[d.metadata["Name"],d.version] for d in m.distributions()])))', capture=True))
@@ -255,12 +235,13 @@ def main():
         executable(RUNTIME/'bin'/name, '#!/bin/sh\nroot=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)\nexec "$root/node/bin/node" "$root/runtime.mjs" exec '+name+' "$@"\n')
     for name in ['uv', 'uvx']:
         copy(Path(shutil.which(name)), RUNTIME/'bin'/name)
-    for name in ['runtime.mjs', 'package-model.mjs', 'server-cli.mjs', 'server-installer.mjs', 'server-startup.mjs', 'desktop-client.mjs', 'setup.mjs', 'products.mjs', 'uc-connections.mjs', 'cleanup.mjs', 'provider-cleanup.py', 'cleanup_processes.py', 'product-cleanup.py', 'platform.mjs', 'windows-tools.mjs', 'restore-links.mjs', 'python-entry.py']:
+    for name in ['activation.mjs', 'component-updates.mjs', 'component-update-worker.mjs', 'component-launcher.mjs', 'dependencies.lock.json', 'updates.mjs', 'update-worker.mjs', 'update-config.json', 'runtime.mjs', 'package-model.mjs', 'server-cli.mjs', 'server-installer.mjs', 'server-startup.mjs', 'desktop-client.mjs', 'setup.mjs', 'products.mjs', 'uc-connections.mjs', 'installation-plan.mjs', 'component-inventory.mjs', 'terminal-ui.mjs', 'cleanup.mjs', 'provider-cleanup.py', 'cleanup_processes.py', 'product-cleanup.py', 'platform.mjs', 'windows-tools.mjs', 'restore-links.mjs', 'python-entry.py']:
         copy(SUITE/'scripts/runtime'/name, RUNTIME/name)
-    copy(SOURCE/'manager-suites/agent-manager/agent_manager/providers.toml', RUNTIME/'providers.toml')
+    (RUNTIME/'providers.toml').write_text(
+        "# Provider definitions come from Agent Manager's platform defaults.\n")
     executable(RUNTIME/'bin/aixand-runtime', '#!/bin/sh\nroot=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)\nexec "$root/node/bin/node" "$root/runtime.mjs" "$@"\n')
     notices = RUNTIME/'notices'
-    for project in projects + [SOURCE/'runner', SOURCE/'undercurrent']:
+    for project in projects + [SUITE/'workflow/runner', SOURCE/'undercurrent']:
         for name in ['LICENSE', 'NOTICE']:
             if (project/name).is_file():
                 copy(project/name, notices/str(project.relative_to(SOURCE)).replace('/', '-')/name)

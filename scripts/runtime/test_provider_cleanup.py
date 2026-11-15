@@ -55,7 +55,7 @@ class CleanupTests(unittest.TestCase):
 
     def test_official_logout_failure_keeps_accounts_and_sdk(self):
         account = self.put('agents/claude/account.json')
-        with patch.object(cleanup.claude_accounts, 'prepare_reset', side_effect=ValueError('logout failed')):
+        with patch.object(cleanup, 'prepare_private_claude_reset', side_effect=ValueError('logout failed')):
             with self.assertRaisesRegex(ValueError, 'logout failed'):
                 cleanup.apply(self.values, ['provider-accounts'])
         self.assertTrue(account.exists())
@@ -95,11 +95,33 @@ class CleanupTests(unittest.TestCase):
         private = Mock(root=self.base / 'agents/claude')
         external = Mock(root=self.home / 'external/claude')
         with patch.object(cleanup, 'Manager', return_value=private) as construct, \
-             patch.object(cleanup.claude_accounts, 'prepare_reset') as logout:
+             patch.object(cleanup, 'prepare_private_claude_reset') as logout:
             report = cleanup.apply({'claude': external}, ['provider-accounts'])
         self.assertIsNone(report['failed'])
         self.assertEqual(construct.call_args.kwargs['root'], self.base / 'agents')
-        logout.assert_called_once_with(private, sign_out_external=False)
+        logout.assert_called_once_with(private)
+
+    def test_claude_reset_logs_out_managed_environments_once_and_keeps_external_accounts(self):
+        credential = self.put('agents/home/claude/managed/credential')
+        manager = Mock()
+        manager.state.return_value = {'profiles': {
+            'work': {'environment_id': 'managed'}, 'alias': {'environment_id': 'managed'},
+            'personal': {'environment_id': 'external'}}, 'environments': {
+            'managed': {'ownership': 'managed', 'home': str(credential.parent)},
+            'external': {'ownership': 'external', 'home': str(self.home / '.claude')}}}
+        manager.resolve_profile.side_effect = lambda name: name
+        manager.logout.return_value = 0
+        cleanup.prepare_private_claude_reset(manager)
+        manager.logout.assert_called_once_with('work')
+        self.assertTrue(credential.exists())
+
+    def test_claude_reset_refuses_a_managed_home_outside_the_workspace(self):
+        manager = Mock()
+        manager.state.return_value = {'profiles': {'work': {'environment_id': 'redirected'}},
+            'environments': {'redirected': {'ownership': 'managed', 'home': str(self.home / 'outside')}}}
+        with self.assertRaisesRegex(ValueError, 'outside Aixand'):
+            cleanup.prepare_private_claude_reset(manager)
+        manager.logout.assert_not_called()
 
     def test_home_itself_is_rejected(self):
         with self.assertRaisesRegex(ValueError, 'outside'):
@@ -187,13 +209,9 @@ sys.exit(adapter.main())
         self.assertIn("Get-Command -All 'codex'", item['description'])
 
     def saved_runtime_lease(self, runtime_home):
-        manager = cleanup.Manager('opencode', root=self.base / 'agents')
-        state = manager.state()
-        state['agents']['work'] = None
-        state['runs'] = {'fixture-run': dict(runtime='undercurrent', mode='backend', agent='work', auth=None,
-            home=str(manager.root / 'profiles/work'), snapshot=[], status='running', session_id='stopped-session',
-            connection={'home': str(runtime_home)})}
-        manager.save(state)
+        manager = Mock(root=self.base / 'agents/opencode', config={'label': 'OpenCode'})
+        manager.state.return_value = {'runs': {'fixture-run': dict(runtime='undercurrent', status='running',
+            session_id='stopped-session', connection={'home': str(runtime_home)})}}
         return manager
 
     def test_stopped_runtime_lease_is_reconciled_before_cleanup_and_private_observer_is_closed(self):
@@ -202,13 +220,12 @@ sys.exit(adapter.main())
              patch.object(cleanup, 'process_targets', return_value=[]), \
              patch.object(cleanup.shutil, 'which', return_value='/verified/uc'), \
              patch.object(cleanup.subprocess, 'run', return_value=Mock(returncode=0, stdout='{"state":"started"}')) as run, \
-             patch('agent_manager.recovery.observe', new_callable=AsyncMock, return_value='finished'), \
+             patch.object(cleanup, 'reconcile') as reconcile, \
+             patch.object(cleanup, 'active_profiles', return_value=[]), \
              patch.dict(os.environ, UNDERCURRENT_HOME=str(self.home / 'unrelated-runtime')):
             report = cleanup.check_processes({'opencode': manager}, {'selected': ['provider:opencode']})
         self.assertEqual(report, dict(blockers=[], errors=[]))
-        self.assertEqual(manager.state()['runs'], {})
-        history = json.loads((manager.root / 'sdk-runs/fixture-run.json').read_text())
-        self.assertEqual(history['status'], 'finished')
+        reconcile.assert_called_once_with(manager)
         self.assertEqual([call.args[0][-1] for call in run.call_args_list], ['start', 'stop'])
         for call in run.call_args_list:
             self.assertEqual(call.kwargs['env']['UNDERCURRENT_HOME'], str(self.base / 'uc'))
@@ -220,7 +237,8 @@ sys.exit(adapter.main())
         native.write_text('keep shared credentials')
         for status in ('running', 'unknown'):
             with self.subTest(status=status), \
-                 patch('agent_manager.recovery.observe', new_callable=AsyncMock, return_value=status), \
+                 patch.object(cleanup, 'reconcile'), \
+                 patch.object(cleanup, 'active_profiles', return_value=['work']), \
                  patch.object(cleanup, 'sign_out_native') as logout, \
                  patch.object(cleanup.provider_software, 'perform') as uninstall, \
                  patch.object(cleanup.subprocess, 'run') as process:
@@ -286,7 +304,7 @@ sys.exit(adapter.main())
         _winapi.CreateJunction(str(outside), str(packages / 'releases/unused-link'))
         with patch.object(cleanup.install, 'provider_executable', return_value=launcher / 'codex.exe'), \
              patch.object(cleanup.install, 'state_root', return_value=self.base / 'state/agent-manager'), \
-             patch('agent_manager.provider_catalog.active_profiles', return_value=[]):
+             patch('agent_manager.providers.catalog.active_profiles', return_value=[]):
             review = cleanup.software_plan(manager)
             self.assertTrue(review['automatic'])
             self.assertEqual(review['targets'], [str(launcher), str(packages)])
@@ -335,7 +353,7 @@ sys.exit(adapter.main())
             return original(source, target)
         with patch.object(cleanup.install, 'provider_executable', return_value=launcher / 'codex.exe'), \
              patch.object(cleanup.install, 'state_root', return_value=self.base / 'state/agent-manager'), \
-             patch('agent_manager.provider_catalog.active_profiles', return_value=[]):
+             patch('agent_manager.providers.catalog.active_profiles', return_value=[]):
             review = cleanup.software_plan(manager)
             with patch.object(Path, 'rename', rename), self.assertRaisesRegex(ValueError, 'in use'):
                 cleanup.uninstall_windows_codex(manager, review)

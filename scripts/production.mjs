@@ -38,13 +38,13 @@ try {
       : process.platform === 'win32'
         ? run(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', 'npm run ' + script], directory)
         : run('npm', ['run', script], directory)
-    await runNpm(join(root, 'aixand-web'), 'build')
-    await runNpm(join(root, 'aixand-server'), 'build')
+    await runNpm(join(root, 'apps/web'), 'build')
+    await runNpm(join(root, 'apps/server'), 'build')
     console.log('Production build ready. Start with: ./dev.sh serve --production')
   } else {
-    const entry = join(root, 'aixand-server/dist/production-main.js')
+    const entry = join(root, 'apps/server/dist/production-main.js')
     if (!existsSync(entry)) throw new Error('Build production first: node scripts/production.mjs build')
-    await run(process.execPath, [entry], join(root, 'aixand-server'))
+    await run(process.execPath, [entry], join(root, 'apps/server'))
   }
 } catch (error) {
   console.error(error.message)

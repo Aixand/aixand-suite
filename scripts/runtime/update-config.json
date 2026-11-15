@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "enabled": false,
+  "origin": "https://downloads.aixand.org",
+  "keys": {
+    "7f9859517e8ee003": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA9nMsy5rgcVzaTG/D0Q+Q+0ylWa8M4iyudTMmNjohnNU=\n-----END PUBLIC KEY-----\n"
+  }
+}
