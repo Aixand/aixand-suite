@@ -1,6 +1,7 @@
 """Malicious product archives must fail before engine or bootstrap execution."""
 import importlib.util
 import io
+import os
 from pathlib import Path
 import stat
 import tarfile
@@ -14,6 +15,19 @@ spec.loader.exec_module(module)
 
 
 class ProductArchiveTests(unittest.TestCase):
+    @unittest.skipUnless(os.name == 'nt', 'Windows extended-length extraction')
+    def test_windows_archive_objects_exceed_legacy_path_limit(self):
+        with tempfile.TemporaryDirectory(dir=module.filesystem_path(tempfile.gettempdir())) as temporary:
+            root = Path(temporary.removeprefix('\\\\?\\'))
+            archive = root / 'deep.zip'
+            name = 'root/artifacts/objects/' + 'a' * 64
+            with zipfile.ZipFile(archive, 'w') as stream:
+                stream.writestr(name, b'long-path immutable object')
+            output = root / ('workspace-' + 'w' * 70) / 'software/product-updates/objects/runner' / ('b' * 64) / 'artifacts'
+            self.assertGreater(len(str(output / name)), 260)
+            module.extract(archive, output)
+            self.assertEqual(module.filesystem_path(output / name).read_bytes(), b'long-path immutable object')
+
     def test_paths_duplicates_special_entries_and_limits(self):
         for name in ['../outside', '/absolute', 'a/../outside', 'C:/outside', 'a\\outside', 'a/CON.txt', 'a/trailing.', 'a//b']:
             with self.subTest(name=name), self.assertRaises(ValueError):

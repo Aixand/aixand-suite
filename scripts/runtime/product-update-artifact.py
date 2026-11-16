@@ -45,7 +45,18 @@ def safe_entries(entries):
         require(len(names) <= COUNT and total <= LIMIT, 'Product archive exceeds extraction limits')
 
 
+def filesystem_path(path):
+    path = Path(path)
+    if os.name != 'nt':
+        return path
+    value = str(path.absolute())
+    if not value.startswith('\\\\?\\'):
+        value = '\\\\?\\UNC\\' + value[2:] if value.startswith('\\\\') else '\\\\?\\' + value
+    return Path(value)
+
+
 def extract(archive, output):
+    archive, output = filesystem_path(archive), filesystem_path(output)
     if zipfile.is_zipfile(archive):
         with zipfile.ZipFile(archive) as source:
             entries = source.infolist()
@@ -64,6 +75,7 @@ def extract(archive, output):
 
 
 def stage(archive, output, helper, *, archive_sha256, manifest_sha256, target, selection):
+    archive, output = filesystem_path(archive), filesystem_path(output)
     require(not output.exists() and not output.is_symlink(), 'Product object already exists')
     with archive.open('rb') as stream:
         require(hashlib.file_digest(stream, 'sha256').hexdigest() == archive_sha256,
