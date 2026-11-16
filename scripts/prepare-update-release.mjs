@@ -27,7 +27,8 @@ export async function prepareRelease(descriptor, keyFile, output) {
     const manifest = JSON.parse(await readFile(client ? resolve(item.metadata) : join(runtime, 'manifest.json'), 'utf8'))
     if (client) {
       need(manifest.role === 'client' && manifest.localRuntime === false && manifest.localListeners === false, 'Client metadata must describe an outbound-only native package.')
-      const architecture = { x64: 'x86_64', amd64: 'x86_64', aarch64: 'arm64' }[manifest.architecture] || manifest.architecture
+      const machine = String(manifest.architecture).toLowerCase()
+      const architecture = { x64: 'x86_64', amd64: 'x86_64', aarch64: 'arm64' }[machine] || machine
       need(item.target === `${manifest.platform}-${architecture}` || item.target === `${manifest.platform}-${architecture}-${item.kind}`, 'Client target disagrees with its build metadata.')
       const native = manifest.nativeUpdater
       need(native?.schema === 1 && native.product === 'aixand-client' && native.version === manifest.version && native.sequence === manifest.releaseSequence,

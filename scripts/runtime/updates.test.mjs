@@ -229,6 +229,26 @@ test('offline publication emits an immutable signed candidate and refuses untrus
   })
 })
 
+test('offline Client signing accepts the native Windows AMD64 build metadata', async () => {
+  await fixture(async (_config, directory) => {
+    const file = join(directory, 'client-setup.exe'), metadata = join(directory, 'client.json')
+    const keyFile = join(directory, 'key.pem'), output = join(directory, 'releases')
+    const nativeTrust = { enabled: trust.enabled, keys: trust.keys, origin: trust.origin, schema: trust.schema }
+    const version = '0.1.0-alpha.3'
+    await writeFile(file, packageBytes)
+    await writeFile(keyFile, pair.privateKey.export({ type: 'pkcs8', format: 'pem' }), { mode: 0o600 })
+    await writeFile(metadata, JSON.stringify({ role: 'client', platform: 'windows', architecture: 'AMD64',
+      version, releaseSequence: 3, build: 'a'.repeat(64), localRuntime: false, localListeners: false,
+      updateConfig: nativeTrust, installer_sha256: { 'client-setup.exe': createHash('sha256').update(packageBytes).digest('hex') },
+      nativeUpdater: { schema: 1, product: 'aixand-client', version, sequence: 3, trust: nativeTrust,
+        trustSha256: createHash('sha256').update(JSON.stringify(nativeTrust)).digest('hex') } }))
+    await prepareRelease({ product: 'aixand-client', version, sequence: 3, origin: trust.origin,
+      artifacts: [{ target: 'windows-x86_64', kind: 'nsis', file, metadata }] }, keyFile, output)
+    const candidate = JSON.parse(await readFile(join(output, 'aixand-client/latest.candidate.json'), 'utf8'))
+    assert.equal(verifyRelease(candidate, trust, { product: 'aixand-client' }).artifacts['windows-x86_64'].kind, 'nsis')
+  })
+})
+
 test('database snapshots keep owned SQLite files and WALs without copying provider accounts or following links', async () => {
   await fixture(async (config, directory) => {
     await mkdir(join(config.base, 'auth')); await mkdir(join(config.base, 'agents'))
