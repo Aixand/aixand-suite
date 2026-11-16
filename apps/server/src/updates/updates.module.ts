@@ -39,7 +39,8 @@ export class UpdatesService implements OnModuleInit, OnModuleDestroy {
     if (application && runtime.role !== 'server' || !['server', 'desktop'].includes(runtime.role)) return { available: false, installed: { role: runtime.role, version: runtime.version },
       message: 'Manage Desktop updates from the Aixand connection window on that computer.' };
     const result = await execute(process.execPath, [runtime.file, application ? 'updates' : products ? 'product-updates' : 'component-updates', action, JSON.stringify(input)],
-      { env: process.env, timeout: action === 'plan' ? 180_000 : 35_000, windowsHide: true, maxBuffer: 2 * 1024 * 1024 });
+      { env: process.env, timeout: action === 'download' ? 30 * 60_000 : action === 'plan' ? 180_000 : 35_000,
+        windowsHide: true, maxBuffer: 2 * 1024 * 1024 });
     const value = JSON.parse(result.stdout);
     if (application && action === 'plan') return { revision: value.revision, ready: value.ready, requested: ['server'],
       candidates: { server: { version: value.version } }, licenses: value.licenses, restartRequired: true, unsupported: [],
