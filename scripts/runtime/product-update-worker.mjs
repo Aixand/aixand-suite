@@ -4,6 +4,7 @@ import { dirname, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
+import { setTimeout as delay } from 'node:timers/promises'
 import { claimActivation, completeActivation } from './activation.mjs'
 import { atomicJson } from './updates.mjs'
 import { snapshotDatabases } from './update-worker.mjs'
@@ -15,9 +16,24 @@ import { readProductSelection, productSelectionPath } from './product-selection.
 import { validateInstalledProducts } from './products.mjs'
 
 const must = (ok, message) => { if (!ok) throw new Error(message) }
+async function withWorkerLock(config, job, callback) {
+  const deadline = Date.now() + 30000
+  while (true) {
+    let entered = false
+    try { return await withProductUpdateLock(config, () => { entered = true; return callback() }) }
+    catch (error) {
+      if (entered || error.message !== 'Another product update operation is running.' || Date.now() >= deadline) throw error
+      const state = productUpdateState(config)
+      must(state.operation === job.operation && state.phase === 'preparing', 'Product worker launch is obsolete.')
+      await delay(50)
+    }
+  }
+}
 export async function runProductUpdateWorker(config, job, dependencies = {}) {
   must(dependencies.outsideLifecycle === true, 'External owning-lifecycle launch is required.')
-  return withProductUpdateLock(config, async () => {
+  // The launching request still owns this lock while it records our PID and
+  // birth identity. Wait for that handoff before claiming activation.
+  return withWorkerLock(config, job, async () => {
     const state = productUpdateState(config)
     must(job?.schema === 1 && state.operation === job.operation && state.phase === 'preparing'
       && resolve(config.root) === job.root && resolve(config.base) === job.base, 'Product worker job is obsolete or belongs to another workspace.')

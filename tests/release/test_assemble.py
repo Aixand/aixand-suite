@@ -227,7 +227,7 @@ class AssemblyTests(unittest.TestCase):
         def run(command, **kwargs):
             calls.append([str(value) for value in command])
             if command[:3] == ["npm", "run", "desktop:build"]:
-                deb = self.root / "persistent-target/release/bundle/deb/Aixand_1.0.0.deb"
+                deb = self.root / "persistent-target/release/bundle/deb/Aixand_1.0.0_amd64.deb"
                 deb.parent.mkdir(parents=True)
                 deb.write_bytes(b"mock native installer")
             return type("Result", (), {"returncode": 0, "stdout": "{}", "stderr": ""})()
@@ -267,7 +267,7 @@ class AssemblyTests(unittest.TestCase):
                     "trust": trust, "trustSha256": hashlib.sha256(json.dumps(trust, sort_keys=True,
                         separators=(",", ":"), ensure_ascii=False).encode()).hexdigest()}
                 Path(environment["AIXAND_CLIENT_UPDATE_METADATA"]).write_text(json.dumps(metadata))
-                deb = Path(kwargs["cwd"]) / "src-tauri/target/release/bundle/deb/Aixand-Client_1.0.0.deb"
+                deb = Path(kwargs["cwd"]) / "src-tauri/target/release/bundle/deb/Aixand Client_1.0.0_amd64.deb"
                 deb.parent.mkdir(parents=True)
                 deb.write_bytes(b"mock client installer")
             return type("Result", (), {"returncode": 0})()
@@ -348,6 +348,21 @@ class AssemblyTests(unittest.TestCase):
         maintenance.assert_called_once()
         self.assertIn("x86_64-pc-windows-msvc", command.call_args.args[0])
         self.assertEqual(installers, ["aixand-desktop-Aixand_1.0.0_x64-setup.exe"])
+
+    def test_warm_linux_cache_cannot_mix_client_desktop_versions_or_architectures(self):
+        desktop = self.desktop_source()
+        search = self.root / 'native-cache/bundle'
+        (search / 'deb').mkdir(parents=True)
+        names = ['Aixand_1.0.0_amd64.deb', 'Aixand Client_1.0.0_amd64.deb',
+                 'Aixand_1.0.0_arm64.deb', 'Aixand_1.0.01_amd64.deb']
+        for name in names:
+            (search / 'deb' / name).write_bytes(name.encode())
+        self.assertEqual(assemble.editions.linux_installer(search, {'version': '1.0.0'}, desktop, 'x86_64').name, names[0])
+        self.assertEqual(assemble.editions.linux_installer(search,
+            {'version': '1.0.0', 'productName': 'Aixand Client'}, desktop, 'x86_64').name, names[1])
+        (search / 'deb' / names[0]).unlink()
+        with self.assertRaisesRegex(ValueError, 'expected Linux'):
+            assemble.editions.linux_installer(search, {'version': '1.0.0'}, desktop, 'x86_64')
 
     def test_extracted_macos_installer_preserves_image_helper_and_baseline(self):
         desktop = self.desktop_source()

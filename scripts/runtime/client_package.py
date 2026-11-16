@@ -106,13 +106,11 @@ def build(desktop: Path, output: Path, *, npm=None, compile_frontend=True, nativ
                             '-format', 'UDZO', str(dmg)], check=True)
         artifacts = [dmg]
     else:
-        suffix = '.exe' if target == 'windows' else '.deb'
-        artifacts = []
-        for path in search.rglob('*' + suffix):
-            if config['version'] in path.name and ('client' in path.name.lower()):
-                destination = output / path.name
-                shutil.copy2(path, destination)
-                artifacts.append(destination)
+        from editions import linux_installer, windows_installer
+        package = windows_installer(search, config, desktop) if target == 'windows' else linux_installer(search, config, desktop, platform.machine())
+        destination = output / package.name
+        shutil.copy2(package, destination)
+        artifacts = [destination]
     if not artifacts:
         raise RuntimeError('The native Client installer was not produced')
     record = {'role': 'client', 'version': config['version'], 'platform': target, 'architecture': platform.machine(),

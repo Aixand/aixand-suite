@@ -29,6 +29,18 @@ def windows_installer(search, config, desktop):
         raise ValueError("The expected Windows desktop installer was not produced")
     return artifact
 
+
+def linux_installer(search, config, desktop, architecture):
+    product_name = config.get('productName') or json.loads(
+        (desktop / 'src-tauri/tauri.conf.json').read_text())['productName']
+    architectures = {'x86_64': 'amd64', 'aarch64': 'arm64', 'arm64': 'arm64'}
+    if architecture not in architectures:
+        raise ValueError('Unsupported Linux installer architecture')
+    artifact = search / 'deb' / f"{product_name}_{config['version']}_{architectures[architecture]}.deb"
+    if not artifact.is_file():
+        raise ValueError('The expected Linux installer was not produced')
+    return artifact
+
 def link_or_copy(source, destination):
     try:
         os.link(source, destination)
@@ -307,7 +319,7 @@ def desktop_installer(stage, directory, manifest, desktop, *, native=None):
     elif target == "windows":
         artifacts = [windows_installer(search, config, desktop)]
     else:
-        artifacts = search.rglob("*" + suffix)
+        artifacts = [linux_installer(search, config, desktop, manifest['architecture'])]
     for path in artifacts:
         if config["version"] not in path.name:
             continue

@@ -6,10 +6,11 @@ import { generateKeyPairSync, sign, createHash } from 'node:crypto'
 import { mkdtemp, mkdir, writeFile, readFile, cp, rm } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
+import { setTimeout as delay } from 'node:timers/promises'
 import { join, resolve } from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { validateComponentFeed, planComponents, componentDigest, resolveComponentSelection, componentUpdateAction,
-  componentState, saveComponentState } from './component-updates.mjs'
+  componentState, saveComponentState, withComponentLock } from './component-updates.mjs'
 import { runComponentWorker } from './component-update-worker.mjs'
 
 const python = process.platform === 'win32' ? 'python' : 'python3'
@@ -109,6 +110,20 @@ test('automatic download persists preference and never selects, stops or starts 
   assert.deepEqual(f.counts(), { stops: 0, starts: 0, fetches: 2 })
   assert.equal((await f.action('due')).phase, 'downloaded')
   assert.equal(f.counts().fetches, 2)
+})
+
+test('external component worker waits for its launching request to release the lock', async t => {
+  const f = await fixture(t), plan = await ready(f)
+  await launch(f, plan)
+  let worker
+  await withComponentLock(f.config, async () => {
+    worker = runComponentWorker(f.config, f.job, { ...f.dependencies, outsideLifecycle: true })
+    await delay(100)
+    assert.equal(componentState(f.config).phase, 'preparing')
+    assert.equal(f.counts().stops, 0)
+  })
+  await worker
+  assert.equal(componentState(f.config).phase, 'completed')
 })
 
 test('component-only activation preserves sealed files and workspace data', async t => {

@@ -11,9 +11,22 @@ import { componentState, saveComponentState, withComponentLock, currentComponent
   stageComponentPlan, owningLifecycle, componentDigest, resolveComponentSelection } from './component-updates.mjs'
 
 const must = (ok, message) => { if (!ok) throw new Error(message) }
+async function withWorkerLock(config, job, callback) {
+  const deadline = Date.now() + 30000
+  while (true) {
+    let entered = false
+    try { return await withComponentLock(config, () => { entered = true; return callback() }) }
+    catch (error) {
+      if (entered || error.message !== 'Another component operation is in progress.' || Date.now() >= deadline) throw error
+      const state = componentState(config)
+      must(state.operation === job.operation && state.phase === 'preparing', 'Component worker launch is obsolete.')
+      await delay(50)
+    }
+  }
+}
 export async function runComponentWorker(config, job, dependencies = {}) {
   must(dependencies.outsideLifecycle === true, 'External owning-lifecycle launch is required.')
-  return withComponentLock(config, async () => {
+  return withWorkerLock(config, job, async () => {
     const state = componentState(config)
     must(job?.schema === 1 && job.operation === state.operation && state.phase === 'preparing' && resolve(config.root) === job.root && resolve(config.base) === job.base, 'Worker job does not match the pending operation.')
     const authority = await claimActivation(config.base, job.operation, 'component')

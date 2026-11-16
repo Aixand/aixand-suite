@@ -4,6 +4,7 @@ import { createHash, generateKeyPairSync, sign } from 'node:crypto'
 import { mkdtemp, mkdir, writeFile, readFile, rm, symlink } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
+import { setTimeout as delay } from 'node:timers/promises'
 import { saveInstallationPlan } from './installation-plan.mjs'
 import { productLocation, productStatus } from './products.mjs'
 import { productDefinitions } from './product-feed.mjs'
@@ -124,6 +125,22 @@ test('status remains readable while another process owns the product operation l
     const status = await productUpdateAction(f.config, 'status')
     assert.equal(status.inventory.products['agent-manager'].version, '1.0.0')
   })
+})
+
+test('external product worker waits for its launching request to release the lock', async t => {
+  const f = await fixture(t)
+  const plan = await currentProductUpdatePlan(f.config, productUpdateState(f.config), f.dependencies)
+  await productUpdateAction(f.config, 'install', { confirmed: true, revision: plan.revision, acceptedLicenses: [], restartConsent: true }, f.dependencies)
+  const job = await f.job()
+  let worker
+  await withProductUpdateLock(f.config, async () => {
+    worker = runProductUpdateWorker(f.config, job, { ...f.dependencies, outsideLifecycle: true })
+    await delay(100)
+    assert.deepEqual(f.events, [])
+    assert.equal(productUpdateState(f.config).phase, 'preparing')
+  })
+  await worker
+  assert.equal(productUpdateState(f.config).phase, 'completed')
 })
 
 test('reviewing an unstaged product never starts an implicit download', async t => {
