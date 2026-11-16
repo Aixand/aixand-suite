@@ -11,7 +11,8 @@ const execute = promisify(execFile)
 export function componentWorkerEnvironment(config) {
   const allowed = ['HOME', 'USERPROFILE', 'LOCALAPPDATA', 'APPDATA', 'SystemRoot', 'SYSTEMROOT', 'PATH', 'XDG_DATA_HOME',
     'XDG_RUNTIME_DIR', 'DBUS_SESSION_BUS_ADDRESS', 'DISPLAY', 'WAYLAND_DISPLAY', 'USER', 'LOGNAME', 'AIXAND_SHARED_PRODUCT_PREFIX',
-    'AIXAND_SKIP_PATH_REGISTRATION', 'NODE_EXTRA_CA_CERTS']
+    'AIXAND_SKIP_PATH_REGISTRATION', 'NODE_EXTRA_CA_CERTS', 'TMPDIR', 'TMP', 'TEMP',
+    'AIXAND_LOCAL_PORT', 'AIXAND_LOCAL_CARRIER_PORT']
   const env = Object.fromEntries(allowed.filter(key => config.input?.[key] !== undefined).map(key => [key, config.input[key]]))
   for (const key of ['AIXAND_PRODUCTION_ORIGINS', 'AIXAND_PRODUCTION_TRANSPORT', 'AIXAND_PRODUCTION_TRUST_PROXY'])
     if (config.env?.[key]) env[key] = config.env[key]

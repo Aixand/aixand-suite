@@ -9,11 +9,14 @@ import { componentWorkerEnvironment, windowsComponentLaunch, launchComponentWork
 const operation = 'b1111111-2222-3333-4444-555555555555'
 test('helper environment excludes inherited manager paths and Windows launch retains exact task identity', () => {
   const config = { base: '/workspace', input: { HOME: '/user', PATH: '/bin', AGENT_MANAGER_HOMES_ROOT: '/live/accounts',
-    NODE_OPTIONS: '--inspect', UNRELATED_SECRET: 'excluded' }, env: {} }
+    NODE_OPTIONS: '--inspect', UNRELATED_SECRET: 'excluded', AIXAND_LOCAL_PORT: '18753',
+    AIXAND_LOCAL_CARRIER_PORT: '18765', TMPDIR: '/qualification/tmp' }, env: {} }
   const env = componentWorkerEnvironment(config)
   assert.equal(env.HOME, '/user'); assert.equal(env.AIXAND_LOCAL_HOME, '/workspace')
   assert.equal(env.NODE_OPTIONS, ''); assert.equal(env.AGENT_MANAGER_HOMES_ROOT, undefined)
   assert.equal(env.UNRELATED_SECRET, undefined)
+  assert.equal(env.AIXAND_LOCAL_PORT, '18753'); assert.equal(env.AIXAND_LOCAL_CARRIER_PORT, '18765')
+  assert.equal(env.TMPDIR, '/qualification/tmp')
   const launch = windowsComponentLaunch({ config, job: '/job', operation, worker: '/worker' })
   assert.equal(launch.taskName, 'AixandComponentUpdate-' + operation)
   const script = Buffer.from(launch.args.at(-1), 'base64').toString('utf16le')
