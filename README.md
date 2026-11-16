@@ -1,17 +1,27 @@
 # Aixand Suite
 
 A workspace application composing independent agent, conversation and resource
-managers. The v0.1.0-alpha.2 provider scope is Codex and OpenCode.
+managers. The v0.1.0-alpha.3 provider scope is Codex and OpenCode.
 
 This is an early alpha for evaluation. Windows downloads are unsigned and macOS
 downloads are not notarized, so operating systems may warn or block installation.
-Automatic updates remain disabled. Vox source is included; voice runtimes and Vox
+Signed update checks are enabled in the published alpha.3 installers. Updates
+are installed only after confirmation. Vox source is included; voice runtimes and Vox
 packages are excluded from this alpha's release downloads.
 
-Download the [full Suite alpha](https://github.com/Aixand/aixand-suite/releases/tag/suite/v0.1.0-alpha.2),
-[Server](https://github.com/Aixand/aixand-suite/releases/tag/server/v0.1.0-alpha.2),
-or [Client](https://github.com/Aixand/aixand-suite/releases/tag/client/v0.1.0-alpha.2)
+Download the [full Suite alpha](https://github.com/Aixand/aixand-suite/releases/tag/suite/v0.1.0-alpha.3),
+[Server](https://github.com/Aixand/aixand-suite/releases/tag/server/v0.1.0-alpha.3),
+or [Client](https://github.com/Aixand/aixand-suite/releases/tag/client/v0.1.0-alpha.3)
 for Linux x86_64, macOS ARM64, or Windows x86_64.
+
+Open **Settings → Updates → Check all updates** to review application, workspace
+component, and installed tool updates. Workspace tools are managed on the
+workspace host, which may be a different computer from Client. On Windows, keep
+the owning user signed in while installing updates.
+
+Upgrade from alpha.1 or alpha.2 with the installer once; those versions have
+update checks disabled. Independently selected tool releases survive repair,
+and shared tools retain their ownership and maintenance requirements.
 
 The published full Suite, Server, Runner and MCP bundles currently require
 glibc 2.35 on Linux, macOS 26.5.1, or Windows build 26200 or newer. These
