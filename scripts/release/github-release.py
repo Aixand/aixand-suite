@@ -210,7 +210,10 @@ def main():
             command.append('--draft')
         if '-' in args.tag.split('/v')[1]:
             command.append('--prerelease')
-        command += [str(p) for p in sorted(args.directory.iterdir())]
+        # GitHub displays human labels while download paths retain their checked identity.
+        command += json.loads(subprocess.check_output([
+            'node', str(ROOT / 'scripts/release/label-assets.mjs'),
+            '--upload-arguments', str(args.directory)], text=True))
         subprocess.run(command, check=True)
 
 

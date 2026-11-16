@@ -223,6 +223,29 @@ paths. The signing run retains original build inputs so the GitHub release
 workflow can prepare both normal release files and signed delivery objects from
 one authenticated run.
 
+GitHub delivery filenames identify the application or product, version, platform,
+and package purpose without SHA-256 prefixes. The delivery descriptor maps those
+readable filenames to the original signed storage paths; checksum and signature
+verification still apply. Conflicting readable filenames with different content
+are rejected. Native installer exports retain their qualified package names.
+
+Release assets also have human-readable display labels. To preview improvements
+for an existing release without changing bytes, filenames, checksums or URLs, run
+`node scripts/release/label-assets.mjs suite/vVERSION`; add `--apply` to save them.
+Release uploads apply the same labels automatically.
+
+The JSON sidecars are verification records, rather than downloads users install:
+
+- `TESTING.json`, when supplied, records actual platform test coverage and limits,
+  including signing status. It is a report, not a test executable.
+- `delivery.json` maps signed update feeds and immutable download paths to GitHub
+  assets, with their expected sizes and SHA-256 hashes.
+- `composition.json` inventories release components, the source revision and asset
+  hashes and sizes. `SHA256SUMS` supplies the downloadable checksum list.
+- `*-application.json` identifies a native installer; `*-qualification.json`
+  records the matching install, recovery and data-retention checks.
+
+
 The sibling `aixand-installer` Worker has a separate, initially empty update catalog.
 It serves feed envelopes and streams registered GitHub objects at
 `downloads.aixand.org`, including Range/HEAD requests. It never redirects updater

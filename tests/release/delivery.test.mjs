@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto'
 import { mkdtemp, mkdir, readFile, writeFile, rm, symlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { prepareDelivery } from '../../scripts/release/delivery.mjs'
+import { prepareDelivery, deliveryAssetName } from '../../scripts/release/delivery.mjs'
 
 test('signed staging flattens into exact immutable GitHub assets and fixed Worker paths', async () => {
   const root = await mkdtemp(join(tmpdir(), 'suite-delivery-'))
@@ -31,5 +31,31 @@ test('signed staging flattens into exact immutable GitHub assets and fixed Worke
       await symlink(join(object, 'payload.tar.gz'), join(object, 'link'))
       await assert.rejects(prepareDelivery(input, join(root, 'links'), 'web/v0.1.0-beta'), /regular/)
     }
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
+
+test('delivery names identify products and platforms without exposing storage hashes', () => {
+  const hash = 'a'.repeat(64)
+  assert.equal(deliveryAssetName(`/aixand-client/0.1.0-alpha.4.r123/${hash}-Aixand-Client_0.1.0-alpha.4_x64-setup.exe`), 'aixand-client-0.1.0-alpha.4-windows-x64-setup.exe')
+  assert.equal(deliveryAssetName('/aixand-desktop/0.1.0-alpha.4.r123/abcdef0123456789-Aixand-0.1.0-alpha.4-arm64.app.tar.gz'), 'aixand-desktop-0.1.0-alpha.4-macos-arm64-update.app.tar.gz')
+  assert.equal(deliveryAssetName('/aixand-client/0.1.0-alpha.4.r123/manifest.json'), 'aixand-client-0.1.0-alpha.4-manifest.json')
+  assert.equal(deliveryAssetName(`/aixand-suite-products/linux-x86_64-gnu/runner/0.1.0-alpha.2/${hash}.tar.gz`), 'aixand-runner-0.1.0-alpha.2-linux-x86_64-gnu-update.tar.gz')
+  assert.notEqual(deliveryAssetName('/aixand-client/1.0.0/SHA256SUMS'), deliveryAssetName('/aixand-server/1.0.0/SHA256SUMS'))
+  assert.throws(() => deliveryAssetName('/aixand-client/1.0.0/unknown.bin'), /Unknown/)
+  assert.throws(() => deliveryAssetName('/aixand-suite-components/../../payload.tar.gz'), /Unsafe/)
+})
+
+test('different objects cannot silently overwrite a readable delivery filename', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'suite-delivery-collision-'))
+  try {
+    const input = join(root, 'signed')
+    for (const revision of ['1.0.0.r1', '1.0.0.r2']) {
+      const directory = join(input, 'aixand-client', revision)
+      await mkdir(directory, { recursive: true })
+      await writeFile(join(directory, 'manifest.json'), revision)
+      await writeFile(join(directory, 'latest.candidate.json'), '{}')
+    }
+    await assert.rejects(prepareDelivery(input, join(root, 'assets'), 'client/v1.0.0'), /collision/)
   } finally { await rm(root, { recursive: true, force: true }) }
 })
