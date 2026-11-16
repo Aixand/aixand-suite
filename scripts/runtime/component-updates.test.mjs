@@ -4,7 +4,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { generateKeyPairSync, sign, createHash } from 'node:crypto'
 import { mkdtemp, mkdir, writeFile, readFile, cp, rm } from 'node:fs/promises'
-import { existsSync } from 'node:fs'
+import { existsSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { setTimeout as delay } from 'node:timers/promises'
 import { join, resolve } from 'node:path'
@@ -110,6 +110,18 @@ test('automatic download persists preference and never selects, stops or starts 
   assert.deepEqual(f.counts(), { stops: 0, starts: 0, fetches: 2 })
   assert.equal((await f.action('due')).phase, 'downloaded')
   assert.equal(f.counts().fetches, 2)
+})
+
+test('a component helper completing during its PID check remains completed', async t => {
+  const f = await fixture(t)
+  const state = { ...componentState(f.config), phase: 'installing', workerPid: 2147483647 }
+  await saveComponentState(f.config, state)
+  t.mock.method(process, 'kill', () => {
+    writeFileSync(join(f.base, 'software/components/state.json'), JSON.stringify({ ...state, phase: 'completed' }))
+    throw Object.assign(new Error('Helper exited after saving completion'), { code: 'ESRCH' })
+  })
+  const actual = componentState(f.config)
+  assert.equal(actual.phase, 'completed'); assert.notEqual(actual.recoveryRequired, true)
 })
 
 test('external component worker waits for its launching request to release the lock', async t => {

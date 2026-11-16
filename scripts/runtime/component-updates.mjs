@@ -213,10 +213,15 @@ export async function withComponentLock(config, callback) {
 }
 export function componentState(config) {
   const state = readJson(locations(config).state, { schema: 1, daily: true, automaticDownload: false, phase: 'idle', floor: 0 })
+  const observed = { phase: state.phase, operation: state.operation, workerPid: state.workerPid }
   if (['preparing', 'installing'].includes(state.phase) && state.workerPid) {
     try { process.kill(state.workerPid, 0) } catch (e) { if (e.code === 'ESRCH') { state.phase = 'failed'; state.recoveryRequired = true; state.error = 'Component activation interrupted; inspect recovery before retrying.' } }
   } else if (state.phase === 'preparing' && Date.now() - state.startedAt > 120000) {
     state.phase = 'failed'; state.recoveryRequired = true; state.error = 'Component worker did not start; inspect recovery before retrying.'
+  }
+  if (state.phase === 'failed' && observed.phase !== 'failed') {
+    const latest = readJson(locations(config).state, null)
+    if (latest && Object.keys(observed).some(key => latest[key] !== observed[key])) return latest
   }
   return state
 }

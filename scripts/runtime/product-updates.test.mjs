@@ -5,6 +5,7 @@ import { mkdtemp, mkdir, writeFile, readFile, rm, symlink } from 'node:fs/promis
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { setTimeout as delay } from 'node:timers/promises'
+import { writeFileSync } from 'node:fs'
 import { saveInstallationPlan } from './installation-plan.mjs'
 import { productLocation, productStatus } from './products.mjs'
 import { productDefinitions } from './product-feed.mjs'
@@ -125,6 +126,25 @@ test('status remains readable while another process owns the product operation l
     const status = await productUpdateAction(f.config, 'status')
     assert.equal(status.inventory.products['agent-manager'].version, '1.0.0')
   })
+})
+
+test('a live PID with a different birth identity still requires recovery', async t => {
+  const f = await fixture(t)
+  await saveProductUpdateState(f.config, { ...productUpdateState(f.config), phase: 'installing', workerPid: process.pid, workerBirth: 'another-process-instance' })
+  const actual = productUpdateState(f.config)
+  assert.equal(actual.phase, 'failed'); assert.equal(actual.recoveryRequired, true)
+})
+
+test('a helper completing between the state read and PID check remains completed', async t => {
+  const f = await fixture(t)
+  const state = { ...productUpdateState(f.config), phase: 'installing', workerPid: 2147483647, workerBirth: 'previous-instance' }
+  await saveProductUpdateState(f.config, state)
+  t.mock.method(process, 'kill', () => {
+    writeFileSync(join(f.config.base, 'software/product-updates/state.json'), JSON.stringify({ ...state, phase: 'completed' }))
+    throw Object.assign(new Error('Helper exited after saving completion'), { code: 'ESRCH' })
+  })
+  const actual = productUpdateState(f.config)
+  assert.equal(actual.phase, 'completed'); assert.notEqual(actual.recoveryRequired, true)
 })
 
 test('external product worker waits for its launching request to release the lock', async t => {

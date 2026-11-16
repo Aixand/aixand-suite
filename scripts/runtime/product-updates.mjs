@@ -20,8 +20,10 @@ const json = (file, fallback) => existsSync(file) ? JSON.parse(readFileSync(file
 export const productUpdateDirectory = config => privateProductPath(config.base, join(config.base, 'software/product-updates'))
 export const withProductUpdateLock = (config, callback) => withRequestLock(join(productUpdateDirectory(config), '.lock'), callback, 'Another product update operation is running.')
 export function productUpdateState(config) {
-  const state = json(privateProductPath(config.base, join(productUpdateDirectory(config), 'state.json')),
+  const file = privateProductPath(config.base, join(productUpdateDirectory(config), 'state.json'))
+  const state = json(file,
     { schema: 1, phase: 'idle', daily: true, automaticDownload: false, floor: 0 })
+  const observed = { phase: state.phase, operation: state.operation, workerPid: state.workerPid, workerBirth: state.workerBirth }
   if (['preparing', 'installing', 'restarting'].includes(state.phase)) {
     if (state.workerPid) {
       try { process.kill(state.workerPid, 0); must(state.workerBirth && state.workerBirth === processBirth(config.root, state.workerPid), 'Product update helper identity changed.') }
@@ -29,6 +31,12 @@ export function productUpdateState(config) {
     } else if (Date.now() - state.startedAt > 120000) {
       state.phase = 'failed'; state.recoveryRequired = true; state.error = 'Product update helper did not start; inspect its retained recovery journal.'
     }
+  }
+  if (state.phase === 'failed' && observed.phase !== 'failed') {
+    // Completion is persisted before the helper exits. Its exit can race a
+    // status reader that already loaded an older active snapshot.
+    const latest = json(file, null)
+    if (latest && Object.keys(observed).some(key => latest[key] !== observed[key])) return latest
   }
   return state
 }
