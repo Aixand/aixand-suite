@@ -7,6 +7,18 @@ import { setTimeout as delay } from 'node:timers/promises'
 import { componentWorkerEnvironment, windowsComponentLaunch, launchComponentWorker } from './component-launcher.mjs'
 
 const operation = 'b1111111-2222-3333-4444-555555555555'
+test('Windows helper payload has one case-insensitive system root key', () => {
+  const launch = windowsComponentLaunch({ config: { base: '/workspace', input: {
+    SystemRoot: 'C:\\Windows', SYSTEMROOT: 'C:\\Windows',
+  }, env: {} }, job: '/job', operation, worker: '/worker' })
+  const script = Buffer.from(launch.args.at(-1), 'base64').toString('utf16le')
+  const registration = JSON.parse(Buffer.from(script.match(/FromBase64String\('([^']+)'\)/)[1], 'base64'))
+  const workerScript = Buffer.from(registration.args.split(' ').at(-1), 'base64').toString('utf16le')
+  const payload = JSON.parse(Buffer.from(workerScript.match(/FromBase64String\('([^']+)'\)/)[1], 'base64'))
+  const names = Object.keys(payload.env).map(name => name.toLowerCase())
+  assert.equal(new Set(names).size, names.length)
+  assert.equal(payload.env.SystemRoot, 'C:\\Windows')
+})
 test('helper environment excludes inherited manager paths and Windows launch retains exact task identity', () => {
   const config = { base: '/workspace', input: { HOME: '/user', PATH: '/bin', AGENT_MANAGER_HOMES_ROOT: '/live/accounts',
     NODE_OPTIONS: '--inspect', UNRELATED_SECRET: 'excluded', AIXAND_LOCAL_PORT: '18753',

@@ -21,6 +21,10 @@ export function componentWorkerEnvironment(config) {
 export function windowsComponentLaunch({ config, job, operation, worker }) {
   if (!/^[a-f0-9-]{36}$/.test(operation)) throw new Error('Invalid component operation identity.')
   const env = componentWorkerEnvironment(config)
+  // Windows environment names are case-insensitive, as are PowerShell JSON
+  // dictionaries. Runtime configuration can carry both spellings.
+  if (env.SystemRoot || env.SYSTEMROOT) env.SystemRoot = env.SystemRoot || env.SYSTEMROOT
+  delete env.SYSTEMROOT
   const program = join(env.SystemRoot || env.SYSTEMROOT || 'C:/Windows', 'System32/WindowsPowerShell/v1.0/powershell.exe')
   const taskName = 'AixandComponentUpdate-' + operation
   const payload = Buffer.from(JSON.stringify({ node: process.execPath, worker, job, env })).toString('base64')
