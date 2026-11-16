@@ -38,7 +38,7 @@ test('signed staging flattens into exact immutable GitHub assets and fixed Worke
 test('delivery names identify products and platforms without exposing storage hashes', () => {
   const hash = 'a'.repeat(64)
   assert.equal(deliveryAssetName(`/aixand-client/0.1.0-alpha.4.r123/${hash}-Aixand-Client_0.1.0-alpha.4_x64-setup.exe`), 'aixand-client-0.1.0-alpha.4-windows-x64-setup.exe')
-  assert.equal(deliveryAssetName('/aixand-desktop/0.1.0-alpha.4.r123/abcdef0123456789-Aixand-0.1.0-alpha.4-arm64.app.tar.gz'), 'aixand-desktop-0.1.0-alpha.4-macos-arm64-update.app.tar.gz')
+  assert.equal(deliveryAssetName('/aixand-desktop/0.1.0-alpha.4.r123/abcdef0123456789-Aixand-0.1.0-alpha.4-arm64.app.tar.gz'), 'aixand-suite-0.1.0-alpha.4-macos-arm64-update.app.tar.gz')
   assert.equal(deliveryAssetName('/aixand-client/0.1.0-alpha.4.r123/manifest.json'), 'aixand-client-0.1.0-alpha.4-manifest.json')
   assert.equal(deliveryAssetName(`/aixand-suite-products/linux-x86_64-gnu/runner/0.1.0-alpha.2/${hash}.tar.gz`), 'aixand-runner-0.1.0-alpha.2-linux-x86_64-gnu-update.tar.gz')
   assert.notEqual(deliveryAssetName('/aixand-client/1.0.0/SHA256SUMS'), deliveryAssetName('/aixand-server/1.0.0/SHA256SUMS'))

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { mkdtemp, writeFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { assetLabel, uploadArguments } from '../../scripts/release/label-assets.mjs'
+import { assetLabel, uploadArguments, releaseTitle, releaseGuide } from '../../scripts/release/label-assets.mjs'
 
 test('release labels explain sidecars and preserve upload filenames', async () => {
   const root = await mkdtemp(join(tmpdir(), 'suite-labels-'))
@@ -20,4 +20,17 @@ test('release labels explain sidecars and preserve upload filenames', async () =
     assert.match(assetLabel('delivery.json'), /Update delivery map/)
     assert.equal(assetLabel('installer.exe'), 'installer.exe')
   } finally { await rm(root, { recursive: true, force: true }) }
+})
+
+
+test('application names distinguish Client, Server, Suite and web-only assets', () => {
+  assert.equal(releaseTitle('suite/v0.1.0-alpha.3'), 'Aixand Suite 0.1.0-alpha.3')
+  assert.equal(releaseTitle('client/v0.1.0-alpha.3'), 'Aixand Client 0.1.0-alpha.3')
+  assert.equal(releaseTitle('server/v0.1.0-alpha.3'), 'Aixand Server 0.1.0-alpha.3')
+  assert.match(releaseTitle('web/v0.1.0-alpha.3'), /Aixand Client.*Web assets.*not an installer/)
+  assert.match(releaseTitle('runner-client/v0.1.0-alpha.2'), /Runner Python library/)
+  assert.match(releaseGuide('web/v0.1.0-alpha.3'), /not the installable Aixand Client/)
+  assert.equal(assetLabel('web-0.1.0-alpha.3-linux-x86_64-gnu.tar.gz'), 'aixand-client-web-assets-0.1.0-alpha.3-linux-x86_64-gnu.tar.gz')
+  assert.match(assetLabel('suite-client-0.1.0-alpha.3-application.json'), /aixand-client-/)
+  assert.throws(() => releaseTitle('unknown/v1.0.0'), /Unknown/)
 })

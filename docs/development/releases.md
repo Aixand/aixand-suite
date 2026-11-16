@@ -395,3 +395,17 @@ Rootful Linux container builds restore ownership of their marked build staging
 tree to the invoking user before exporting baseline metadata. Rootless builds
 already have the correct ownership and skip this step. Ownership changes do not
 follow links or reach outside that dedicated staging tree.
+
+### Public application names
+
+Use **Aixand Client** for the native frontend-only application, **Aixand Server**
+for the backend and its tool runtimes, and **Aixand Suite** for the complete local
+application. The internal `desktop` role is presented publicly as Aixand Suite.
+The independently released `web` component is labeled **Aixand Client — Web
+assets (not an installer)**. Its archives use `aixand-client-web-assets` display
+names, so they cannot be mistaken for the installable Client. Developer libraries
+and tool components retain their distinct names under Aixand Suite.
+
+These presentation names do not rename internal component IDs, release tags,
+installed application identities or signed download paths. The release uploader
+applies consistent titles and includes a short product guide automatically.

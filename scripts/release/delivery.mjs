@@ -13,10 +13,11 @@ async function hash(file) {
 // GitHub filenames are presentation only; signed download paths stay unchanged.
 export function deliveryAssetName(path) {
   const parts = path.replace(/^\//, '').split('/')
+  if (parts.some(part => !part || part === '.' || part === '..')) throw new Error('Unsafe delivery path.')
   const file = parts.pop().replace(/^(?:[a-f0-9]{64}|[a-f0-9]{16})-/, '')
   let name
   if (/^aixand-(?:desktop|client|server)$/.test(parts[0])) {
-    const [product, revision] = parts, version = revision.replace(/\.r[0-9]+$/, '')
+    const [internalProduct, revision] = parts, product = internalProduct === 'aixand-desktop' ? 'aixand-suite' : internalProduct, version = revision.replace(/\.r[0-9]+$/, '')
     if (['SHA256SUMS', 'manifest.json', 'release.json'].includes(file)) {
       name = `${product}-${version}-${file}`
     } else {
@@ -32,7 +33,8 @@ export function deliveryAssetName(path) {
     if (!suffix) throw new Error('Unknown product delivery filename: ' + file)
     name = `aixand-${product}-${version}-${target}-update${suffix}`
   } else {
-    name = [...parts.slice(1), file].join('-')
+    const component = parts[1] === 'web' ? 'aixand-client-web-assets' : `aixand-${parts[1]}`
+    name = [component, ...parts.slice(2), file].join('-')
   }
   if (!/^[A-Za-z0-9][A-Za-z0-9_.-]{0,239}$/.test(name)) throw new Error('Unsafe delivery asset name.')
   return name

@@ -204,8 +204,11 @@ def main():
         sums = ''.join(f'{digest_file(p)}  {p.name}\n' for p in sorted(args.directory.iterdir()) if p.name != 'SHA256SUMS')
         require((args.directory / 'SHA256SUMS').read_text() == sums, 'Release checksums changed')
         # No --clobber and no edit operation: existing releases require inspection.
+        def presentation(option):
+            return subprocess.check_output(['node', str(ROOT / 'scripts/release/label-assets.mjs'),
+                                            option, args.tag], text=True).strip()
         command = ['gh', 'release', 'create', args.tag, '--verify-tag', '--repo', os.environ['GITHUB_REPOSITORY'],
-                   '--title', args.tag, '--notes', 'Exact component artifacts and composition are attached. See composition.json.']
+                   '--title', presentation('--title'), '--notes', presentation('--notes')]
         if not args.publish:
             command.append('--draft')
         if '-' in args.tag.split('/v')[1]:

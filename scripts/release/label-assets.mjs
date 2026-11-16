@@ -5,8 +5,41 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { deliveryAssetName } from './delivery.mjs'
 
+export function releaseTitle(tag) {
+  const match = /^([a-z-]+)\/v([0-9A-Za-z.-]+)$/.exec(tag)
+  if (!match) throw new Error('Invalid component release tag.')
+  const titles = {
+    suite: 'Aixand Suite', desktop: 'Aixand Suite', client: 'Aixand Client',
+    server: 'Aixand Server', web: 'Aixand Client — Web assets (not an installer)',
+    'python-sdk': 'Aixand Suite — Python SDK',
+    'runner-client': 'Aixand Suite — Runner Python library',
+    runner: 'Aixand Suite — Runner', connect: 'Aixand Suite — Connect',
+    'orchestration-mcp': 'Aixand Suite — Orchestration MCP',
+    ir: 'Aixand Suite — IR Rust crates', vox: 'Aixand Suite — Vox',
+  }
+  if (!titles[match[1]]) throw new Error('Unknown release component.')
+  return `${titles[match[1]]} ${match[2]}`
+}
+
+export function releaseGuide(tag) {
+  const component = tag.split('/')[0]
+  const descriptions = {
+    suite: 'Full application: Client interface, local Server and included tool runtimes.',
+    desktop: 'Full application: Client interface, local Server and included tool runtimes.',
+    client: 'Installable Client application: interface and connection handling for an existing Aixand Server. No local Server or tool runtimes.',
+    server: 'Server application: workspace backend and included tool runtimes. Connect using Aixand Client.',
+    web: 'Web interface files used by deployment and component updates. This is not the installable Aixand Client application.',
+  }
+  const description = descriptions[component] || 'An independently released Aixand Suite component or developer library; not a full application installer.'
+  return `<!-- aixand-product-guide -->\n${description}\n\nApplication installers: [Aixand Client](https://installer.aixand.org/aixand-suite/client) · [Aixand Server](https://installer.aixand.org/aixand-suite/server) · [Aixand Suite](https://installer.aixand.org/aixand-suite)\n<!-- /aixand-product-guide -->`
+}
+
 export function assetLabel(name, paths = new Map()) {
   if (paths.has(name)) return deliveryAssetName(paths.get(name))
+  if (/^web-/.test(name)) return name.replace(/^web-/, 'aixand-client-web-assets-')
+  if (/^aixand-desktop-/i.test(name)) return name.replace(/^aixand-desktop-/i, 'aixand-suite-')
+  if (/^(?:suite-client|suite-server)-/.test(name)) name = name.replace(/^suite-/, 'aixand-')
+  else if (/^suite-/.test(name)) name = name.replace(/^suite-/, 'aixand-suite-')
   const descriptions = {
     'TESTING.json': 'Testing report — platforms, coverage and signing limitations',
     'delivery.json': 'Update delivery map — signed feeds and download locations',
@@ -33,6 +66,14 @@ export function uploadArguments(directory) {
 export function labelRelease(tag, apply = false) {
   const repository = 'Aixand/aixand-suite'
   const release = api(`repos/${repository}/releases/tags/${encodeURIComponent(tag)}`)
+  const title = releaseTitle(tag)
+  const guide = releaseGuide(tag)
+  const body = release.body?.includes('<!-- aixand-product-guide -->')
+    ? release.body.replace(/<!-- aixand-product-guide -->[\s\S]*?<!-- \/aixand-product-guide -->/, guide)
+    : guide + '\n\n' + (release.body || '')
+  if (apply && (release.name !== title || release.body !== body)) {
+    api(`repos/${repository}/releases/${release.id}`, '--method', 'PATCH', '-f', `name=${title}`, '-f', `body=${body}`)
+  }
   const descriptor = release.assets.find(asset => asset.name === 'delivery.json')
   const paths = new Map()
   if (descriptor) {
@@ -52,12 +93,16 @@ export function labelRelease(tag, apply = false) {
     }
     changes.push({ name: asset.name, label })
   }
-  return { tag, applied: apply, changes }
+  return { tag, title, applied: apply, changes }
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
     const [tag, option] = process.argv.slice(2)
-    if (tag === '--upload-arguments' && option && process.argv.length === 4) {
+    if (tag === '--title' && option && process.argv.length === 4) {
+      console.log(releaseTitle(option))
+    } else if (tag === '--notes' && option && process.argv.length === 4) {
+      console.log(releaseGuide(option) + '\n\nExact component artifacts and composition are attached. See composition.json.')
+    } else if (tag === '--upload-arguments' && option && process.argv.length === 4) {
       console.log(JSON.stringify(uploadArguments(option)))
     } else {
       if (!tag || (option && option !== '--apply') || process.argv.length > 4) throw new Error('Usage: node scripts/release/label-assets.mjs COMPONENT/vVERSION [--apply]')
