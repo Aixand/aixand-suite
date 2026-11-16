@@ -12,7 +12,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { Readable } from 'node:stream'
 import { createServer } from 'node:net'
 import { setTimeout as delay } from 'node:timers/promises'
-import { installProducts, installedProductTools, productStatus, removePrivateProducts } from './products.mjs'
+import { installProducts, installedProductTools, productStatus, productLocation, removePrivateProducts, removeSharedProducts } from './products.mjs'
 import { saveInstallationPlan } from './installation-plan.mjs'
 import { productObjectPath, productSelectionPath } from './product-selection.mjs'
 import { runProductUpdateWorker } from './product-update-worker.mjs'
@@ -24,6 +24,8 @@ async function fileHash(file) {
 }
 export async function qualifyProductEngine(options) {
   for (const name of ['runtime', 'old-artifact', 'new-archive', 'new-sha256', 'work', 'report']) assert.ok(options[name], 'Required: --' + name)
+  assert.ok(!options.scope || ['private', 'shared'].includes(options.scope), 'Choose private or shared scope')
+  const shared = options.scope === 'shared'
   const source = await realpath(resolve(options.runtime))
   let work = resolve(options.work)
   assert.ok(!existsSync(work), 'Choose a fresh disposable qualification directory')
@@ -37,6 +39,10 @@ export async function qualifyProductEngine(options) {
   Object.assign(process.env, { HOME: home, USERPROFILE: home, LOCALAPPDATA: join(home, 'AppData/Local'), APPDATA: join(home, 'AppData/Roaming'),
     XDG_CONFIG_HOME: join(home, '.config'), XDG_DATA_HOME: join(home, '.local/share'), XDG_STATE_HOME: join(home, '.local/state'), XDG_CACHE_HOME: join(home, '.cache'),
     AIXAND_LOCAL_HOME: base, AIXAND_SHARED_PRODUCT_PREFIX: join(work, 'unused-shared-store'), AIXAND_SKIP_PATH_REGISTRATION: '1', TMPDIR: temporary, TMP: temporary, TEMP: temporary })
+  if (shared) {
+    process.env.UNDERCURRENT_HOME = join(work, 'shared-uc')
+    for (const name of ['AGENT', 'CONVERSATION', 'MCP', 'PROMPT', 'SKILL']) process.env[name + '_MANAGER_HOME'] = join(work, 'shared-settings', name.toLowerCase())
+  }
   await mkdir(root)
   if (options['native-feed']) await cp(source, root, { recursive: true, verbatimSymlinks: true, mode: constants.COPYFILE_FICLONE })
   else for (const name of ['manifest.json', 'python', 'products']) await cp(join(source, name), join(root, name), { recursive: true, verbatimSymlinks: true, mode: constants.COPYFILE_FICLONE })
@@ -56,14 +62,15 @@ export async function qualifyProductEngine(options) {
   await mkdir(dirname(selected), { recursive: true }); await cp(oldArtifact, selected, { recursive: true })
   await mkdir(join(base, 'config'))
   await writeFile(productSelectionPath(base), JSON.stringify({ schema: 1, assemblies: { runner: { manifestSha256: oldDigest, compatibleBuilds: [manifest.build] } } }))
-  await saveInstallationPlan(root, config.input, base, 'isolated')
+  await saveInstallationPlan(root, config.input, base, shared ? 'shared' : 'isolated')
+  const prefix = productLocation(root, config.input, base).prefix
   const { productCatalog } = await import('./products.mjs')
   const acceptedLicenses = productCatalog(root).assemblies.flatMap(row => row.licenses).map(row => row.sha256)
   console.log('Installing nine real products in the disposable private store.')
   await installProducts(root, config.input, base, { acceptedLicenses })
   const commandVersion = async () => (await execute(installedProductTools(root, config.input, base).runner, ['--version'], { env: config.input, windowsHide: true })).stdout.trim()
   assert.ok((await commandVersion()).includes(oldManifest.products.runner.version))
-  const before = JSON.parse(await readFile(join(base, 'software/products/installation-receipt.json'), 'utf8'))
+  const before = JSON.parse(await readFile(join(prefix, 'installation-receipt.json'), 'utf8'))
   await writeFile(join(base, 'history-marker'), 'keep history, settings and account state')
   const archive = resolve(options['new-archive']); assert.equal(await fileHash(archive), options['new-sha256'])
   const candidateBytes = await readFile(join(root, 'products/artifacts/runner/release-manifest.json')), nextManifest = JSON.parse(candidateBytes)
@@ -82,12 +89,12 @@ export async function qualifyProductEngine(options) {
       prepareUpdate: async () => { events.push('prepare') }, stop: async () => { running = false; events.push('stop') },
       start: async () => { assert.ok((await commandVersion()).includes(nextManifest.products.runner.version)); running = true; events.push('restart-fixture') } },
     launchWorker: async ({ job }) => { jobFile = job; return { outsideLifecycle: true, pid: process.pid } } }
-  let nativeLifecycle, cookie
+  let nativeLifecycle, cookie, csrf
   const password = 'Disposable native updater qualification 9274!'
   const request = async (path, body) => {
     const origin = new URL(config.address).origin
     const response = await fetch(new URL(path, origin), { method: body ? 'POST' : 'GET',
-      headers: { Origin: origin, ...(cookie ? { Cookie: cookie } : {}), ...(body ? { 'Content-Type': 'application/json' } : {}) },
+      headers: { Origin: origin, ...(cookie ? { Cookie: cookie } : {}), ...(csrf && body ? { 'X-CSRF-Token': csrf } : {}), ...(body ? { 'Content-Type': 'application/json' } : {}) },
       ...(body ? { body: JSON.stringify(body) } : {}), signal: AbortSignal.timeout(30000) })
     assert.ok([200, 201].includes(response.status), `${path}: ${response.status} ${await response.clone().text()}`)
     if (response.headers.get('set-cookie')) cookie = response.headers.get('set-cookie').split(';')[0]
@@ -110,6 +117,8 @@ export async function qualifyProductEngine(options) {
     dependencies.lifecycle = nativeLifecycle
     await nativeLifecycle.start(config)
     await request('/api/auth/setup', { password, confirmation: password })
+    csrf = (await request('/api/auth/session')).csrfToken
+    assert.equal(typeof csrf, 'string')
     const inventory = await request('/api/updates/products')
     assert.ok(inventory.available, 'Packaged authenticated product update API must be enabled')
   }
@@ -120,7 +129,12 @@ export async function qualifyProductEngine(options) {
   assert.equal(plan.ready, true); assert.deepEqual(plan.blockers, [])
   if (nativeLifecycle) { assert.equal(plan.running, true); assert.equal(plan.restartRequired, true) }
   console.log('Applying the signed Runner update through the real native installation engine.')
-  await productUpdateAction(config, 'install', { confirmed: true, revision: plan.revision, acceptedLicenses, restartConsent: true }, dependencies)
+  const consent = { confirmed: true, revision: plan.revision, acceptedLicenses, restartConsent: true }
+  if (nativeLifecycle) {
+    const reviewed = await request('/api/updates/products', { action: 'plan', products: ['runner'] })
+    assert.equal(reviewed.revision, plan.revision)
+    assert.equal((await request('/api/updates/products', { action: 'install', ...consent })).started, true)
+  } else await productUpdateAction(config, 'install', consent, dependencies)
   if (nativeLifecycle) {
     const deadline = Date.now() + 20 * 60_000
     while (Date.now() < deadline) {
@@ -141,18 +155,21 @@ export async function qualifyProductEngine(options) {
   assert.equal(productStatus(root, config.input, base).ready, true)
   if (!nativeLifecycle) assert.deepEqual(events, ['prepare', 'stop', 'restart-fixture'])
   assert.equal(await readFile(join(base, 'history-marker'), 'utf8'), 'keep history, settings and account state')
-  const after = JSON.parse(await readFile(join(base, 'software/products/installation-receipt.json'), 'utf8'))
+  const after = JSON.parse(await readFile(join(prefix, 'installation-receipt.json'), 'utf8'))
   for (const id of Object.keys(before.products)) if (id !== 'runner') assert.equal(after.products[id].payload, before.products[id].payload)
   assert.equal((await productUpdateAction(config, 'status')).updateAvailable, false)
   console.log('Repairing the selected catalog without reverting the independent update.')
   await installProducts(root, config.input, base, { acceptedLicenses, repair: true })
   assert.ok((await commandVersion()).includes(nextManifest.products.runner.version))
   if (nativeLifecycle) await nativeLifecycle.stop(config)
-  await removePrivateProducts(root, config.input, base)
+  if (shared) {
+    if (nativeLifecycle) await execute(config.tools.uc, ['daemon', 'stop'], { env: config.env, windowsHide: true, timeout: 60000 })
+    await removeSharedProducts(root, config.input, base, Object.keys(after.products))
+  } else await removePrivateProducts(root, config.input, base)
   assert.equal(await readFile(join(base, 'history-marker'), 'utf8'), 'keep history, settings and account state')
-  const report = { schema: 1, kind: nativeLifecycle ? 'product-update-qualification' : 'product-update-engine-qualification', verified: true, target: catalog.target, product: 'runner',
+  const report = { schema: 1, kind: nativeLifecycle ? 'product-update-qualification' : 'product-update-engine-qualification', verified: true, target: catalog.target, product: 'runner', installationScope: shared ? 'shared' : 'private', runtimeRole: manifest.installation?.role,
     previousVersion: oldManifest.products.runner.version, version: nextManifest.products.runner.version, release: nextManifest.products.runner.release,
-    compatibleBuilds: [manifest.build], manifestSha256: hash(candidateBytes), archiveSha256: options['new-sha256'], checks: { upgrade: true, restart: Boolean(nativeLifecycle), signedCheck: true, realEngineUpgrade: true,
+    compatibleBuilds: [manifest.build], manifestSha256: hash(candidateBytes), archiveSha256: options['new-sha256'], checks: { httpPlanAndInstall: Boolean(nativeLifecycle), upgrade: true, restart: Boolean(nativeLifecycle), signedCheck: true, realEngineUpgrade: true,
       otherProductsUnchanged: true, selectedRepair: true, dataRetained: true, softwareRemoved: true },
     scope: nativeLifecycle ? 'Packaged native runtime, authenticated HTTP API and external lifecycle worker; actual Server restart with preserved authentication. Signed feed and archive fetched from a local fixture; no GUI qualification.'
       : 'Real native products and engine; application lifecycle fixture. No native GUI, HTTP API or real Server restart qualification.' }
@@ -161,7 +178,7 @@ export async function qualifyProductEngine(options) {
   console.log(JSON.stringify(report))
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  const names = ['runtime', 'old-artifact', 'new-archive', 'new-sha256', 'work', 'report', 'native-feed']
+  const names = ['runtime', 'old-artifact', 'new-archive', 'new-sha256', 'work', 'report', 'native-feed', 'scope']
   try { const { values } = parseArgs({ options: Object.fromEntries(names.map(name => [name, { type: 'string' }])) }); await qualifyProductEngine(values) }
   catch (error) { console.error(error.stack); process.exitCode = 1 }
 }

@@ -49,7 +49,9 @@ GitHub environment permits the job. A manual publishing run must select the exac
 tag and matching component. No registry publication occurs during local tests.
 
 Configure each PyPI project or pending publisher for repository
-`Aixand/aixand-suite`, workflow `registry-release.yml`, environment `pypi`.
+`Aixand/aixand-suite`, workflow `registry-release.yml`, and environment
+`pypi-<distribution-name>` (for example, `pypi-aixand-suite-python`). Use the exact
+distribution and environment names selected by that workflow.
 The publish job uses OIDC; no PyPI token is needed. See
 [PyPI Trusted Publishing](https://docs.pypi.org/trusted-publishers/using-a-publisher/).
 Configure a restricted `CARGO_REGISTRY_TOKEN` in environment `crates-io` for Rust.
