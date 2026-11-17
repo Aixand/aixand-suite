@@ -8,6 +8,8 @@ import { RecoveryPicker } from './RecoveryPicker'
 import { currentChatId, reportRecovery, takeRecoveryRequest } from './events'
 import type { RecoveryEvent } from './events'
 import { recoveryAppearance } from './appearance'
+import { recordCrash } from './diagnostics'
+import { CrashDiagnostics } from './CrashDiagnostics'
 
 const Terminals = lazy(() => import('../pages/Terminals').then(module => ({ default: module.Terminals })))
 
@@ -52,12 +54,16 @@ export function RecoveryHost({ children }: { children: ReactNode }) {
 export class WorkspaceBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false }
   static getDerivedStateFromError() { return { failed: true } }
-  componentDidCatch(_error: Error, _info: ErrorInfo) { reportRecovery({ kind: 'crash', chatId: currentChatId() }) }
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    recordCrash('workspace-render', error, info.componentStack || '')
+    reportRecovery({ kind: 'crash', chatId: currentChatId() })
+  }
   render() {
     if (!this.state.failed) return this.props.children
     return <ThemeProvider brand={aixandBrand} mode={recoveryAppearance()} tokens={aixandWorkspaceTokens} className="recovery-page">
       <ContentTheme className="aixand-theme-contents">
       <h1>The workspace couldn’t load</h1><p>Your conversations can still be found through recovery.</p>
+      <CrashDiagnostics />
       <Button onPress={() => reportRecovery({ kind: 'open' })}>Recover a chat</Button>
       <p><a href="/recovery.html">Open the independent recovery page</a></p><Button variant="ghost" onPress={() => location.reload()}>Reload workspace</Button>
       </ContentTheme>

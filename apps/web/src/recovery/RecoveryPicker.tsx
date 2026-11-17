@@ -5,6 +5,7 @@ import { PageLoading } from '../components/PageLoading'
 import { recoveryOperation, recoveryRequest } from './client'
 import type { Availability, RecoveryCatalog, RecoverySession, TerminalRecovery } from './client'
 import './recovery.css'
+import { CrashDiagnostics } from './CrashDiagnostics'
 
 const availabilityLabel: Record<Availability, string> = {
   unchecked: 'Check availability', checking: 'Checking availability', ready: 'Ready to open', busy: 'Turn in progress',
@@ -154,6 +155,7 @@ export function RecoveryPicker({ initialChatId, onOpenTerminal, onRetryChat, sho
     </div>
     {error && <div className="recovery-message" role="alert"><strong>Session list unavailable</strong><p>{error}</p>{hasSessions.current && <p>The sessions below are from the last successful check.</p>}<Button variant="secondary" onPress={() => setRefresh(value => value + 1)}>Retry session list</Button></div>}
     {catalog?.partial && <p className="recovery-message" role="status">{catalog.errors.join(' ') || 'Some session information is unavailable.'}</p>}
+    <CrashDiagnostics />
     <section className="recovery-results" aria-label="Conversations" aria-busy={loading}>
       <div className="recovery-results-heading">
         <h2>{providerHistory ? 'Saved provider sessions' : query || profile || project ? 'Matching conversations' : 'Recent conversations'}</h2>

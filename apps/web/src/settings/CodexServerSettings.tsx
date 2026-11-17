@@ -1,14 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button, ListRow, Select } from 'bbb-design'
 import type { AgentsModel } from '../agents/model'
-import { useContentFieldVariant } from '../branding/ContentTheme'
 import { SettingsHelp } from './SettingsHelp'
 
 type Mode = 'separate' | 'shared'
 type Settings = { mode: Mode; revision: number; sharedSupported: boolean }
 
 export function CodexServerSettings({ agents }: { agents: AgentsModel }) {
-  const fieldVariant = useContentFieldVariant()
   const [settings, setSettings] = useState<Settings | null>(null)
   const [draft, setDraft] = useState<Mode>()
   const [busy, setBusy] = useState(false)
@@ -46,7 +44,7 @@ export function CodexServerSettings({ agents }: { agents: AgentsModel }) {
     <ListRow label="Codex process isolation" description="Choose how new Codex conversations share memory."
       trailing={<div className="settings-control-actions">
         <SettingsHelp label="Codex process isolation">Separate servers use more RAM and isolate server failures to one conversation. Shared servers are expected to use less RAM, but a failure may interrupt conversations sharing that server. Sharing stays within the same environment and workspace. Applies to new chats and newly started workflow conversations; existing sessions keep their mode. RAM savings vary by workload.</SettingsHelp>
-        <Select label="Codex server mode" hideLabel variant={fieldVariant} value={mode}
+        <Select label="Codex server mode" hideLabel variant="outlined" value={mode}
           options={[{ id: 'separate', label: 'Separate servers (default)' }, ...(settings?.sharedSupported ? [{ id: 'shared', label: 'Shared servers' }] : [])]}
           disabled={!connected || !settings || busy} onChange={value => { setDraft(value as Mode); setSaved(false) }} />
         <Button variant="secondary" size="sm" aria-label="Save Codex server mode" loading={busy}

@@ -1,6 +1,7 @@
 import { workspaceFetch } from '../auth/transport'
 import { Button, SettingsSection, Switch } from 'bbb-design'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { authRequest } from '../auth/client'
 
 type Component = { availableVersion?: string; action?: string; version: string | null; name?: string; scope?: string; updatable?: boolean; reason?: string | null; requires?: Record<string, string> }
@@ -22,7 +23,11 @@ async function request<T>(method: 'GET' | 'POST' = 'GET', body?: unknown, suffix
   if (!response.ok) throw new Error(value.message || 'The update request failed.')
   return value as T
 }
-function UpdateGroup({ products = false, application = false }: { products?: boolean; application?: boolean }) {
+type GroupSummary = { count: number; checkedAt?: number | null; unavailable: boolean; working: boolean; failed: boolean; loaded: boolean }
+function UpdateGroup({ products = false, application = false, preferences, onSummary }: {
+  products?: boolean; application?: boolean; preferences: HTMLDivElement | null;
+  onSummary: (key: string, summary: GroupSummary) => void;
+}) {
   const suffix = application ? '/application' : products ? '/products' : ''
   const selectionKey = products ? 'products' : 'components'
   const [value, setValue] = useState<Update | null>(null), [error, setError] = useState(''), [busy, setBusy] = useState(false)
@@ -53,18 +58,34 @@ function UpdateGroup({ products = false, application = false }: { products?: boo
   const working = busy || value?.recoveryRequired === true || ['downloading', 'preparing', 'installing', 'restarting'].includes(value?.phase || '')
   const installed: Record<string, Component> = application ? value?.installed ? { server: { name: value.installed.role === 'desktop' ? 'Desktop application' : 'Server application', version: value.installed.version } } : {} : (products ? value?.inventory?.products : value?.inventory?.components) || {}
   const name = (id: string) => installed[id]?.name || id
-  return <SettingsSection title={application ? 'Application updates' : products ? 'Installed tool updates' : 'Workspace host updates'} headingLevel={2}>
+  useEffect(() => {
+    onSummary(suffix, { count: candidateIds.length, checkedAt: value?.checkedAt, unavailable: !value?.available,
+      working, loaded: Boolean(value || connectionError), failed: Boolean(error || connectionError || value?.error || value?.recoveryRequired) })
+  }, [suffix, candidateIds.length, value?.checkedAt, value?.available, value?.error, value?.recoveryRequired, working, error, connectionError, onSummary])
+  const status = !value ? 'Connecting' : value.recoveryRequired ? 'Recovery required' : working ? 'In progress' : !value.available ? 'Unavailable' : candidateIds.length ? `${candidateIds.length} available` : value.checkedAt ? 'Up to date' : 'Not checked';
+  return <SettingsSection className="settings-update-group" title={application ? 'Application updates' : products ? 'Installed tool updates' : 'Workspace host updates'} headingLevel={2}>
     <div className="settings-update-summary">
+      <span className="settings-update-badge" data-attention={candidateIds.length > 0 || undefined}>{status}</span>
       <p>{application ? 'Update the whole installed application. Desktop and Client application updates use the trusted connection window on their own computer.' : products ? 'Update individual tools on the workspace host, including Manager Suite tools, Runner and MCP. Shared tools may also be used by other applications on that computer.' : 'Choose updates for the components hosting this workspace. Companion updates are included in your review. Desktop application updates are in the connection window.'}</p>
       {value?.host && <p>Computer: {value.host.name}</p>}
-      <div className="settings-update-inventory"><table><caption>{application ? 'Installed application' : products ? 'Installed tools on this computer' : 'Installed workspace components'}</caption><thead><tr><th scope="col">{products ? 'Tool' : 'Component'}</th><th scope="col">Installed</th><th scope="col">Available</th>{products && <th scope="col">Installation</th>}</tr></thead><tbody>
-        {Object.entries(installed).map(([id, item]) => <tr key={id}><th scope="row">{name(id)}</th><td>{item.version || 'Not managed here'}</td><td>{(application ? value?.updateAvailable ? value.release?.version : undefined : value?.candidates?.[id]?.version || item.availableVersion) || '—'}</td>{products && <td>{item.reason || (item.scope === 'shared' ? 'Shared with other applications' : 'Private to this workspace')}</td>}</tr>)}
+      <div className="settings-update-inventory"><table><caption className="settings-update-sr-only">{application ? 'Installed application' : products ? 'Installed tools on this computer' : 'Installed workspace components'}</caption><thead><tr><th scope="col">{products ? 'Tool' : 'Component'}</th><th scope="col">Installed</th><th scope="col">Available</th></tr></thead><tbody>
+        {Object.entries(installed).map(([id, item]) => <tr key={id}><th scope="row">
+          {!application && choices.includes(id) ? <label className="settings-update-choice"><input type="checkbox" disabled={working}
+            checked={(selected || value?.requested || candidateIds).includes(id)} onChange={event => {
+              const current = selected || value?.requested || candidateIds;
+              setSelected(event.target.checked ? [...current, id] : current.filter(item => item !== id)); setPlan(null); setConsent(false)
+            }} />{name(id)}</label> : name(id)}
+          {products && <span className="settings-update-item-note">{item.reason || (item.scope === 'shared' ? 'Shared with other applications' : 'Private to this workspace')}</span>}
+        </th><td data-label="Installed">{item.version || 'Not managed here'}</td><td data-label="Available">{(application ? value?.updateAvailable ? value.release?.version : undefined : value?.candidates?.[id]?.version || item.availableVersion) || '—'}</td></tr>)}
+        {!Object.keys(installed).length && <tr><td colSpan={3} className="settings-update-empty">{value ? 'No managed items reported on this computer.' : 'Loading installed versions…'}</td></tr>}
       </tbody></table></div>
       <p role="status">{value?.message || (value ? 'Choose components or check for updates.' : 'Checking the installed update service…')}</p>
       {Boolean(value?.completed?.length) && <p>Updated: {value!.completed!.map(name).join(', ')}</p>}
       {value?.recoveryRequired && <p>Installation needs recovery. Completed tool updates are retained; further installation is blocked until the recorded operation is resolved.</p>}
       {value?.checkedAt && <p>Last checked: {new Date(value.checkedAt).toLocaleString()}</p>}
     </div>
+    {preferences && createPortal(<div className="settings-update-preference-group">
+      <h3>{application ? 'Application' : products ? 'Installed tools' : 'Workspace host'}</h3>
     <div className="settings-switch-row">
     <Switch label={application ? 'Check application updates daily' : products ? 'Check tool updates daily' : 'Check for updates daily'} description="Check while this workspace is running. Updates are installed only when you choose."
       checked={value?.daily !== false} disabled={!value?.available || working}
@@ -73,19 +94,20 @@ function UpdateGroup({ products = false, application = false }: { products?: boo
     {!application && <Switch label={products ? 'Download tool updates automatically' : 'Download updates automatically'} description="Download verified updates after checks. Installation always needs your approval."
       checked={value?.automaticDownload === true} disabled={!value?.available || working}
       onChange={event => void action({ action: 'settings', automaticDownload: event.target.checked })} />}
-    {!application && <fieldset disabled={working}><legend>{products ? 'Tools to update' : 'Components to update'}</legend>
-      {choices.map(id => <label key={id}><input type="checkbox"
-        checked={(selected || value?.requested || Object.keys(value?.candidates || {})).includes(id)} onChange={event => {
-          const current = selected || value?.requested || Object.keys(value?.candidates || {});
-          setSelected(event.target.checked ? [...current, id] : current.filter(item => item !== id)); setPlan(null); setConsent(false)
-        }} />{name(id)}</label>)}
+    </div>, preferences)}
+    {!application && choices.some(id => !installed[id]) && <fieldset className="settings-update-extra-choices" disabled={working}><legend>{products ? 'Additional tools to update' : 'Additional components to update'}</legend>
+      {choices.filter(id => !installed[id]).map(id => <label className="settings-update-choice" key={id}><input type="checkbox" checked={(selected || value?.requested || candidateIds).includes(id)} onChange={event => {
+        const current = selected || value?.requested || candidateIds;
+        setSelected(event.target.checked ? [...current, id] : current.filter(item => item !== id)); setPlan(null); setConsent(false)
+      }} />{name(id)}</label>)}
     </fieldset>}
     <div className="settings-update-actions">
-      {!application && <Button variant="ghost" disabled={working || choices.length === 0} onPress={() => { setSelected(choices); setPlan(null); setConsent(false) }}>Select all compatible {products ? 'tools' : 'components'}</Button>}
-      <Button disabled={!value?.available || working} onPress={() => { setSelected(null); void action({ action: 'check' }) }}>{application ? 'Check application updates' : products ? 'Check for tool updates' : 'Check for updates'}</Button>
-      <Button disabled={!value?.available || working || choices.length === 0 || selected?.length === 0} onPress={() => void review()}>{application ? 'Review application update' : products ? 'Review tool updates' : 'Review update'}</Button>
+      {!application && choices.length > 1 && <Button variant="ghost" disabled={working} onPress={() => { setSelected(choices); setPlan(null); setConsent(false) }}>Select all compatible {products ? 'tools' : 'components'}</Button>}
+      <Button variant="ghost" disabled={!value?.available || working} onPress={() => { setSelected(null); void action({ action: 'check' }) }}>{application ? 'Check application updates' : products ? 'Check for tool updates' : 'Check for updates'}</Button>
+      {choices.length > 0 && <Button disabled={!value?.available || working || selected?.length === 0} onPress={() => void review()}>{application ? 'Review application update' : products ? 'Review tool updates' : 'Review update'}</Button>}
     </div>
     {plan && <div className="settings-update-plan" role="region" aria-label={application ? 'Review application update' : products ? 'Review tool updates' : 'Review server update'}>
+      <h3>Review before installing</h3>
       <p>{plan.restartRequired ? 'Installing restarts this workspace. Finish active work first.' : 'No workspace restart is required.'} Account logins, settings and saved history are kept.</p>
       {Object.entries(plan.candidates).map(([id, item]) => <p key={id}>{name(id)}: {item.version}{item.action === 'adopt' ? ' (use the verified version already installed)' : ''}{!plan.requested.includes(id) ? ' (companion update)' : ''}</p>)}
       {plan.blockers.map((row, index) => <p key={index}>{[row.name, row.reason].filter(Boolean).join(': ') || 'Active work must finish before installing.'}</p>)}
@@ -105,6 +127,12 @@ function UpdateGroup({ products = false, application = false }: { products?: boo
 }
 
 export function UpdatesSettings() {
+  const [preferences, setPreferences] = useState<HTMLDivElement | null>(null)
+  const [summaries, setSummaries] = useState<Record<string, GroupSummary>>({})
+  const onSummary = useCallback((key: string, summary: GroupSummary) => setSummaries(current => ({ ...current, [key]: summary })), [])
+  const groups = Object.values(summaries)
+  const count = groups.reduce((total, group) => total + group.count, 0)
+  const checked = groups.map(group => group.checkedAt).filter((time): time is number => Boolean(time))
   const [checking, setChecking] = useState(false), [error, setError] = useState('')
   async function checkAll() {
     setChecking(true); setError('')
@@ -112,6 +140,22 @@ export function UpdatesSettings() {
     catch (error) { setError(error instanceof Error ? error.message : String(error)) }
     finally { setChecking(false) }
   }
-  return <><div className="settings-update-actions"><Button disabled={checking} onPress={() => void checkAll()}>Check all updates</Button></div>
-    {error && <p role="alert">{error}</p>}<UpdateGroup application /><UpdateGroup /><UpdateGroup products /></>
+  return <div className="settings-updates">
+    <header className="settings-updates-header"><div><h2>Updates</h2><p className="settings-note">Manage updates for this workspace.</p></div>
+      <Button disabled={checking || groups.some(group => group.working)} onPress={() => void checkAll()}>{checking ? 'Checking…' : 'Check all updates'}</Button>
+    </header>
+    <div className="settings-updates-overview" role="status">
+      <strong>{checking ? 'Checking for updates…' : groups.some(group => group.failed) ? 'Some updates need attention' : count ? `${count} update${count === 1 ? '' : 's'} available` : groups.length < 3 || groups.some(group => !group.loaded) ? 'Connecting to update services…' : groups.some(group => group.working) ? 'Updates in progress' : groups.every(group => group.unavailable) ? 'Updates are managed elsewhere' : checked.length ? 'No updates reported' : 'Ready to check for updates'}</strong>
+      <p className="settings-note">{checked.length ? `Last checked: ${new Date(Math.min(...checked)).toLocaleString()}` : 'Check for the latest application, workspace and tool updates.'}</p>
+    </div>
+    {error && <p className="settings-update-error" role="alert">{error}</p>}
+    <UpdateGroup application preferences={preferences} onSummary={onSummary} />
+    <UpdateGroup preferences={preferences} onSummary={onSummary} />
+    <UpdateGroup products preferences={preferences} onSummary={onSummary} />
+    <section className="settings-update-preferences" aria-labelledby="update-preferences-title">
+      <h2 id="update-preferences-title">Update preferences</h2>
+      <p className="settings-note">Checks run while this workspace is running. Installation always requires your approval.</p>
+      <div ref={setPreferences} />
+    </section>
+  </div>
 }

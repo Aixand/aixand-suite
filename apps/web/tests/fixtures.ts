@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto'
 import { join } from 'node:path'
 
 export async function mockAuthentication(page: Page) {
-  await page.route('**/api/capabilities', route => route.fulfill({ json: { voice: true } }))
+  await page.route('**/api/capabilities', route => route.fulfill({ json: { voice: true, vox: true } }))
   await page.route('**/api/auth/onboarding/status', route => route.fulfill({ json: { needed: false } }))
   await page.route('**/api/auth/installation/status', route =>
     route.fulfill({ json: { available: false, ready: true } }))
@@ -77,7 +77,8 @@ export async function openReasoningSettings(page: Page) {
 
 export const test = base.extend({
   page: async ({ page }, use, testInfo) => {
-    if (testInfo.project.metadata.mockAuthentication) await mockAuthentication(page)
+    if (testInfo.project.metadata.mockAuthentication ?? testInfo.config.metadata.mockAuthentication)
+      await mockAuthentication(page)
     const screenshot = page.screenshot.bind(page)
     page.screenshot = (options = {}) => screenshot({ ...options,
       ...(options.path && process.env.SUITE_TEST_ARTIFACTS ? {

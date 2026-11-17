@@ -44,11 +44,60 @@
   .settings-navigation > .bbb-button { flex: none; white-space: nowrap; font-size: var(--bbb-font-size-sm); }
   .settings-control-actions { justify-content: flex-start; }
 }
-.settings-update-actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-block: 1rem; }
-.settings-update-summary p + p { margin-top: .75rem; }
-.settings-update-inventory { max-width: 100%; overflow-x: auto; margin-block: 1rem; }
-.settings-update-inventory table { width: 100%; border-collapse: collapse; text-align: start; }
-.settings-update-inventory caption { text-align: start; margin-bottom: .5rem; font-weight: 600; }
-.settings-update-inventory th, .settings-update-inventory td { padding: .5rem .75rem; vertical-align: top; border-bottom: 1px solid var(--border-color, currentColor); overflow-wrap: anywhere; }
-.settings-update-notes, .settings-update-plan pre { white-space: pre-wrap; overflow-wrap: anywhere; }
-.settings-update-plan pre { max-height: 16rem; overflow: auto; }
+.settings-updates { display: grid; gap: var(--bbb-space-5); min-width: 0; }
+.settings-updates-header { display: flex; align-items: center; justify-content: space-between; gap: var(--bbb-space-4); }
+.settings-updates-header h2, .settings-update-preferences h2 { margin: 0 0 var(--bbb-space-2); font-size: var(--bbb-font-size-lg, 1.125rem); }
+.settings-updates-overview { padding: var(--bbb-space-5); border: 1px solid var(--bbb-color-border); border-radius: var(--bbb-radius-lg, 12px); background: var(--bbb-color-surface-muted); display: grid; gap: var(--bbb-space-2); }
+.settings-update-group.bbb-settings-section { box-shadow: none; min-width: 0; border-color: var(--bbb-color-border); }
+.settings-update-group .bbb-card__header { padding: var(--bbb-space-4) var(--bbb-space-5); }
+.settings-update-group .bbb-card__header h2 { font-size: var(--bbb-font-size-base); }
+.settings-update-group > .bbb-card__body > * { padding: var(--bbb-space-4) var(--bbb-space-5); }
+.settings-update-summary { position: relative; }
+.settings-update-summary > p { margin: var(--bbb-space-3) 0 0; color: var(--bbb-color-text-secondary); font-size: var(--bbb-font-size-sm); line-height: var(--bbb-line-height-body); }
+.settings-update-badge { display: inline-block; padding: .25rem .625rem; border-radius: 999px; background: var(--bbb-color-surface-muted); color: var(--bbb-color-text-secondary); font-size: var(--bbb-font-size-xs); font-weight: 600; }
+.settings-update-badge[data-attention] { color: var(--bbb-color-text); border: 1px solid var(--bbb-color-border); }
+.settings-update-inventory { max-width: 100%; overflow-x: auto; margin-top: var(--bbb-space-4); }
+.settings-update-inventory table { width: 100%; border-collapse: collapse; text-align: start; font-size: var(--bbb-font-size-sm); }
+.settings-update-inventory thead { color: var(--bbb-color-text-secondary); font-size: var(--bbb-font-size-xs); }
+.settings-update-inventory th, .settings-update-inventory td { padding: .75rem .5rem; vertical-align: top; border-bottom: 1px solid var(--bbb-color-border); overflow-wrap: anywhere; }
+.settings-update-inventory th:first-child { padding-inline-start: 0; width: 50%; }
+.settings-update-inventory tbody th { font-weight: var(--bbb-font-weight-medium); }
+.settings-update-inventory tr:last-child > * { border-bottom: 0; }
+.settings-update-choice { display: flex; align-items: center; gap: var(--bbb-space-2); cursor: pointer; }
+.settings-update-choice input { flex: none; width: 1rem; height: 1rem; margin: 0; accent-color: var(--bbb-color-text); }
+.settings-update-item-note { display: block; margin-top: .25rem; font-size: var(--bbb-font-size-xs); font-weight: normal; color: var(--bbb-color-text-secondary); }
+.settings-update-empty { color: var(--bbb-color-text-secondary); }
+.settings-update-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: var(--bbb-space-2); }
+.settings-update-actions > .bbb-button { font-size: var(--bbb-font-size-sm); }
+.settings-update-plan { display: grid; gap: var(--bbb-space-4); background: var(--bbb-color-surface-muted); }
+.settings-update-plan h3, .settings-update-plan p { margin: 0; }
+.settings-update-plan h3 { font-size: var(--bbb-font-size-base); }
+.settings-update-plan p { line-height: var(--bbb-line-height-body); font-size: var(--bbb-font-size-sm); }
+.settings-update-plan pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 16rem; overflow: auto; }
+.settings-update-preferences { padding-block: var(--bbb-space-3); }
+.settings-update-preferences > div { display: grid; }
+.settings-update-preference-group { display: grid; gap: var(--bbb-space-3); padding-block: var(--bbb-space-4); border-bottom: 1px solid var(--bbb-color-border); }
+.settings-update-preference-group:last-child { border-bottom: 0; }
+.settings-update-preference-group h3 { margin: 0; font-size: var(--bbb-font-size-sm); font-weight: var(--bbb-font-weight-medium); }
+.settings-update-extra-choices { display: grid; gap: var(--bbb-space-3); border: 0; margin: 0; }
+.settings-update-error { overflow-wrap: anywhere; }
+.settings-update-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+@media (max-width: 600px) {
+  .settings-updates-header { align-items: flex-start; flex-direction: column; }
+  .settings-update-group .bbb-card__header, .settings-update-group > .bbb-card__body > * { padding-inline: var(--bbb-space-3); }
+  .settings-update-actions { justify-content: flex-start; }
+  .settings-update-inventory th, .settings-update-inventory td { padding-inline: .25rem; }
+}
+
+@media (max-width: 600px) {
+  .settings-update-inventory thead { display: none; }
+  .settings-update-inventory table, .settings-update-inventory tbody { display: block; }
+  .settings-update-inventory tbody tr { display: grid; gap: var(--bbb-space-2); padding-block: var(--bbb-space-3); border-bottom: 1px solid var(--bbb-color-border); }
+  .settings-update-inventory tbody tr:last-child { border-bottom: 0; }
+  .settings-update-inventory th, .settings-update-inventory td { display: block; width: auto; padding: 0; border: 0; }
+  .settings-update-inventory th:first-child { width: auto; }
+  .settings-update-inventory td[data-label] { display: flex; justify-content: space-between; gap: var(--bbb-space-3); }
+  .settings-update-inventory td[data-label]::before { content: attr(data-label); color: var(--bbb-color-text-secondary); }
+}
+
+.settings-update-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }

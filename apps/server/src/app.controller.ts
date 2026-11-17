@@ -2,7 +2,7 @@ import { Controller, Get, Header, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import { createHash } from 'node:crypto';
 import { authDatabasePath } from './auth/config.js';
-import { voiceEnabled } from './capabilities.js';
+import { voiceEnabled, voxInstalled } from './capabilities.js';
 import { AppService } from './app.service.js';
 
 @Controller()
@@ -12,7 +12,7 @@ export class AppController {
   @Get('capabilities')
   @Header('Cache-Control', 'no-store')
   getCapabilities() {
-    return { voice: voiceEnabled() };
+    return { voice: voiceEnabled(), vox: voxInstalled() };
   }
 
   @Get('health')

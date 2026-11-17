@@ -499,7 +499,7 @@ test('Settings fits mobile and passes accessibility checks in both themes', asyn
 
 for (const voice of [false, true]) {
   test(`package voice=${voice} controls Vox and its settings`, async ({ page }) => {
-    await page.route('**/api/capabilities', route => route.fulfill({ json: { voice } }))
+    await page.route('**/api/capabilities', route => route.fulfill({ json: { voice, vox: voice } }))
     let voxConnections = 0
     await page.routeWebSocket(/\/api\/vox\/ws/, () => { voxConnections++ })
     await resetFixture(page, false, 'troubleshooting')
@@ -525,7 +525,7 @@ test('Vox stays hidden during capability loading and recovers after a failed req
   let attempts = 0, available = false
   await page.route('**/api/capabilities', async route => {
     attempts++
-    await route.fulfill(!available ? { status: 503, json: { message: 'Temporarily unavailable' } } : { json: { voice: true } })
+    await route.fulfill(!available ? { status: 503, json: { message: 'Temporarily unavailable' } } : { json: { voice: true, vox: true } })
   })
   await resetFixture(page, false, 'agents')
   const trigger = page.getByRole('button', { name: 'Vox assistant', exact: true })
@@ -588,3 +588,15 @@ test('Codex process isolation persists, synchronizes, and reports save conflicts
   await page.reload()
   await expect(selector).toContainText('Separate servers')
 })
+
+for (const vox of [false, true]) {
+  test(`Vox installation=${vox} controls the floating button independently of voice`, async ({ page }) => {
+    await page.route('**/api/capabilities', route => route.fulfill({ json: { voice: true, vox } }))
+    let connections = 0
+    await page.routeWebSocket(/\/api\/vox\/ws/, () => { connections++ })
+    await resetFixture(page, false, 'troubleshooting')
+    await expect(page.getByRole('button', { name: 'Vox assistant', exact: true })).toHaveCount(vox ? 1 : 0)
+    await expect(page.getByRole('switch', { name: 'Debug mode', exact: true })).toBeVisible()
+    if (!vox) expect(connections).toBe(0)
+  })
+}

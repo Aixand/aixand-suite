@@ -233,6 +233,21 @@ test('a chat render crash opens recovery outside the failed workspace', async ({
   await page.goto(`/#/chat/${chatId}`)
   await expect(page.getByRole('dialog', { name: 'Recover a chat' })).toBeVisible()
   await expect(page.getByRole('button', { name: /Fix checkout login/ })).toBeVisible()
+  const dialog = page.getByRole('dialog', { name: 'Recover a chat' })
+  await dialog.getByText('Crash diagnostics', { exact: true }).click()
+  await expect(dialog.getByRole('textbox', { name: 'Saved crash report' })).toHaveValue(/Isolated chat renderer failure/)
+  await page.unroute('**/src/workspace/ChatPage.tsx*')
+  await page.reload()
+  await page.waitForFunction(() => document.documentElement.dataset.suiteStarted === 'true')
+  await expect(page.getByRole('dialog', { name: 'Recover a chat' })).toHaveCount(0)
+  await page.evaluate(() => window.dispatchEvent(new CustomEvent('aixand-recovery', { detail: { kind: 'open' } })))
+  await expect(dialog).toBeVisible()
+  await dialog.getByText('Crash diagnostics', { exact: true }).click()
+  const report = JSON.parse(await dialog.getByRole('textbox', { name: 'Saved crash report' }).inputValue())
+  expect(report.reports).toEqual(expect.arrayContaining([expect.objectContaining({
+    kind: 'workspace-render', message: 'Isolated chat renderer failure', chatId,
+    componentStack: expect.stringContaining('ChatPage'),
+  })]))
 })
 
 test('repeated transport failures offer recovery after three retries without opening a dialog', async ({ page }) => {

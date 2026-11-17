@@ -306,7 +306,7 @@ function WorkspaceApp() {
         <WorkspaceSearch workspace={workspace} workflows={workflows.workflows} destinations={destinations}
           route={route} navigate={navigate} open={searchOpen} onOpenChange={setSearchOpen} />
       </ContentTheme>
-      {capabilities.voice && <Vox agents={workspace.agents} />}
+      {capabilities.vox && <Vox agents={workspace.agents} />}
       {auth.onboardingPending && !setupDismissed && <AgentOnboarding agents={workspace.agents} mode={mode} onModeChange={changeMode}
         onClose={() => {
           setSetupDismissed(true)

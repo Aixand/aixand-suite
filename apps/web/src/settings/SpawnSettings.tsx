@@ -3,11 +3,9 @@ import { Button, ListRow, Select } from 'bbb-design'
 import type { AgentsModel } from '../agents/model'
 import { spawnDefaultModes } from '../agents/permissions'
 import type { SpawnDefaultMode, SpawnSettings as Settings } from '../agents/permissions'
-import { useContentFieldVariant } from '../branding/ContentTheme'
 import { SettingsHelp } from './SettingsHelp'
 
 export function SpawnSettings({ agents }: { agents: AgentsModel }) {
-  const fieldVariant = useContentFieldVariant()
   const [settings, setSettings] = useState<Settings | null>(null)
   const [draft, setDraft] = useState<SpawnDefaultMode>()
   const [busy, setBusy] = useState(false)
@@ -45,7 +43,7 @@ export function SpawnSettings({ agents }: { agents: AgentsModel }) {
     <ListRow label="Spawned Codex agents" description="Default access for new Codex chats and workflow stages."
       trailing={<div className="settings-control-actions">
         <SettingsHelp label="Spawned Codex agents">Applies to Native Codex and is shared across browsers. Other providers and Codex ACP have separate approval settings. Override access in your launch request. Existing chats and scheduled workflows keep their selected access.</SettingsHelp>
-        <Select label="Default access" hideLabel variant={fieldVariant} value={mode} options={spawnDefaultModes.map((option) => ({ ...option }))}
+        <Select label="Default access" hideLabel variant="outlined" value={mode} options={spawnDefaultModes.map((option) => ({ ...option }))}
           disabled={!connected || !settings || busy} onChange={(value) => { setDraft(value as SpawnDefaultMode); setSaved(false) }} />
         <Button variant="secondary" size="sm" aria-label="Save default access" disabled={!connected || !settings || busy || mode === settings.defaultMode} loading={busy} onPress={() => { void save() }}>Save</Button>
       </div>} />
