@@ -1,7 +1,7 @@
 import { AgentManagementCard, type ManagementAction } from '../agents/AgentManagementCard'
 import type { AgentsModel } from '../agents/model'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Button, Icon } from 'bbb-design'
+import { Button, Icon, LoadingIndicator } from 'bbb-design'
 import { AgentQuestions } from './AgentQuestions'
 import { Mark } from '../components/Mark'
 import { CopyButton, MessageContent } from './MessageContent'
@@ -309,6 +309,8 @@ export function Conversation({ agentActions = [], agents, navigate, chat, disabl
             </article></div>
           })}
         </div>
+        {connected && !chat.syncing && !chat.historyAfter && chat.status === 'running' && chat.requests.length === 0 &&
+          <LoadingIndicator className="command-agent-activity" label="Working…" />}
         {chat.historyAfter && onLoadNewer && <div className="command-history-pagination"><Button variant="ghost" size="sm" disabled={!connected || historyLoading} onPress={() => { void loadHistory('after') }}>Load newer messages</Button></div>}
         {chat.requests.map((request) => <AgentRequest key={request.requestId} request={request} disabled={disabled} onAnswer={onAnswer} />)}
         {terminalActive && <p className="command-terminal-status" role="status">{terminal?.status === 'queued' ? terminal.error || 'Your terminal will open after this turn finishes.' :

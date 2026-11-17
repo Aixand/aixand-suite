@@ -530,6 +530,17 @@
 .command-request-heading .bbb-icon { width: 18px; height: 18px; color: var(--bbb-color-accent-text); }
 .command-answer-options { display: flex; gap: 8px; flex-wrap: wrap; }
 .command-chat-status { display: flex; align-items: center; gap: var(--bbb-space-2); font-size: var(--bbb-font-size-sm); color: var(--bbb-color-text-secondary); margin: var(--bbb-space-5) 0 0; }
+.command-agent-activity {
+  --bbb-spinner-size: 16px;
+  justify-content: flex-start;
+  gap: var(--bbb-space-2);
+  margin-block: var(--bbb-space-5);
+  color: var(--bbb-color-text-secondary);
+  font-size: var(--bbb-font-size-sm);
+}
+@media (prefers-reduced-motion: reduce) {
+  .command-agent-activity .bbb-button__spinner { animation: none; }
+}
 .command-thinking-dots > span { width: 6px; height: 6px; border-radius: 50%; background: var(--bbb-color-accent-text); }
 .command-thinking-dots { display: flex; gap: 5px; padding-block: var(--bbb-space-2); }
 .command-thinking-dots > span { animation: command-pulse 1.5s ease-in-out infinite; }

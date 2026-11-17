@@ -79,6 +79,30 @@ async function openConversation(page: Page, chat = conversation(), background?: 
   }
 }
 
+test('activity row stays visible through a turn and yields to approval requests', async ({ page }) => {
+  const fixture = await openConversation(page)
+  const activity = page.locator('.command-agent-activity')
+  await expect(activity).toHaveCount(0)
+  fixture.emit({ kind: 'status', status: 'running' })
+  await expect(activity).toBeVisible()
+  await expect(activity).toContainText('Working…')
+  fixture.emit({ kind: 'item', item: { id: 'streaming-reply', type: 'agentMessage', text: 'Checking your project.' } })
+  await expect(activity).toBeVisible()
+  fixture.emit({ kind: 'item', item: { id: 'running-tool', type: 'commandExecution', command: 'npm test', text: '', status: 'inProgress' } })
+  await expect(activity).toBeVisible()
+  fixture.emit({ kind: 'request', request: { requestId: 'activity-approval', method: 'item/commandExecution/requestApproval', params: { command: 'npm test' } } })
+  await expect(activity).toHaveCount(0)
+  await expect(page.getByRole('region', { name: 'Agent approval' })).toBeVisible()
+  fixture.emit({ kind: 'requests', requests: [] })
+  await expect(activity).toBeVisible()
+  fixture.emit({ kind: 'status', status: 'completed' })
+  await expect(activity).toHaveCount(0)
+  fixture.emit({ kind: 'status', status: 'running' })
+  await expect(activity).toBeVisible()
+  fixture.disconnectAgent()
+  await expect(activity).toHaveCount(0)
+})
+
 test('Ctrl U clears the current composer line and keeps other lines', async ({ page }) => {
   await openConversation(page)
   const input = page.getByRole('textbox', { name: 'Instructions', exact: true })
