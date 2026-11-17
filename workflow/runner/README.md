@@ -1,4 +1,12 @@
-# Runner
+<p align="center">
+  <img src="../../apps/web/public/favicon.svg" width="160" height="160" alt="Aixand logo">
+</p>
+
+# Aixand Runner
+
+<p align="center">
+  <strong>Submit durable workflows. Disconnect. Return to their results.</strong>
+</p>
 
 A local Rust service that hosts Aixand IR workflows as durable jobs. Submit a
 workflow, disconnect, then inspect its progress and retrieve the result.
@@ -18,6 +26,35 @@ token; cancelling one job leaves other workers running. Graceful shutdown joins 
 active attempts and retains queued jobs. `Service::open_with_workers` exposes the same pool to
 embedders. Native chat workflows declare dependencies for Runner to schedule;
 IR applications remain responsible for resource conflicts.
+
+## When to use Runner
+
+Use Runner when workflow submission, scheduling, events, and outcomes must survive
+client disconnection. Use [IR directly](../ir/README.md) when your own process can
+own a single execution without a durable queue. Use the
+[Python client](python/README.md) to control an existing Runner service from code.
+
+Pure verifier workflows need no agent, credentials, or Python SDK. Chat workflows
+need a compatible Suite or standalone Orchestration MCP effect host, configured
+providers, and the required delivery services. Installing Runner alone does not
+supply those integrations.
+
+[Installation](#installation) · [First workflow](#run-the-mvp) ·
+[Python](#python-client) · [Outcomes](#outcomes-and-restart-behavior) ·
+[Protocol](#local-protocol-and-storage)
+
+## Installation
+
+Use the [standalone Runner installer](https://installer.aixand.org/aixand-suite/runner)
+for the published product, or use Runner as part of full Suite or Server.
+Follow the [Suite platform requirements](../../README.md#platform-requirements)
+for the published payloads. Standalone product installation preserves shared-store
+ownership; it does not start a service or install login startup automatically.
+
+For source development, the example below uses Rust 1.95+ and the sibling
+`../ir` workspace. [Product installation](docs/installation.md) covers qualified
+artifact builds, shared/private prefixes, state homes, and maintenance. Use a
+separate explicit home for each service; never point two services at one home.
 
 ## Shared workflow graphs
 
@@ -138,7 +175,8 @@ the new capabilities. This change does not add review loops or iteration limits.
 
 ## Run the MVP
 
-Requires a Unix system, Rust 1.95+, and the `../ir` checkout.
+This source example uses a Unix shell, Rust 1.95+, and the `../ir` checkout.
+The native product also has platform-specific IPC support, including Windows.
 The included verifier example needs no Python SDKs, agent, credentials, or
 Undercurrent installation. Build from this directory:
 
@@ -181,6 +219,18 @@ then `$XDG_STATE_HOME/runner`, then `~/.local/state/runner`. An exclusive file l
 permits one service owner per home. Newly created state directories are private;
 the socket allows access only to the owning OS user. Clients do not open SQLite.
 
+### Verify and finish the example
+
+For the supplied inputs, expect a completed job whose exported verifier result
+has `passed: true`. Inspect the actual `result`, not only a successful submit
+response. The verifier checks document content; it does not launch an agent.
+After a client disconnect, reconnect with the same home and inspect the same job.
+
+When finished, press Ctrl+C in the foreground service terminal. Retain `.runner`
+if you want its job history. Delete it only if it is the disposable home created
+for this example and the service has stopped. Submission keys remain reserved in
+that home, so use the same key for an exact retry and a new key for changed work.
+
 ## Run under Undercurrent
 
 With an installed, configured Undercurrent, run from this directory:
@@ -201,8 +251,11 @@ next service start. This does not install an automatic process-restart policy.
 
 ## Python client
 
-The client uses only Python's standard library. Install it with
-`python -m pip install ./python`, or use it directly from the checkout:
+The client uses the shared local-runtime IPC library, without agent or IR
+dependencies. With Python 3.11+, install the published client using
+`python -m pip install aixand-suite-runner-client`. For source development from
+this directory, install `python -m pip install ./python`, or use the checkout
+with its declared dependencies installed:
 
 ```sh
 PYTHONPATH=python python examples/submit.py --home .runner
@@ -360,7 +413,7 @@ execution, queued and active cancellation, cleanup uncertainty, queued persisten
 configuration drift, event pagination, exclusive ownership, strict socket parsing,
 a real killed-and-restarted service, and the CLI/Python client against a real socket.
 
-See [README.md](README.md) for the original design and later capabilities.
+See [IR design decisions](../ir/docs/decisions.md) for execution-model rationale.
 
 For a trusted application that needs a supervision loop, SDK hosts can configure
 `applications` as a mapping from a versioned application name to an installed Python
@@ -411,3 +464,15 @@ The IR distribution script can build a checksum-verified combined source artifac
 that relocates Runner’s development path dependencies to a bundled IR workspace.
 See the IR workspace’s `docs/distribution.md`; the artifact builds without a Suite
 checkout. Package registry publishing is separate from building local artifacts.
+
+## Documentation
+
+| Task | Guide |
+| --- | --- |
+| Install and maintain the native product | [Product installation](docs/installation.md) |
+| Control jobs from Python | [Runner client](python/README.md) · [Runnable example](examples/submit.py) |
+| Understand portable workflow contracts | [IR](../ir/README.md) |
+| Integrate Suite chat workflows | [Native workflow integration](../../apps/server/docs/native-workflows.md) |
+| Use an independent effect host | [Orchestration MCP](../../mcps/orchestration/README.md) |
+
+[Suite](../../README.md) · [Support](../../SUPPORT.md) · [License](../../LICENSE)

@@ -2,6 +2,7 @@
   "version": 1,
   "include": [
     "*.md",
+    "apps/desktop/*.md",
     "apps/desktop/src-tauri/windows/*.md",
     "apps/server/*.md",
     "apps/server/agent-bridge/application/*.md",
@@ -23,6 +24,7 @@
     "workflow/ir/examples/python/*.md",
     "workflow/ir/examples/real-agent/*.md",
     "workflow/runner/*.md",
+    "workflow/runner/python/*.md",
     "workflow/runner/docs/*.md",
     "docs/reference/*.md",
     "docs/development/*.md"

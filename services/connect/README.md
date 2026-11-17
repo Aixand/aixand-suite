@@ -1,4 +1,12 @@
+<p align="center">
+  <img src="../../apps/web/public/favicon.svg" width="160" height="160" alt="Aixand logo">
+</p>
+
 # Aixand Connect
+
+<p align="center">
+  <strong>Pair devices. Transfer files. Run work on the receiving computer.</strong>
+</p>
 
 Send project files, run remote Codex chats, and test project snapshots on a paired computer.
 The receiver streams the file to a temporary location, verifies SHA-256, and
@@ -12,6 +20,25 @@ computer. Codex must be installed and signed in on that computer; the full Suite
 Undercurrent, and Agent Manager are not required for direct chats. Optional
 managed chats can use an existing Agent Manager profile on macOS/Linux. Remote desktop and an
 interactive terminal attachment are outside this release.
+
+## When to use Connect
+
+Use Connect to send a file or project snapshot to a paired device, or to run
+supported remote Codex work on that device. The receiving computer owns its
+provider software, login, execution, and resulting files.
+
+Connect is separate from [Client-to-Server access](../../README.md#work-across-computers).
+Client opens a Server's workspace interface; Connect adds paired receiving
+devices to that workspace. It does not replace the Server's SSH/HTTPS connection.
+File transfer does not require an agent on the receiver.
+
+The managed-chat helper has migration limits described below; do not infer
+end-to-end UI support from its API alone. Native remote Codex execution on
+Windows remains unverified. See [Suite qualification limits](../../docs/architecture.md#current-foundation-and-qualification-limits).
+
+[Pair a device](#set-up) · [Check a transfer](#verify-your-first-transfer) ·
+[Remote chats](#remote-codex-chats) · [Project copies](#copy-a-project-to-a-device) ·
+[Trust and storage](#trust-and-storage) · [Development](#development-and-packaging)
 
 ## Set up
 
@@ -59,6 +86,20 @@ To change a receiving folder or regenerate pairing, stop the companion, restart
 with the desired folder and `--pair`, and pair the device again in Suite. Pairing
 replaces its previous Suite credential. One receiver pairs with one Suite owner.
 Only one receiver process can use a state directory at a time.
+
+## Verify your first transfer
+
+Create a small disposable text file in the chat's saved project on the Suite
+host. Ask the chat to send it to the paired device. Confirm the destination
+exists and its contents match. Suite should report verified delivery, not only
+upload progress. If the acknowledgment is lost, use **Check delivery** to inspect
+the retained receipt before attempting another send.
+
+Stop the companion with Ctrl+C when finished. Delivered files remain on the
+receiver; remove only your disposable test file when no longer needed. Keep the
+same state directory and omit `--pair` when restarting an established pairing.
+The companion installs no automatic login service. If persistent access is wanted,
+review an OS-specific startup plan with the user before changing startup settings.
 
 ## Remote Codex chats
 
@@ -119,7 +160,7 @@ worker. Installation alone does not prove authentication or live model access.
 
 The managed device helper now uses compatible `agent-manager` and
 `aixand-conversation-manager[agents]` packages and the configured Codex executable
-on macOS/Linux (`pip install "aixand-connect[managers]"` in the selected manager
+on macOS/Linux (`python -m pip install "aixand-suite-connect[managers]"` in the selected manager
 environment). Server Manager and an Undercurrent daemon are not required for
 this chat path. Undercurrent remains the owner of native terminal execution.
 Resource libraries are optional; explicit resource selections additionally use
@@ -338,19 +379,23 @@ with active or uncertain outcomes must be resolved before removing the device.
 
 ## Development and packaging
 
-The server loads this sibling package through `agent-bridge/connect.py`. Set
+The Server's Python integration loads this package from `services/connect`. Set
 `AIXAND_CONNECT_SOURCE` to the directory containing `aixand_connect` if deploying
 it elsewhere, or install the package into `AGENTS_PYTHON`'s environment.
 
+From the Suite root:
+
 ```sh
-python3 -m pip install ./aixand-connect
-python3 services/connect/build_companion.py
+python3 -m pip install ./services/connect
+python3 services/connect/build_companion.py build/connect/companion.pyz
 ```
 
-Suite frontend `npm run dev` and `npm run build` generate the companion download
-from these sources into `public/downloads/aixand-connect.pyz`. The reproducible
+Suite's `./dev.sh prepare` builds the companion at `build/connect/companion.pyz`.
+Server serves the authenticated companion download; frontend `npm run dev` and
+`npm run build` do not regenerate it. Rebuild after companion source changes.
+The reproducible
 archive contains the receiver, snapshot validation, Codex process transport, and shared protocol, not Suite's sender or
-tests. Frontend build tooling therefore requires Python 3.11+ too.
+tests. Companion construction requires Python 3.11+.
 
 Chat application tools are `list_devices`, `send_file`, `get_file_transfer`,
 `cancel_file_transfer`, `start_remote_chat`, `copy_project_to_device`,
@@ -415,3 +460,5 @@ Create/import through the managers; launches resolve accepted local copies.
 MCP installation is explicit and readiness belongs to the execution machine.
 Update the manager packages and rebuild deployed Suite/Connect components to
 enable the new controls. See manager-suites/docs/resource-imports.md.
+
+[Suite](../../README.md) · [Server integration](../../apps/server/docs/connect.md) · [Support](../../SUPPORT.md) · [License](../../LICENSE)

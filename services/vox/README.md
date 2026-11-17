@@ -1,4 +1,12 @@
+<p align="center">
+  <img src="../../apps/web/public/favicon.svg" width="160" height="160" alt="Aixand logo">
+</p>
+
 # Aixand Vox
+
+<p align="center">
+  <strong>Voice interaction with your Suite workspace.</strong>
+</p>
 
 Vox is the global voice assistant in Aixand Suite. It uses Pipecat for audio,
 local Faster Whisper for transcription, local Kokoro for speech, and a custom
@@ -15,6 +23,23 @@ speaking again replaces the old exchange. The call panel uses the same two-messa
 limit while the LLM retains previous turns for context. Previews dismiss after
 twelve seconds of inactivity. Click the phone button for the conversation in the
 middle and microphone, speaker, and centered end-call controls below it.
+
+## When to use Vox
+
+Use Vox for spoken interaction with a development Suite workspace: ask about
+projects, follow conversations, or request supported workspace actions. The
+browser captures audio; the backend performs local transcription and speech,
+while the configured agent provider handles model turns. Local speech processing
+does not mean the agent model runs locally.
+
+**Release scope:** Vox source is included in Suite, but voice runtimes and Vox
+packages are excluded from the published alpha.3 downloads. This is a separate
+source setup and qualification path, not an enabled feature promised by the
+normal application installer. Microphone access requires HTTPS or localhost.
+
+[Local setup](#run-locally) · [First-call checks](#verify-a-first-call) ·
+[Interruptions](#interruptions-and-pauses) · [Hands-free use](#hands-free-calling) ·
+[Capacity](#ram-and-vram-usage)
 
 ## Run locally
 
@@ -99,6 +124,27 @@ transcription or typed input. Clear spoken microphone checks get a natural
 acknowledgement; garbled words prompt a request to repeat. Audio clarity is inferred
 from the transcription, without claiming to measure volume or microphone quality.
 
+## Verify a first call
+
+After preparation and Server/frontend restart, open Vox and start a call. Confirm
+microphone permission, the local greeting, visible transcription, and an agent
+reply. Ask a read-only question before requesting file changes. A greeting alone
+checks TTS and connection setup; it does not establish provider access.
+
+If the call fails, first check the Server worker logs and provider sign-in. For
+slow startup, use **Settings → Debug mode → Voice diagnostics → Copy diagnostics**.
+End the call when finished. If auto-call is enabled, choose **Vox, go offline**
+or disable it to release the wake listener too. Prepared model caches remain.
+
+For source tests, from `services/vox` after locked environment setup:
+
+```sh
+uv run --locked python -m unittest discover -s tests -v
+```
+
+Optional speech-audio tests have their own environment prerequisites. Fixture
+checks do not establish real microphone, provider, or target-platform readiness.
+
 ## Interruptions and pauses
 
 Speaking while Vox replies stops its playback and interrupts the current Codex
@@ -178,3 +224,5 @@ Memory depends on model choice, concurrent calls and browser/provider workloads.
 Measure the worker and its child processes under the intended workload; cached
 engines remain loaded after calls. No complete-Suite minimum RAM is qualified by
 this guide. See [capacity planning](../../apps/server/docs/chat-memory.md).
+
+[Suite](../../README.md) · [Conversation tools](../../apps/server/docs/conversation-tools.md) · [Capacity planning](../../apps/server/docs/chat-memory.md) · [Support](../../SUPPORT.md) · [License](../../LICENSE)

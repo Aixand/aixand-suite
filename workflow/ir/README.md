@@ -1,6 +1,47 @@
-# Aixand IR 0.1 / 0.2
+<p align="center">
+  <img src="../../apps/web/public/favicon.svg" width="160" height="160" alt="Aixand logo">
+</p>
+
+# Aixand IR
+
+<p align="center">
+  <strong>Define, validate, and execute versioned workflow operations.</strong>
+</p>
 
 A Rust implementation of the [v0.1 proposal](docs/specification.md): portable, exact-version operation invocations in ordered sequences. The [v0.2 extension](docs/branching-v0.2.md) adds structured conditional branches while preserving v0.1 documents. Workflows exchange immutable data and scoped opaque capabilities. Operation completion is defined by each catalog contract; agent readiness is not a research answer.
+
+## When to use IR
+
+Use IR to define portable workflow documents or embed a typed workflow engine in
+Rust. The CLI validates documents, exports schemas and catalogs, canonicalizes
+JSON, and executes installed bindings. Documents select exact operation versions;
+they do not choose arbitrary executable modules or runtime credentials.
+
+Use [Runner](../runner/README.md) when you also need durable job submission,
+queues, retained events, and restart handling. IR itself has no durable service
+or general retry scheduler. The Rust engine executes the workflow; the optional
+Python frontend lowers a restricted source subset without executing that source.
+
+The document specifications are **0.1** and **0.2**. These are separate from the
+independently released crate version, currently `0.1.0-alpha.1`.
+
+[Installation](#installation) · [First execution](#try-it) · [Rust embedding](#rust-embedding) ·
+[SDK integration](#existing-sdk-integration) · [Specification](#specification-and-verification)
+
+## Installation
+
+For source examples, use Rust 1.95+ and this workspace. No Python installation,
+provider account, or external service is needed for the built-in verifier.
+From `workflow/ir`, install the CLI locally with:
+
+```sh
+cargo install --locked --path crates/aixand-ir-cli
+```
+
+The command is `aixand-ir`. The examples below use `cargo run` so you can try the
+checkout without installing a global command. Versioned crates and source
+artifacts are described in [distribution](docs/distribution.md); optional SDK and
+frontend features have additional dependencies documented below.
 
 ## Workspace
 
@@ -30,7 +71,15 @@ cargo run -p aixand-ir-cli -- schema workflow
 cargo run -p aixand-ir-cli -- catalog aixand
 ```
 
-The verifier returns a typed record containing `passed`, `summary` and `issues`. A failed verification is ordinary application data, not an invocation failure.
+The verifier returns a typed record containing `passed`, `summary` and `issues`.
+For the supplied inputs, inspect `result.passed` and the issue list. A failed
+verification is ordinary application data, not an invocation failure. This
+example performs data-only validation and needs no provider credentials.
+
+If validation fails, read its document/catalog diagnostic before changing the
+workflow. If an operation has no executable binding, adding a catalog alone
+will not make it runnable. The basic verifier example starts no background
+service and creates no agent sessions to clean up.
 
 `validate --structural` requires no catalog. Semantic validation includes the two bundled catalogs; add external packages with `--catalog FILE`. Use `validate --operation-catalog FILE` to validate a catalog. Duplicate exact identities in the selected catalogs are rejected. Additional CLI catalogs do not load executable bindings: an embedding must register those explicitly.
 
@@ -182,3 +231,5 @@ Cancellation is forwarded to the coroutine and joined before scope cleanup. The 
 must preserve uncertain effects and register spawned agents with its supplied connection.
 Normal scope cleanup still distinguishes owned agents from attached agents. Applications should
 explicitly stop attached agents only when their own workflow authorizes it.
+
+[Runner](../runner/README.md) · [Suite](../../README.md) · [Support](../../SUPPORT.md) · [License](../../LICENSE)

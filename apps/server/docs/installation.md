@@ -131,12 +131,8 @@ profiles and authentication methods. Authorization may require opening a vendor
 URL in an external browser. Aixand's own setup and maintenance stay in the terminal.
 
 The default backend remains on loopback port 8753. Remote access uses SSH or an
-explicit HTTPS reverse proxy. Configure exact origins and trusted proxy peers:
-
-```sh
-aixand-server configure --yes --transport https-proxy \
-  --origins https://suite.example --trust-proxy 127.0.0.1
-```
+explicit HTTPS reverse proxy. Follow the [advanced connection steps](#connect-to-a-separate-server)
+below to configure and verify either route.
 
 Shared installations use Agent Manager's bundled provider defaults when the
 standard `providers.toml` preferences file is absent. An explicitly selected
@@ -169,6 +165,154 @@ separate state directories and ports. Newly registered Server UC connections use
 instance-specific names; existing Suite connection records are reused for the
 same workspace. Server setup does not change the terminal's selected UC profile.
 The permanent `default` profile is preserved.
+
+## Connect to a separate Server
+
+These instructions are for advanced users connecting Client or full Suite to a
+separately hosted Server. Normal full Suite use with **This computer** manages
+its local connection automatically. Isolated and Shared tool installation are
+independent of this network configuration.
+
+Run `aixand-server` commands on the Server host, in a terminal or through SSH.
+The commands below work in POSIX shells and PowerShell. They assume the default
+Server port, 8753, and an installed Server command on `PATH`.
+
+### Connect through an SSH tunnel
+
+For a fresh Server, complete setup interactively on the host. This creates the
+workspace password without exposing it in a command-line argument:
+
+```sh
+aixand-server setup
+aixand-server start
+aixand-server status
+```
+
+With the default loopback configuration, no origin changes are needed for this
+tunnel. On the client computer, replace `user@server-host` with your SSH login
+and destination. An SSH client and access to that host are required.
+
+```sh
+ssh -N -o ExitOnForwardFailure=yes -L 127.0.0.1:8753:127.0.0.1:8753 user@server-host
+```
+
+Keep the SSH command running. In Client, save `http://127.0.0.1:8753/` as the
+Server address. In full Suite, choose Server and enter the same address. Sign in
+with the workspace password. A successful connection opens the host's workspace.
+The frontend-free Server does not provide a browser interface at that address.
+
+If local port 8753 is already occupied, choose another unused local port, such
+as 18753, in the first port position of `-L`. Connect to
+`http://127.0.0.1:18753/` and include `http://127.0.0.1:18753` in the Server's
+configured origins using the configuration procedure below with
+`--transport loopback`. Keep all required loopback origins in that list.
+
+Close Client's workspace connection and press Ctrl+C in the SSH terminal to
+close the tunnel. This does not stop Server or its running work. Client neither
+creates the tunnel nor starts the remote services.
+
+### Connect through an HTTPS reverse proxy
+
+Complete `aixand-server setup` on the host before enabling remote access. This
+creates the password locally. Initial HTTP password creation through a reverse
+proxy is rejected; normal sign-in works through the configured HTTPS proxy.
+
+You need a domain, a TLS certificate trusted by the client computer, and a
+reverse proxy that can reach Server's loopback listener. These commands configure
+Aixand; they do not install a proxy, configure DNS, or obtain a certificate.
+
+Replace `https://suite.example.com` with your public origin, without a path or
+trailing slash. The example assumes the proxy connects to Server from
+`127.0.0.1`. Use the proxy's actual peer IP address if different.
+
+Configuration changes require stopped services and disabled automatic startup.
+Stopping the workspace interrupts its services; choose a suitable maintenance
+time. First check whether automatic startup is enabled:
+
+```sh
+aixand-server startup status
+```
+
+If enabled, disable it before changing configuration:
+
+```sh
+aixand-server startup disable
+```
+
+Then stop the workspace, save its network settings, and start it again:
+
+```sh
+aixand-server stop
+aixand-server configure --yes --transport https-proxy --origins https://suite.example.com --trust-proxy 127.0.0.1
+aixand-server start
+aixand-server doctor
+```
+
+`configure --yes` saves the supplied settings without interactive path and port
+prompts. It preserves workspace data. If automatic startup was enabled before
+the change, restore it with `aixand-server startup enable`.
+
+Configure the reverse proxy to:
+
+- Terminate HTTPS with the trusted certificate.
+- Forward API and WebSocket traffic to `http://127.0.0.1:8753`.
+- Preserve Host, Origin, and cookie headers, and forward WebSocket upgrades.
+- Set `X-Forwarded-Proto: https` for requests received over HTTPS.
+
+Trust only actual proxy peer addresses. Forwarded HTTPS headers from other peers
+do not establish a secure connection. Server continues to bind loopback; do not
+try to expose it by changing the production listener to `0.0.0.0`.
+
+Open Client or Suite's Server connection window and enter
+`https://suite.example.com/`. Sign in and open a conversation or terminal to
+check both authenticated requests and live WebSocket traffic. Use
+`aixand-server doctor` and `aixand-server logs server` on the host if it fails.
+A healthy `/api/health` response alone does not verify authenticated access.
+
+### Understand origins and authentication
+
+An origin is the scheme, hostname, and port. It contains no path or trailing
+slash. `https://suite.example.com`, `http://suite.example.com`, and
+`https://suite.example.com:8443` are different origins. `localhost` and
+`127.0.0.1` are also different hostnames.
+
+Native Client sends the selected Server address's origin for HTTP and WebSocket
+requests. Allow that origin, rather than a Tauri origin or the client computer's
+LAN address. Multiple exact origins use a comma-separated value:
+
+```sh
+aixand-server configure --yes --transport https-proxy --origins "https://suite.example.com,https://suite.example.com:8443" --trust-proxy 127.0.0.1
+```
+
+Use the same disable-startup, stop, configure, start, and restore-startup sequence
+above. `--origins` replaces the list; include every origin you intend to retain.
+HTTPS proxy mode requires HTTPS origins. Loopback mode requires loopback origins.
+
+Allowed origins do not grant access by themselves. Protected operations require
+an authenticated session, and mutations also require a valid CSRF token.
+WebSocket connections validate the session and exact origin. The workspace
+password grants the authority of the Server's OS user; it is not a multi-user
+account system. See [authentication](authentication.md) for session and recovery
+details.
+
+### Troubleshoot a remote connection
+
+| Symptom | Check and corrective action |
+| --- | --- |
+| Connection refused or timeout | Run `aixand-server status` on the host. Check the SSH tunnel or proxy upstream address and port. |
+| Client rejects an HTTP network address | Use HTTPS, or connect through SSH at an HTTP loopback address. |
+| `Origin is not allowed` | Match the selected Server address's scheme, hostname, and port to the configured origin list. Restart services after configuration changes. |
+| `HTTPS is required. Local connections need explicit loopback HTTP configuration.` | For HTTPS, check the actual proxy peer and its `X-Forwarded-Proto: https` header. For SSH, use loopback transport and an allowed loopback origin. |
+| `Sign in required` | Sign in through the selected connection again; its session may have expired or been revoked. |
+| `Invalid CSRF token` | Reload the workspace and sign in again if needed. Check that the proxy preserves cookies and uses the same selected origin. |
+| Login succeeds but live updates fail | Check WebSocket upgrades, Origin forwarding, and cookies at the proxy. Inspect Server logs for authentication rejection. |
+| `configure` refuses to save | Stop the workspace services and disable automatic startup before changing configuration. |
+
+The owning checks are [production configuration](../src/production.ts),
+[transport and origin validation](../src/auth/config.ts),
+[authentication](../src/auth/auth.service.ts),
+[native Client transport](../../desktop/src-tauri/transport/src/lib.rs), and
+[saved Server configuration](../../../scripts/runtime/server-installer.mjs).
 
 ## Repair, reset and removal
 

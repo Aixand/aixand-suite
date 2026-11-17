@@ -7,6 +7,7 @@ a public release, live provider qualification or complete v0.4 orchestration.
 
 ## Find a task or contract
 
+- [Install Aixand with your agent](../agent-installation-instruction.md)
 - [Architecture and state ownership](architecture.md)
 - [Agent integration and resource boundaries](agent-integration.md)
 - [Conversation Manager integration](chat-manager-integration.md)
@@ -24,7 +25,7 @@ Run commands from the Suite root unless a component guide states otherwise.
 | --- | --- | --- |
 | `apps/server` | [Server](../apps/server/README.md): workspace, auth, application coordination | `npm --prefix apps/server test` |
 | `apps/web` | [Web](../apps/web/README.md): browser interactions and assets | `npm --prefix apps/web run build` |
-| `apps/desktop` | [Desktop](../apps/web/docs/desktop.md): native shell around web assets | inspect `apps/desktop/package.json` platform scripts |
+| `apps/desktop` | [Desktop](../apps/desktop/README.md): native shell around web assets | inspect `apps/desktop/package.json` platform scripts |
 | `mcps/orchestration` | [MCP](../mcps/orchestration/README.md): domain tools and task results | package [development checks](../mcps/orchestration/docs/development.md) |
 | `services/connect` | [Connect](../services/connect/README.md): pairing and transport | `python3 -m unittest discover -s services/connect/tests` |
 | `services/vox` | [Vox](../services/vox/README.md): speech integration | component test prerequisites in its README |

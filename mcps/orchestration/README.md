@@ -1,13 +1,88 @@
-# Orchestration MCP
+<p align="center">
+  <img src="../../apps/web/public/favicon.svg" width="160" height="160" alt="Aixand logo">
+</p>
+
+# Aixand Orchestration MCP
+
+<p align="center">
+  <strong>Connect agents to projects, conversations, delegated tasks, and workflows.</strong>
+</p>
 
 The Python distribution is `aixand-suite-orchestration-mcp`; import `orchestration_mcp`
 and run `orchestration-mcp`.
+
+## When to use Orchestration MCP
+
+Use this product to give an MCP-capable agent controlled access to manager APIs,
+project registration, conversation and terminal operations, authenticated task
+results, and Runner workflows. It can run independently of Suite; Suite is also
+a consumer of its application services.
+
+This is separate from MCP Manager, which manages server definitions and their
+installation. Choose only the tool groups and optional dependencies needed for
+your integration. Installing a package does not grant a child agent additional
+permissions or approve its pending requests.
+
+[Installation](#installation) · [First connection](#verify-a-first-mcp-connection) ·
+[Tool groups](#tool-groups) · [Resource capture](#resource-capture-timing) ·
+[Development](#local-developer-commands) · [Projects](#project-tools-and-project-conversations)
+
+## Installation
+
+Use the [standalone native product installer](https://installer.aixand.org/aixand-suite/orchestration-mcp)
+for a managed product, or install the Python package into your own Python
+3.11–3.14 environment:
+
+```sh
+python -m pip install aixand-suite-orchestration-mcp
+orchestration-mcp capabilities --suite off
+```
+
+For conversation delegation, install
+`python -m pip install "aixand-suite-orchestration-mcp[conversations,tasks]"`.
+Terminals, Runner workflows, resources, and devices have separate extras and
+runtime prerequisites described below. The base package can inspect available
+capabilities without starting an agent.
+
+## Verify a first MCP connection
+
+First run `capabilities --suite off` above and inspect the available capabilities.
+Configure your MCP client with this stdio process, using its own configuration
+format:
+
+| Field | Value |
+| --- | --- |
+| Command | Absolute path to the installed `orchestration-mcp` executable |
+| Arguments | `serve`, `--suite`, `off`, `--home`, `/absolute/path/to/orchestration-home` |
+
+Replace the home with a private local state directory; use a native absolute
+Windows path on Windows. Use the same home for later clients. Do not put a shell
+command string into an MCP client's executable field.
+
+Connect the client and verify it lists the advertised tools. Begin with a
+capability inspection, or a read-only project listing if advertised. Installed optional packages
+and configured backends determine which tools appear. A listed tool does not
+establish provider authentication or model access.
+
+Disconnecting ends an embedded `serve` process and its process-owned jobs. For
+background work that must outlive that connection, use the persistent `host`
+mode described below. Keep its private connection descriptor and state directory.
+Do not start replacement work when a launch or delivery remains uncertain.
+
+For a Suite-connected integration, use the private context supplied by the
+application, rather than opening Suite's database yourself. `--suite required`
+requires that context; `--suite off` selects independent services. A standalone
+home does not become the user's Suite workspace merely because both are on the
+same computer.
+
+## Tool groups
 
 One package exposes smaller selectable tool groups. Contracts live in
 `src/orchestration_mcp/tool_groups`; `execution_tools.py` is the compatibility facade.
 
 | Group | Owner and purpose |
 | --- | --- |
+| `projects` | Existing-directory registration, directory creation, and project lookup when a project adapter is supplied |
 | `shared` / `observations` | Discovery, retained associations and operation receipts |
 | `conversations` | Conversation Manager startup, messages, turns, settings and approvals |
 | `queues` | Conversation Manager message queues and delivery evidence |
@@ -29,7 +104,9 @@ text, scrape terminal output, or read report files to establish task success.
 See [the task/workflow contract](docs/delegation-workflows.md) and
 [the architecture decision](../../docs/decisions/0002-carrier-task-results.md).
 
-Example controller configuration, with a matching running Carrier service:
+Advanced controller setup, with compatible optional packages and a matching
+running Carrier service. From a POSIX shell, start the host first, then start
+Runner in a second terminal with the same exported Carrier settings:
 
 ```sh
 export CARRIER_DATABASE=/absolute/carrier.db
@@ -59,8 +136,10 @@ can manage monitors through the same tools. Supervisors choose conversation,
 delegation, or workflow actions, then checkpoint and release their model turn.
 Application-owned inbox sources are injected through `automation_source`.
 
-The base wheel depends only on the shared filesystem and local-runtime libraries. Project registration, filesystem
-discovery and discovery receipts work without any manager installed. Profile tools
+The base wheel depends only on the shared filesystem and local-runtime libraries.
+Filesystem discovery and discovery receipts need no manager. The dedicated
+`projects` group additionally needs an application-supplied project adapter;
+check its advertised capability before using it. Profile tools
 need the `agents` extra (Agent Manager and its JSON Schema validator). Sessions and terminal attachment need Agent Manager's runtime
 extras and a running Undercurrent daemon. Workflow execution needs Runner, a
 configured effect-host socket, and Carrier for the current inbox-delivery plans.
@@ -215,3 +294,17 @@ identity, permissions and resources. Directory-only launches keep the existing
 parent workspace restriction and project inheritance. Delegation and workflow
 project targeting are unchanged. Existing captured MCP contracts remain frozen;
 start a new Suite tool context to receive the new tools.
+
+## Verify delegated completion
+
+Keep a stable `operation_id` for every mutation and preserve exact task,
+environment, conversation, and session identities across retries. Inspect the
+canonical delegated task result and Runner outcome. A launch receipt, finished
+chat turn, or terminal exit code alone does not establish an accepted task report.
+
+Child reports use scoped authenticated Carrier identities. Inspect unresolved
+operations rather than scraping output or silently creating replacements. Stop
+only work owned by the operation you intend to cancel. See
+[delegation and workflow recovery](docs/delegation-workflows.md).
+
+[Documentation index](docs/README.md) · [Suite](../../README.md) · [Support](../../SUPPORT.md) · [License](../../LICENSE)

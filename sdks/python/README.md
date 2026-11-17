@@ -1,4 +1,12 @@
+<p align="center">
+  <img src="../../apps/web/public/favicon.svg" width="160" height="160" alt="Aixand logo">
+</p>
+
 # Aixand Python
+
+<p align="center">
+  <strong>Compose agent sessions, durable messages, and runtime handles from Python.</strong>
+</p>
 
 The ergonomic composition SDK for Aixand primitives. Install `aixand-suite-python`;
 import `aixand`. Agent Manager, Carrier, and Undercurrent remain independently
@@ -12,6 +20,34 @@ engine, task-success inference, or Python-to-IR compilation.
 | Carrier | Messaging: identities, durable inboxes, messages, replies, and acknowledgments. |
 | Undercurrent | Runtime/session control: process execution and lifecycle, input/output, observations, and stable-state waiting. |
 | Aixand Python | Composition: convenient handles, shared configuration, delivery consumers, and resource management. |
+
+## When to use this SDK
+
+Use this package when your Python application needs to combine native agent
+execution with Carrier messaging and explicit resource ownership. You do not
+need the Suite desktop application to consume the SDK.
+
+For durable queued workflows, use [Runner](../../workflow/runner/README.md) and
+its [Python client](../../workflow/runner/python/README.md). For portable operation
+definitions and Rust execution, use [IR](../../workflow/ir/README.md). This package
+is neither the Runner client nor a Python binding to IR.
+
+[Installation](#installation) · [First agent](#canonical-api-no-required-application-object) ·
+[Scopes](#optional-connection-scope) · [Messaging](#carrier-bound-agents) ·
+[Examples](#runnable-examples) · [Verification](#validation)
+
+## Installation
+
+In your application's Python 3.11+ virtual environment, run:
+
+```sh
+python -m pip install aixand-suite-python
+```
+
+Import it as `aixand`. Python dependency installation does not install provider
+executables, authenticate accounts, or start the native Undercurrent service.
+Prepare those independently before running an agent example. Carrier is needed
+for messaging; plain agents without `address=` do not contact it.
 
 ## Install from this workspace
 
@@ -28,13 +64,13 @@ Use the compatible independently installed Undercurrent daemon and bridge.
 Set `UNDERCURRENT_PYTHON_BRIDGE` and `UNDERCURRENT_HOME` to select another
 installation. Aixand does not automatically start an Undercurrent daemon.
 
-Prepare/authenticate a profile with Agent Manager, or use an existing one:
-
-```sh
-agent codex profile new research
-agent codex auth new personal
-agent codex auth switch personal --profile research
-```
+Prepare and authenticate a native environment/profile through your installed
+Agent Manager, or use an existing one. The example below assumes an authenticated
+profile named `research`. Use your actual profile name, or `profile=None` for
+Agent Manager's automatic selection. Suite users can follow
+[native onboarding](../../docs/onboarding.md); SDK-only users should use their
+installed Agent Manager's help and profile/login interfaces. There is no separate
+saved-login library to create for this SDK.
 
 The existing `AGENT_MANAGER_CONFIG` and `AGENT_MANAGER_HOME` settings are honored.
 Update your separately installed `agent` CLI from the Agent Manager repository
@@ -93,6 +129,19 @@ Independent connections and external `uc send` callers do not share that lock;
 Undercurrent revision preconditions still apply. No failed input is automatically
 retried. Uncertain writes block subsequent sends on that handle until inspected.
 An explicit receipt from another session is rejected by `wait()`.
+
+## Verify the first agent
+
+Run the example from a disposable project directory after preparing its profile
+and starting the selected Undercurrent daemon. It can consume provider quota and
+may require native approvals. Expect diagnostic screen output and explicit owned
+agent cleanup in `finally`.
+
+`send()` returning means input was submitted; `wait()` returning means runtime
+readiness. Neither proves the requested research succeeded. For a structured
+completion check, use the [team example](#runnable-examples), which waits for an
+explicit Carrier reply. On failure, inspect the original run/session and delivery
+receipts before starting another agent. Preserve uncertain identities.
 
 ## Optional connection scope
 
@@ -298,3 +347,5 @@ through Agent Manager; launch overrides win. `with_context` and `agents.spawn`
 accept independent `inherit_labels=False` and `inherit_metadata=False` options.
 Both maps are validated string maps under the [Agent Manager context contract](https://github.com/Aixand/manager-suite/blob/main/agent-manager/docs/python-sdk.md#labels-and-private-metadata).
 Metadata is read explicitly and is omitted from agent handles and list views.
+
+[Suite](../../README.md) · [Runner client](../../workflow/runner/python/README.md) · [Support](../../SUPPORT.md) · [License](../../LICENSE)
