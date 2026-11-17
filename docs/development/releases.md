@@ -409,3 +409,33 @@ and tool components retain their distinct names under Aixand Suite.
 These presentation names do not rename internal component IDs, release tags,
 installed application identities or signed download paths. The release uploader
 applies consistent titles and includes a short product guide automatically.
+
+### Main installer download hub
+
+The `suite/vVERSION` release is the main download hub for all three applications.
+Suite native release inputs must include nine `hosted.py` exports: `desktop`,
+`client` and `server`, each on Windows x64, macOS ARM64 and Linux x64. Each export
+must carry exact matching native qualification and source revision. Qualification
+index rows include `role`; native exports are stored under `role/target`.
+Individual Client and Server releases continue to contain their own installers.
+
+The release preparer verifies and copies the exact installer bytes, generates
+`INSTALLERS.json` and `INSTALLERS-SHA256SUMS`, and places the application/platform
+download table first in the release notes. The index records the independently
+identified application versions, source revision, release sequence, sizes and
+hashes. Component update feeds, installed identities and trust settings are
+unchanged. Existing delivery records remain available for updater registration.
+
+To complete an already published, editable Suite release from qualified exports:
+
+```sh
+python scripts/release/complete-installer-hub.py \
+  --tag suite/vVERSION --directory /qualified/native-exports --output /fresh/hub
+```
+
+This prepares files and a publication plan locally. `--apply` additionally checks
+each installer against its public component release and exact source tag, adds
+only missing assets, verifies GitHub-computed hashes, and updates the download
+table and labels. It never replaces existing assets or changes tags. Immutable
+releases cannot receive additional assets. Existing release checksum inventories
+are retained; `INSTALLERS-SHA256SUMS` specifically covers the nine installers.

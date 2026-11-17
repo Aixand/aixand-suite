@@ -9,10 +9,12 @@ Signed update checks are enabled in the published alpha.3 installers. Updates
 are installed only after confirmation. Vox source is included; voice runtimes and Vox
 packages are excluded from this alpha's release downloads.
 
-Download the [full Suite alpha](https://github.com/Aixand/aixand-suite/releases/tag/suite/v0.1.0-alpha.3),
-[Server](https://github.com/Aixand/aixand-suite/releases/tag/server/v0.1.0-alpha.3),
-or [Client](https://github.com/Aixand/aixand-suite/releases/tag/client/v0.1.0-alpha.3)
-for Linux x86_64, macOS ARM64, or Windows x86_64.
+Download **[Aixand — all installers](https://github.com/Aixand/aixand-suite/releases/tag/suite/v0.1.0-alpha.3)**.
+This main download release includes **Aixand Suite** (everything locally),
+**Aixand Client** (connect to an existing Server), and **Aixand Server** (host the
+workspace), each for Windows x86_64, macOS ARM64 and Linux x86_64. Choose your
+application and platform from the download table at the top of the release.
+Individual component releases remain available for independent updates.
 
 Open **Settings → Updates → Check all updates** to review application, workspace
 component, and installed tool updates. Workspace tools are managed on the

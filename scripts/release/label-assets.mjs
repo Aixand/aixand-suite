@@ -9,7 +9,7 @@ export function releaseTitle(tag) {
   const match = /^([a-z-]+)\/v([0-9A-Za-z.-]+)$/.exec(tag)
   if (!match) throw new Error('Invalid component release tag.')
   const titles = {
-    suite: 'Aixand Suite', desktop: 'Aixand Suite', client: 'Aixand Client',
+    suite: 'Aixand Suite — All installers', desktop: 'Aixand Suite', client: 'Aixand Client',
     server: 'Aixand Server', web: 'Aixand Client — Web assets (not an installer)',
     'python-sdk': 'Aixand Suite — Python SDK',
     'runner-client': 'Aixand Suite — Runner Python library',
@@ -24,7 +24,7 @@ export function releaseTitle(tag) {
 export function releaseGuide(tag) {
   const component = tag.split('/')[0]
   const descriptions = {
-    suite: 'Full application: Client interface, local Server and included tool runtimes.',
+    suite: 'Download hub for Aixand Suite (everything locally), Aixand Client (connect to a Server), and Aixand Server (host the workspace).',
     desktop: 'Full application: Client interface, local Server and included tool runtimes.',
     client: 'Installable Client application: interface and connection handling for an existing Aixand Server. No local Server or tool runtimes.',
     server: 'Server application: workspace backend and included tool runtimes. Connect using Aixand Client.',
@@ -41,6 +41,9 @@ export function assetLabel(name, paths = new Map()) {
   if (/^(?:suite-client|suite-server)-/.test(name)) name = name.replace(/^suite-/, 'aixand-')
   else if (/^suite-/.test(name)) name = name.replace(/^suite-/, 'aixand-suite-')
   const descriptions = {
+    'INSTALLERS.json': 'Installer index — all three applications and their exact versions',
+    'INSTALLERS-SHA256SUMS': 'Installer checksums — Suite, Client and Server',
+    'RELEASE-NOTES.md': 'Download guide — choose Suite, Client or Server',
     'TESTING.json': 'Testing report — platforms, coverage and signing limitations',
     'delivery.json': 'Update delivery map — signed feeds and download locations',
     'composition.json': 'Release inventory — components, source revision and checksums',
@@ -66,7 +69,8 @@ export function uploadArguments(directory) {
 export function labelRelease(tag, apply = false) {
   const repository = 'Aixand/aixand-suite'
   const release = api(`repos/${repository}/releases/tags/${encodeURIComponent(tag)}`)
-  const title = releaseTitle(tag)
+  const title = tag.startsWith('suite/') && !release.assets.some(asset => asset.name === 'INSTALLERS.json')
+    ? releaseTitle(tag).replace(' — All installers', '') : releaseTitle(tag)
   const guide = releaseGuide(tag)
   const body = release.body?.includes('<!-- aixand-product-guide -->')
     ? release.body.replace(/<!-- aixand-product-guide -->[\s\S]*?<!-- \/aixand-product-guide -->/, guide)

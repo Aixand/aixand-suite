@@ -24,7 +24,7 @@ test('release labels explain sidecars and preserve upload filenames', async () =
 
 
 test('application names distinguish Client, Server, Suite and web-only assets', () => {
-  assert.equal(releaseTitle('suite/v0.1.0-alpha.3'), 'Aixand Suite 0.1.0-alpha.3')
+  assert.equal(releaseTitle('suite/v0.1.0-alpha.3'), 'Aixand Suite — All installers 0.1.0-alpha.3')
   assert.equal(releaseTitle('client/v0.1.0-alpha.3'), 'Aixand Client 0.1.0-alpha.3')
   assert.equal(releaseTitle('server/v0.1.0-alpha.3'), 'Aixand Server 0.1.0-alpha.3')
   assert.match(releaseTitle('web/v0.1.0-alpha.3'), /Aixand Client.*Web assets.*not an installer/)

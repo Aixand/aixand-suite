@@ -131,19 +131,21 @@ def native_exports(directory, output, tag, revision):
     require(role, 'Native release tag must be suite, server or client')
     directory, output = Path(directory), Path(output)
     require(not output.exists(), 'Native output must be fresh')
+    suite = tag.startswith('suite/')
+    roles = {'desktop', 'server', 'client'} if suite else {role}
     records, targets = [], set()
     for descriptor in sorted(directory.rglob('*-application.json')):
         data = json.loads(descriptor.read_text())
-        require(data['role'] == role and data['version'] == tag.split('/v', 1)[1] and data['build'] == revision,
+        require(data['role'] in roles and data['version'] == tag.split('/v', 1)[1] and data['build'] == revision,
                 'Native export disagrees with release tag/source')
-        require(data['target'] not in targets, 'Duplicate native target')
-        targets.add(data['target'])
+        require((data['role'], data['target']) not in targets, 'Duplicate native role/target')
+        targets.add((data['role'], data['target']))
         proof = descriptor.with_name(descriptor.name.replace('-application.json', '-qualification.json'))
         # Regenerate and compare the descriptor using the exact supplied package and proof.
         import tempfile
         with tempfile.TemporaryDirectory() as temporary:
             verified = export(descriptor.parent / data['package']['filename'], Path(temporary) / 'export',
-                              role=role, version=data['version'], target=data['target'], revision=revision,
+                              role=data['role'], version=data['version'], target=data['target'], revision=revision,
                               sequence=data['sequence'], qualification=proof)
             require(verified == data, 'Native descriptor differs from its package')
         if not output.exists():
@@ -152,6 +154,10 @@ def native_exports(directory, output, tag, revision):
             copy_asset(file, output)
         records.append(data)
     require(records, 'Supply hosted.py native exports after actual platform qualification')
+    if suite:
+        from installer_hub import write_installer_index, download_notes
+        index = write_installer_index(output, records, tag)
+        (output / 'RELEASE-NOTES.md').write_text(download_notes(index) + '\n')
     add_delivery(directory, output, tag)
     write_inventory(output, {'schema': 1, 'tag': tag, 'revision': revision, 'components': records, 'nativeQualified': True})
 
@@ -207,8 +213,12 @@ def main():
         def presentation(option):
             return subprocess.check_output(['node', str(ROOT / 'scripts/release/label-assets.mjs'),
                                             option, args.tag], text=True).strip()
+        notes = presentation('--notes')
+        if args.tag.startswith('suite/'):
+            from installer_hub import installer_index, download_notes
+            notes = download_notes(installer_index(composition['components'], args.tag)) + '\n\n' + notes
         command = ['gh', 'release', 'create', args.tag, '--verify-tag', '--repo', os.environ['GITHUB_REPOSITORY'],
-                   '--title', presentation('--title'), '--notes', presentation('--notes')]
+                   '--title', presentation('--title'), '--notes', notes]
         if not args.publish:
             command.append('--draft')
         if '-' in args.tag.split('/v')[1]:

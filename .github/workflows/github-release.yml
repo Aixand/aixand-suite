@@ -16,7 +16,7 @@ on:
         required: true
         type: string
       native-exports:
-        description: Inputs contain hosted.py exports with exact native qualification
+        description: Inputs contain qualified native exports; Suite requires all nine role/target combinations
         type: boolean
         default: false
       publish:
@@ -47,6 +47,9 @@ jobs:
         with:
           # Bootstrap CPython has native installers on all hosts; packaged runtimes use uv's pinned 3.12.14.
           python-version: '3.12.10'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24.21.0'
       - name: Verify tag and source artifact provenance
         env:
           GH_TOKEN: ${{ github.token }}
