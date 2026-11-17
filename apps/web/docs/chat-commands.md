@@ -27,8 +27,8 @@ messages or commands. See [application recovery](../../server/agent-bridge/appli
 Resource libraries are independent of profiles. Choose supported managed
 instructions and MCP tools explicitly for a new chat. Native skill delivery and
 advanced workflow behavior require separate qualification. See
-[agent integration](../../../docs/agent-integration.md) and
-[Conversation Manager integration](../../../docs/chat-manager-integration.md).
+[agent integration](../../../docs/development/agent-integration.md) and
+[Conversation Manager integration](../../../docs/development/conversation-integration.md).
 
 The owning implementations are the [command catalog UI](../src/chats/commands.ts)
 and [Suite chat adapter](../../server/agent-bridge/application/chats.py).

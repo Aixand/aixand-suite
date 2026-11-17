@@ -36,7 +36,7 @@
 This is an early **0.1.0-alpha.3** release for evaluation. Provider capabilities
 and verified adapters determine which operations are available. Vox source is
 included, but voice runtimes and Vox packages are excluded from release downloads.
-See [architecture and qualification limits](docs/architecture.md) for integration
+See [compatibility and qualification limits](docs/reference/compatibility.md) for integration
 boundaries and work that still needs qualification.
 
 ## Choose an application
@@ -151,7 +151,7 @@ For a local workspace:
 
 A successful sign-in does not establish model entitlement. Your first successful
 conversation verifies access for the selected provider and environment. See
-[native agent onboarding](docs/onboarding.md) for readiness and provider limits.
+[native agent onboarding](docs/getting-started/first-workspace.md) for readiness and provider limits.
 
 For a Server workspace, run these commands on the host after installation:
 
@@ -269,7 +269,7 @@ published dependencies:
 ```
 
 Use `./dev.sh prepare --local-sources` to explicitly select sibling source
-checkouts. See [dependency preparation and release inputs](docs/dependencies.md)
+checkouts. See [dependency preparation and release inputs](docs/development/dependencies.md)
 for prerequisites and dependency ownership.
 
 With the configured Undercurrent daemon reachable, inspect startup prerequisites
@@ -305,8 +305,9 @@ Runner, IR, and orchestration MCP are built from this repository.
 | Choose an application and understand its payload | [Installation roles](apps/web/docs/installation-editions.md) |
 | Set up or maintain a workspace host | [Server installation](apps/server/docs/installation.md) |
 | Connect without installing a local backend | [Aixand Client](apps/web/docs/client.md) |
-| Configure native agent environments | [Agent onboarding](docs/onboarding.md) |
-| Understand component responsibilities | [Architecture](docs/architecture.md) · [Composition decision](docs/decisions/0001-suite-composition.md) |
+| Find task guides and runnable examples | [Documentation home](docs/README.md) · [Examples](docs/guides/examples.md) |
+| Configure native agent environments | [Agent onboarding](docs/getting-started/first-workspace.md) |
+| Understand component responsibilities | [Architecture](docs/architecture/README.md) · [Ownership](docs/architecture/ownership.md) |
 | Build or integrate components | [Documentation index](docs/README.md) · [Component contract](docs/reference/components.md) |
 | Report a problem | [Support](SUPPORT.md) |
 

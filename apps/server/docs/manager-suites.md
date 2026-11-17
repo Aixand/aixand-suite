@@ -8,7 +8,7 @@ respective provider, conversation, prompt, skill and MCP lifecycles.
 
 From the Suite root, run `./dev.sh prepare` for pinned published dependencies.
 Use `./dev.sh prepare --local-sources` only when deliberately developing with
-sibling checkouts. See [dependency preparation](../../../docs/dependencies.md).
+sibling checkouts. See [dependency preparation](../../../docs/development/dependencies.md).
 Packaged workers use installed distributions and ignore source overrides.
 Orchestration MCP is built from `mcps/orchestration`; it is not another manager.
 
@@ -25,9 +25,9 @@ stores. Resource selection is captured before chat launch. Editing a library doe
 not change a running chat's captured configuration. Native skill delivery requires
 separate qualification and must not be implied by library availability.
 
-[Agent integration](../../../docs/agent-integration.md) owns resource boundaries.
+[Agent integration](../../../docs/development/agent-integration.md) owns resource boundaries.
 [Application composition](../agent-bridge/application/README.md) owns Suite launch
-intent and recovery. [Onboarding](../../../docs/onboarding.md) owns native readiness.
+intent and recovery. [Onboarding](../../../docs/development/onboarding.md) owns native readiness.
 
 ## Recover uncertain work
 

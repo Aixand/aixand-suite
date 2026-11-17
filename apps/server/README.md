@@ -140,6 +140,6 @@ live tests have separate prerequisites in [package.json](package.json).
 | Extend the backend | [Development](docs/development.md) · [Application composition](agent-bridge/application/README.md) |
 | Integrate resources and tools | [Resources](docs/suite-resources.md) · [MCP](docs/mcp.md) |
 | Inspect subsystem integration | [Carrier](docs/carrier.md) · [Connect](docs/connect.md) · [Native workflows](docs/native-workflows.md) |
-| Understand ownership | [Suite architecture](../../docs/architecture.md) |
+| Understand ownership | [Suite architecture](../../docs/architecture/README.md) |
 
 [Suite](../../README.md) · [Support](../../SUPPORT.md) · [Security](../../SECURITY.md) · [License](../../LICENSE)

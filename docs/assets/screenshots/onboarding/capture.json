@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "mode": "real-ui-with-fixture-data",
+  "viewport": {
+    "width": 1280,
+    "height": 1100
+  },
+  "theme": "light",
+  "command": "node scripts/docs/capture-onboarding.mjs",
+  "screenshots": [
+    "choose-providers.png",
+    "install-provider.png",
+    "profile-sign-in.png",
+    "confirm-profile.png",
+    "add-projects.png"
+  ],
+  "sourceHashes": {
+    "apps/web/src/auth/AgentOnboarding.tsx": "1e6088df328980565eb4a2a43b8d7ea371504288ef3100aa90652446197b3d59",
+    "apps/web/src/auth/AgentSetupWorkspace.tsx": "22fd5e263ccee1404355287c9bc2593c6410a48cd22a75345cff21e74e745206",
+    "apps/web/src/auth/AgentAccounts.tsx": "4e6b144d138038d140d561cf6e162ff6e9d5f6b4ee66e1872e60f2d683b5c89b",
+    "apps/web/src/auth/ProjectOnboardingPreview.tsx": "22ecf494c0a0ead956027d76a62c3d46b79e51c3ab16b0586f1fde6c52ec9505",
+    "apps/web/tests/support/OnboardingPreview.tsx": "26fbc9d6a46d7e4d2960bfeb72338cf1a087b0f71d3b48bee5dbf853c868e3b5"
+  }
+}

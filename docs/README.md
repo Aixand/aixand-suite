@@ -1,38 +1,55 @@
-# Suite documentation
+# Find an Aixand Suite guide
 
-This documentation describes the development beta and adopts documentation
-standard **0.1.0**. Start with [setup and dependencies](dependencies.md), then
-[local agent onboarding](onboarding.md). Packaging and source checks do not imply
-a public release, live provider qualification or complete v0.4 orchestration.
+Installation links target **0.1.0-alpha.3**. Usage guides and screenshots describe
+this checkout; installed releases can have different controls.
+[Compatibility](reference/compatibility.md) lists limits. Documentation standard: **0.1.0**.
 
-## Find a task or contract
+## Choose a reader goal
 
-- [Install Aixand with your agent](../agent-installation-instruction.md)
-- [Architecture and state ownership](architecture.md)
-- [Agent integration and resource boundaries](agent-integration.md)
-- [Conversation Manager integration](chat-manager-integration.md)
-- [Component release contract](reference/components.md)
-- [Release workflows and registry publishing](development/releases.md)
-- [Documentation validation](development/documentation.md)
-- [Documentation standard](_standards/standard.md)
+| I want to… | Start here |
+| --- | --- |
+| Choose Suite, Server, or Client and install it | [Installation](getting-started/installation.md) |
+| Give installation to my agent | [Agent installation instructions](../agent-installation-instruction.md) |
+| Configure the workspace or Server connection | [Configuration](getting-started/configuration.md) |
+| Complete provider and project setup | [Onboarding](getting-started/first-workspace.md) |
+| Start using the workspace | [Workspace guides](guides/workspace.md) |
+| Work with project folders | [Projects](guides/projects.md) |
+| Chat, answer approvals, or recover an interrupted turn | [Conversations](guides/conversations.md) |
+| Run a native terminal | [Terminals](guides/terminals.md) |
+| Select prompts, skills, or MCP tools | [Resources](guides/resources.md) |
+| Coordinate dependent work | [Workflows](guides/workflows.md) |
+| Connect to a separate Server | [Advanced remote access](guides/remote-access.md) |
+| Maintain your workspace | [Maintenance guides](guides/maintenance.md) |
+| Update an installed application or tool | [Updates](guides/updates.md) |
+| Diagnose a problem | [Troubleshooting](guides/troubleshooting.md) |
+| Back up, restore, reset, or uninstall | [Backup and removal](guides/backup-and-removal.md) |
+| Find runnable integration examples | [Examples](guides/examples.md) |
+| Understand the system | [Architecture](architecture/README.md) |
+| Look up names, boundaries, or support limits | [Terminology](reference/terminology.md) · [Components](reference/components.md) · [Compatibility](reference/compatibility.md) |
+| Change or verify the source | [Development](development/README.md) |
 
-## Component ownership
+## Find a component
 
-Each component owns its local contracts. Suite owns shared setup and integration.
-Run commands from the Suite root unless a component guide states otherwise.
+Component guides own their local setup and contracts.
 
-| Source boundary | Entry point and responsibility | Focused verification |
+| Source | Entry point | Shared boundary |
 | --- | --- | --- |
-| `apps/server` | [Server](../apps/server/README.md): workspace, auth, application coordination | `npm --prefix apps/server test` |
-| `apps/web` | [Web](../apps/web/README.md): browser interactions and assets | `npm --prefix apps/web run build` |
-| `apps/desktop` | [Desktop](../apps/desktop/README.md): native shell around web assets | inspect `apps/desktop/package.json` platform scripts |
-| `mcps/orchestration` | [MCP](../mcps/orchestration/README.md): domain tools and task results | package [development checks](../mcps/orchestration/docs/development.md) |
-| `services/connect` | [Connect](../services/connect/README.md): pairing and transport | `python3 -m unittest discover -s services/connect/tests` |
-| `services/vox` | [Vox](../services/vox/README.md): speech integration | component test prerequisites in its README |
-| `workflow/runner` | [Runner](../workflow/runner/README.md): durable workflow lifecycle | `cargo test --locked --manifest-path workflow/runner/Cargo.toml` |
-| `workflow/ir` | [IR](../workflow/ir/README.md): model and execution semantics | `cargo test --locked --manifest-path workflow/ir/Cargo.toml` |
-| `sdks/python` | [Python SDK](../sdks/python/README.md): optional public API composition | `python3 -m unittest discover -s sdks/python/tests` |
+| `apps/server` | [Server](../apps/server/README.md) | Workspace APIs, authentication, application coordination |
+| `apps/web` | [Web](../apps/web/README.md) | Workspace interface and HTTP/WebSocket clients |
+| `apps/desktop` | [Desktop](../apps/desktop/README.md) | Native launcher, Client transport, application maintenance |
+| `mcps/orchestration` | [Orchestration MCP](../mcps/orchestration/README.md) | Agent tools, delegated results, workflow effects |
+| `services/connect` | [Connect](../services/connect/README.md) | Paired devices, transfers, receiving companion |
+| `services/vox` | [Vox](../services/vox/README.md) | Speech and workspace interaction; separate source setup |
+| `workflow/runner` | [Runner](../workflow/runner/README.md) | Durable submission, dependency scheduling, outcomes |
+| `workflow/ir` | [IR](../workflow/ir/README.md) | Versioned workflow definitions and execution semantics |
+| `sdks/python` | [Python SDK](../sdks/python/README.md) | Optional direct composition of agent, messaging, and runtime APIs |
+| `workflow/runner/python` | [Runner Client](../workflow/runner/python/README.md) | Python control of the local Runner service |
 
-External managers retain domain state; Carrier owns message delivery and
-Undercurrent owns native process supervision. See [dependencies](dependencies.md).
-Participation is [issues only](../CONTRIBUTING.md); external pull requests are not accepted.
+[State ownership](architecture/ownership.md) · [Verification commands](development/testing.md)
+
+## Apply the shared rules
+
+[Website publishing](development/publication.md) · [Writing standard](_standards/README.md) · [Documentation checks](development/documentation.md) ·
+[Participation policy](../CONTRIBUTING.md)
+
+[Project overview](../README.md) · [Support](../SUPPORT.md) · [Security](../SECURITY.md)

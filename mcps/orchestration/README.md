@@ -102,7 +102,7 @@ New delegated results are submitted through authenticated Carrier identities.
 The host commits acceptance before acknowledgment. It does not parse final chat
 text, scrape terminal output, or read report files to establish task success.
 See [the task/workflow contract](docs/delegation-workflows.md) and
-[the architecture decision](../../docs/decisions/0002-carrier-task-results.md).
+[Suite execution and recovery](../../docs/architecture/execution-and-recovery.md).
 
 Advanced controller setup, with compatible optional packages and a matching
 running Carrier service. From a POSIX shell, start the host first, then start
@@ -122,7 +122,7 @@ queues. These tools no longer reside implicitly in the conversation/shared group
 Advanced workflow editing and application-bound routes require separate
 qualification. The active exporter and application services remain in this
 package while their Server consumers are refactored; see
-[Suite architecture](../../docs/architecture.md).
+[Suite architecture](../../docs/architecture/README.md).
 
 Standalone MCP tools and shared workspace services for projects, agents,
 conversations, durable tasks and workflows. Aixand Suite is an optional consumer

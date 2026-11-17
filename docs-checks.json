@@ -11,7 +11,6 @@
     "apps/web/docs/*.md",
     "docs/*.md",
     "docs/_standards/*.md",
-    "docs/decisions/*.md",
     "mcps/*.md",
     "mcps/orchestration/*.md",
     "mcps/orchestration/docs/*.md",
@@ -27,7 +26,11 @@
     "workflow/runner/python/*.md",
     "workflow/runner/docs/*.md",
     "docs/reference/*.md",
-    "docs/development/*.md"
+    "docs/development/*.md",
+    "docs/getting-started/*.md",
+    "docs/guides/*.md",
+    "docs/architecture/*.md",
+    "docs/onboarding/*.md"
   ],
   "exclude": [],
   "allow_placeholders": false

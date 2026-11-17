@@ -34,7 +34,7 @@ File transfer does not require an agent on the receiver.
 
 The managed-chat helper has migration limits described below; do not infer
 end-to-end UI support from its API alone. Native remote Codex execution on
-Windows remains unverified. See [Suite qualification limits](../../docs/architecture.md#current-foundation-and-qualification-limits).
+Windows remains unverified. See [Suite qualification limits](../../docs/reference/compatibility.md).
 
 [Pair a device](#set-up) · [Check a transfer](#verify-your-first-transfer) ·
 [Remote chats](#remote-codex-chats) · [Project copies](#copy-a-project-to-a-device) ·

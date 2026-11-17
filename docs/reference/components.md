@@ -1,5 +1,9 @@
 # Component source and activation contract
 
+Use this reference for Suite-wide source, version, and activation boundaries.
+The [documentation index](../README.md#find-a-component) maps components to their
+entry points; [ownership](../architecture/ownership.md) identifies state authority.
+
 The development checkout declares component boundaries in
 [release/components.json](../../release/components.json).
 [components.py](../../scripts/release/components.py) validates manifests,

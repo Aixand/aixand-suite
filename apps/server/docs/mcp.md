@@ -4,7 +4,7 @@ Suite uses MCP Manager for definitions, source jobs, preparation and immutable
 captured artifacts. Agent Manager owns native environments and launch capability;
 Suite captures supported explicit MCP selections before managed chat startup.
 Profiles do not own the resource library. See
-[agent integration](../../../docs/agent-integration.md).
+[agent integration](../../../docs/development/agent-integration.md).
 
 ## Prepare a managed chat
 

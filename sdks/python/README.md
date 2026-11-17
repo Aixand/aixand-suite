@@ -68,7 +68,7 @@ Prepare and authenticate a native environment/profile through your installed
 Agent Manager, or use an existing one. The example below assumes an authenticated
 profile named `research`. Use your actual profile name, or `profile=None` for
 Agent Manager's automatic selection. Suite users can follow
-[native onboarding](../../docs/onboarding.md); SDK-only users should use their
+[native onboarding](../../docs/getting-started/first-workspace.md); SDK-only users should use their
 installed Agent Manager's help and profile/login interfaces. There is no separate
 saved-login library to create for this SDK.
 

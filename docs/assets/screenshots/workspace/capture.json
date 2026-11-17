@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "mode": "real-ui-with-fixture-data",
+  "viewport": {
+    "width": 1440,
+    "height": 1000
+  },
+  "theme": "light",
+  "command": "node scripts/docs/capture-workspace.mjs",
+  "screenshots": [
+    "new-conversation.png",
+    "permissions.png",
+    "resources.png",
+    "conversation.png",
+    "approval.png",
+    "project-files.png",
+    "terminal.png",
+    "workflow.png"
+  ],
+  "sourceHashes": {
+    "apps/web/src/workspace/ChatPage.tsx": "b54d8b4957c1662255ed68093580e8412d1fa4f93fd4055794edf99de129ded7",
+    "apps/web/src/chats/Conversation.tsx": "226fce05963e09c75bd527aad5026a265ace0443d0500cefc12e381cd28cea69",
+    "apps/web/src/terminals/TerminalLibrary.tsx": "8310c9b5c983ec9d92f64d76924bd0b9876010aea5856cc0214ba2d2bcba0c44",
+    "apps/web/src/pages/Workflows.tsx": "ab1859dfd552a2275842caf2304bfc0a7116dfcd73802bdcec08b6fb505aa97f"
+  }
+}

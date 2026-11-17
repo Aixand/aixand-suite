@@ -5,7 +5,7 @@ The bridge's JSONL entry point dispatches managed conversation operations to
 operation intent, resource composition (`resources.py`), and scoped Suite tool
 context (`tools.py`). Native onboarding and public Agent Manager profile/readiness
 adaptation live in `onboarding.py`; see
-[the onboarding contract](../../../../docs/onboarding.md). Conversation Manager
+[the onboarding contract](../../../../docs/development/onboarding.md). Conversation Manager
 remains authoritative for transcripts,
 queues, settings, requests and worker lifecycle.
 
@@ -15,7 +15,7 @@ ownership: conversation mutations and task, terminal, workflow and operation
 access remain scoped to the originating tool context. Unknown chat IDs are denied.
 
 This application boundary is described in
-[Suite architecture](../../../../docs/architecture.md). The reusable execution SDK
+[Suite architecture](../../../../docs/architecture/README.md). The reusable execution SDK
 adapter remains in Orchestration MCP. Workspace persistence and project behavior
 still imported from that package need consumer refactoring. These boundaries do not establish complete separation
 or full orchestration qualification.

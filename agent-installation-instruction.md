@@ -335,6 +335,6 @@ Finish with a concise report:
 These instructions follow the [application roles](apps/web/docs/installation-editions.md),
 [Server lifecycle and setup](apps/server/docs/installation.md),
 [Client behavior](apps/web/docs/client.md), and
-[provider onboarding](docs/onboarding.md). Update this guide when those contracts
+[provider onboarding](docs/development/onboarding.md). Update this guide when those contracts
 or hosted installer routes change. The guide is ordinary documentation; it does
 not install an agent skill or change an agent's permissions.

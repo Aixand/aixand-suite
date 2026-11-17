@@ -15,7 +15,7 @@ beta. Start with [local setup](../README.md#develop-locally).
 | Workflow editor and retained runs | [src/workflows](../src/workflows/) |
 | Device pairing and transfers | [src/connect](../src/connect/) |
 
-[Agent integration](../../../docs/agent-integration.md) defines independent resource
+[Agent integration](../../../docs/development/agent-integration.md) defines independent resource
 stores and captured launch selections. [Server application services](../../server/agent-bridge/application/README.md)
 own workspace associations and recovery; the frontend must not become a second
 transcript, queue or lifecycle authority.

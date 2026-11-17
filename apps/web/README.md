@@ -97,6 +97,6 @@ Generated traces and reports belong in ignored `test-results/`.
 | Develop native applications | [Desktop shell](../desktop/README.md) · [Desktop development](docs/desktop.md) |
 | Understand remote-only access | [Client](docs/client.md) · [Installation roles](docs/installation-editions.md) |
 | Maintain update behavior | [Updates](docs/updates.md) · [Component versions](docs/release-versions.md) |
-| Respect backend boundaries | [Agent integration](../../docs/agent-integration.md) · [Authentication](../server/docs/authentication.md) |
+| Respect backend boundaries | [Agent integration](../../docs/development/agent-integration.md) · [Authentication](../server/docs/authentication.md) |
 
 [Suite](../../README.md) · [Support](../../SUPPORT.md) · [License](../../LICENSE)

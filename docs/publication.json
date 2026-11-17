@@ -1,0 +1,307 @@
+{
+  "schema": 1,
+  "project": "aixand-suite",
+  "pages": [
+    {
+      "file": "getting-started/installation.md",
+      "slug": "installation",
+      "section": "Getting started",
+      "order": 1,
+      "description": "Choose the Suite, Server, or Client installation guide."
+    },
+    {
+      "file": "getting-started/install-suite.md",
+      "slug": "installation/suite",
+      "section": "Getting started",
+      "order": 2,
+      "description": "Install the full local application on Windows, Linux, or macOS."
+    },
+    {
+      "file": "getting-started/install-server.md",
+      "slug": "installation/server",
+      "section": "Getting started",
+      "order": 3,
+      "description": "Install and start a workspace host on Windows, Linux, or macOS."
+    },
+    {
+      "file": "getting-started/install-client.md",
+      "slug": "installation/client",
+      "section": "Getting started",
+      "order": 4,
+      "description": "Install the interface and connect to an existing Server."
+    },
+    {
+      "file": "getting-started/configuration.md",
+      "slug": "configuration",
+      "section": "Getting started",
+      "order": 5,
+      "description": "Choose local workspace setup or a Server connection."
+    },
+    {
+      "file": "guides/configure-suite.md",
+      "slug": "configuration/suite",
+      "section": "Getting started",
+      "order": 6,
+      "description": "Configure a local workspace and its tools."
+    },
+    {
+      "file": "guides/configure-server.md",
+      "slug": "configuration/server",
+      "section": "Getting started",
+      "order": 7,
+      "description": "Set up the workspace host and choose remote access."
+    },
+    {
+      "file": "guides/configure-client.md",
+      "slug": "configuration/client",
+      "section": "Getting started",
+      "order": 8,
+      "description": "Save a Server connection and sign in."
+    },
+    {
+      "file": "guides/connect-ssh.md",
+      "slug": "configuration/ssh",
+      "section": "Getting started",
+      "order": 9,
+      "description": "Connect through an SSH tunnel and plan automatic startup."
+    },
+    {
+      "file": "guides/connect-https.md",
+      "slug": "configuration/https",
+      "section": "Getting started",
+      "order": 10,
+      "description": "Configure HTTPS, exact origins, and trusted proxy peers."
+    },
+    {
+      "file": "getting-started/first-workspace.md",
+      "slug": "quickstart",
+      "section": "Onboarding",
+      "order": 11,
+      "description": "Choose providers, connect profiles, add projects, and enter your workspace."
+    },
+    {
+      "file": "onboarding/choose-providers.md",
+      "slug": "onboarding/choose-providers",
+      "section": "Onboarding",
+      "order": 12,
+      "description": "Choose Codex, OpenCode, or both."
+    },
+    {
+      "file": "onboarding/install-providers.md",
+      "slug": "onboarding/install-providers",
+      "section": "Onboarding",
+      "order": 13,
+      "description": "Detect or install provider software on the workspace host."
+    },
+    {
+      "file": "onboarding/profiles-sign-in.md",
+      "slug": "onboarding/profiles-sign-in",
+      "section": "Onboarding",
+      "order": 14,
+      "description": "Create a profile and complete provider sign-in."
+    },
+    {
+      "file": "onboarding/projects.md",
+      "slug": "onboarding/projects",
+      "section": "Onboarding",
+      "order": 15,
+      "description": "Select and review project folders."
+    },
+    {
+      "file": "onboarding/finish.md",
+      "slug": "onboarding/finish",
+      "section": "Onboarding",
+      "order": 16,
+      "description": "Enter your workspace and verify a first conversation."
+    },
+    {
+      "file": "guides/workspace.md",
+      "slug": "guides/workspace",
+      "section": "Using your workspace",
+      "order": 20,
+      "description": "Start conversations and use projects, terminals, resources, and workflows."
+    },
+    {
+      "file": "guides/conversations.md",
+      "slug": "guides/conversations",
+      "section": "Using your workspace",
+      "order": 21,
+      "description": "Start chats, answer approvals, and reconnect."
+    },
+    {
+      "file": "guides/conversation-controls.md",
+      "slug": "guides/conversation-controls",
+      "section": "Using your workspace",
+      "order": 22,
+      "description": "Answer approvals, send follow-ups, stop work, and reopen chats."
+    },
+    {
+      "file": "guides/projects.md",
+      "slug": "guides/projects",
+      "section": "Using your workspace",
+      "order": 23,
+      "description": "Register a project folder on the workspace host."
+    },
+    {
+      "file": "guides/terminals.md",
+      "slug": "guides/terminals",
+      "section": "Using your workspace",
+      "order": 24,
+      "description": "Run commands and manage native terminal sessions."
+    },
+    {
+      "file": "guides/resources.md",
+      "slug": "guides/resources",
+      "section": "Using your workspace",
+      "order": 25,
+      "description": "Select prompts, skills, and MCP tools."
+    },
+    {
+      "file": "guides/workflows.md",
+      "slug": "guides/workflows",
+      "section": "Using your workspace",
+      "order": 26,
+      "description": "Run dependent tasks and inspect their results."
+    },
+    {
+      "file": "guides/maintenance.md",
+      "slug": "guides/maintenance",
+      "section": "Maintaining your workspace",
+      "order": 30,
+      "description": "Update, troubleshoot, back up, restore, or remove a workspace."
+    },
+    {
+      "file": "guides/updates.md",
+      "slug": "guides/updates",
+      "section": "Maintaining your workspace",
+      "order": 31,
+      "description": "Check, review, install, and verify application and workspace updates."
+    },
+    {
+      "file": "guides/troubleshooting.md",
+      "slug": "troubleshooting",
+      "section": "Maintaining your workspace",
+      "order": 32,
+      "description": "Diagnose installation, connection, provider, and runtime problems."
+    },
+    {
+      "file": "guides/backup-and-removal.md",
+      "slug": "guides/backup-and-removal",
+      "section": "Maintaining your workspace",
+      "order": 33,
+      "description": "Back up workspace and shared data, plan restoration, and review reset or removal."
+    },
+    {
+      "file": "guides/remote-access.md",
+      "slug": "remote-access",
+      "section": "Guides",
+      "order": 35,
+      "description": "Connect to a separate Server through SSH or HTTPS."
+    },
+    {
+      "file": "guides/examples.md",
+      "slug": "guides/examples",
+      "section": "Guides",
+      "order": 37,
+      "description": "Find runnable examples and their prerequisites."
+    },
+    {
+      "file": "architecture/README.md",
+      "slug": "concepts/architecture",
+      "section": "Concepts",
+      "order": 40,
+      "description": "Understand how Suite components work together."
+    },
+    {
+      "file": "architecture/ownership.md",
+      "slug": "concepts/ownership",
+      "section": "Concepts",
+      "order": 41,
+      "description": "Identify the owner of each record and operation."
+    },
+    {
+      "file": "architecture/execution-and-recovery.md",
+      "slug": "concepts/execution-and-recovery",
+      "section": "Concepts",
+      "order": 42,
+      "description": "Interpret receipts, task results, retries, and cancellation."
+    },
+    {
+      "file": "architecture/security.md",
+      "slug": "concepts/security",
+      "section": "Concepts",
+      "order": 43,
+      "description": "Understand workspace authority and connection boundaries."
+    },
+    {
+      "file": "reference/terminology.md",
+      "slug": "reference/terminology",
+      "section": "Reference",
+      "order": 50,
+      "description": "Look up Suite terminology."
+    },
+    {
+      "file": "reference/compatibility.md",
+      "slug": "reference/compatibility",
+      "section": "Reference",
+      "order": 51,
+      "description": "Check platform requirements and feature limits."
+    },
+    {
+      "file": "reference/components.md",
+      "slug": "reference/components",
+      "section": "Reference",
+      "order": 52,
+      "description": "Look up component versions and activation owners."
+    },
+    {
+      "file": "development/README.md",
+      "slug": "development",
+      "section": "Development",
+      "order": 70,
+      "description": "Prepare the source checkout and start development."
+    },
+    {
+      "file": "development/dependencies.md",
+      "slug": "development/dependencies",
+      "section": "Development",
+      "order": 71,
+      "description": "Prepare published dependencies or sibling sources."
+    },
+    {
+      "file": "development/integrations.md",
+      "slug": "development/integrations",
+      "section": "Development",
+      "order": 72,
+      "description": "Find cross-component integration boundaries."
+    },
+    {
+      "file": "development/onboarding.md",
+      "slug": "development/onboarding",
+      "section": "Development",
+      "order": 73,
+      "description": "Implement native provider onboarding."
+    },
+    {
+      "file": "development/agent-integration.md",
+      "slug": "development/agent-integration",
+      "section": "Development",
+      "order": 74,
+      "description": "Integrate resources, profiles, and sign-in handover."
+    },
+    {
+      "file": "development/conversation-integration.md",
+      "slug": "development/conversations",
+      "section": "Development",
+      "order": 75,
+      "description": "Integrate conversation commands and recovery."
+    },
+    {
+      "file": "development/testing.md",
+      "slug": "development/testing",
+      "section": "Development",
+      "order": 76,
+      "description": "Select focused checks for a component change."
+    }
+  ]
+}

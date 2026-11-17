@@ -27,7 +27,7 @@ loopback exceptions and recovery. Never put secrets in frontend assets.
 | Manager integration and state ownership | [manager integration](manager-suites.md) |
 
 The active Orchestration MCP exporter still supplies services to Server consumers.
-Do not remove it before replacing those consumers. See [architecture](../../../docs/architecture.md).
+Do not remove it before replacing those consumers. See [architecture](../../../docs/architecture/README.md).
 
 ## Verify a change
 

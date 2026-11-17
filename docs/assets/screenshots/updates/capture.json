@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "mode": "real-ui-with-fixture-data",
+  "versions": "illustrative only",
+  "viewport": {
+    "width": 1440,
+    "height": 1000
+  },
+  "theme": "light",
+  "command": "node scripts/docs/capture-updates.mjs",
+  "screenshots": [
+    "overview.png",
+    "review-tools.png"
+  ],
+  "sourceHashes": {
+    "apps/web/src/settings/UpdatesSettings.tsx": "43dfd7c480477ad57fc17842edd54a5da61635533c370076bf9360f2b3f4c334"
+  }
+}
