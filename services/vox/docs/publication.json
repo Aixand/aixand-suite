@@ -1,0 +1,85 @@
+{
+  "schema": 1,
+  "project": "aixand-suite",
+  "component": "vox",
+  "pages": [
+    {
+      "file": "README.md",
+      "slug": "vox",
+      "section": "Overview",
+      "order": 0
+    },
+    {
+      "file": "architecture/runtime.md",
+      "slug": "vox/architecture",
+      "section": "Architecture",
+      "order": 10
+    },
+    {
+      "file": "architecture/audio.md",
+      "slug": "vox/audio",
+      "section": "Architecture",
+      "order": 20
+    },
+    {
+      "file": "lifecycles/calls.md",
+      "slug": "vox/calls",
+      "section": "Lifecycles",
+      "order": 30
+    },
+    {
+      "file": "lifecycles/turns.md",
+      "slug": "vox/turns",
+      "section": "Lifecycles",
+      "order": 40
+    },
+    {
+      "file": "lifecycles/wake.md",
+      "slug": "vox/wake",
+      "section": "Lifecycles",
+      "order": 50
+    },
+    {
+      "file": "integrations/controller.md",
+      "slug": "vox/integrations",
+      "section": "Integrations",
+      "order": 60
+    },
+    {
+      "file": "development/README.md",
+      "slug": "vox/development",
+      "section": "Development",
+      "order": 70
+    },
+    {
+      "file": "development/verification.md",
+      "slug": "vox/testing",
+      "section": "Development",
+      "order": 80
+    },
+    {
+      "file": "reference/protocol.md",
+      "slug": "vox/protocol",
+      "section": "Reference",
+      "order": 90
+    },
+    {
+      "file": "reference/configuration.md",
+      "slug": "vox/configuration",
+      "section": "Reference",
+      "order": 100
+    },
+    {
+      "file": "reference/implementation-status.md",
+      "slug": "vox/implementation-status",
+      "section": "Reference",
+      "order": 110
+    },
+    {
+      "file": "development/first-call.md",
+      "slug": "vox/first-call",
+      "section": "Development",
+      "order": 75
+    }
+  ]
+}
