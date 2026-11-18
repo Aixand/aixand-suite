@@ -1,0 +1,85 @@
+{
+  "schema": 1,
+  "project": "aixand-suite",
+  "component": "desktop",
+  "pages": [
+    {
+      "file": "README.md",
+      "slug": "desktop",
+      "section": "Overview",
+      "order": 0
+    },
+    {
+      "file": "architecture/composition.md",
+      "slug": "desktop/architecture",
+      "section": "Architecture",
+      "order": 10
+    },
+    {
+      "file": "architecture/trust.md",
+      "slug": "desktop/trust",
+      "section": "Architecture",
+      "order": 20
+    },
+    {
+      "file": "client.md",
+      "slug": "desktop/client",
+      "section": "Architecture",
+      "order": 30
+    },
+    {
+      "file": "lifecycles/connections.md",
+      "slug": "desktop/connections",
+      "section": "Lifecycles",
+      "order": 40
+    },
+    {
+      "file": "lifecycles/local-workspace.md",
+      "slug": "desktop/local-workspace",
+      "section": "Lifecycles",
+      "order": 50
+    },
+    {
+      "file": "integrations/native-transport.md",
+      "slug": "desktop/native-transport",
+      "section": "Integrations",
+      "order": 60
+    },
+    {
+      "file": "integrations/desktop-gateway.md",
+      "slug": "desktop/desktop-gateway",
+      "section": "Integrations",
+      "order": 70
+    },
+    {
+      "file": "lifecycles/maintenance.md",
+      "slug": "desktop/maintenance",
+      "section": "Lifecycles",
+      "order": 80
+    },
+    {
+      "file": "development/README.md",
+      "slug": "desktop/development",
+      "section": "Development",
+      "order": 90
+    },
+    {
+      "file": "development/packaging.md",
+      "slug": "desktop/packaging",
+      "section": "Development",
+      "order": 100
+    },
+    {
+      "file": "development/verification.md",
+      "slug": "desktop/verification",
+      "section": "Development",
+      "order": 110
+    },
+    {
+      "file": "reference/implementation-status.md",
+      "slug": "desktop/implementation-status",
+      "section": "Reference",
+      "order": 120
+    }
+  ]
+}

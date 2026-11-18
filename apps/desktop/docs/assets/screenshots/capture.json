@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "mode": "real-launcher-assets-with-mocked-native-responses",
+  "viewport": {
+    "width": 1024,
+    "height": 900
+  },
+  "theme": "light",
+  "command": "node apps/desktop/docs/development/capture-launcher.mjs",
+  "screenshots": [
+    "desktop-launcher.png",
+    "client-launcher.png"
+  ],
+  "sourceHashes": {
+    "apps/desktop/src-tauri/launcher/index.html": "72b3633dab0dc14783dacbc8d0664fa241061ec3fb86ac80f2deff64021c0f6f",
+    "apps/desktop/src-tauri/launcher/launcher.js": "d1ce978bc750895b836ba4ca5df182d4077111753836f71c309754bd55732654",
+    "apps/desktop/src-tauri/launcher/launcher.css": "9f3a0c380a800fa4ff6f457ac3e590be0e525dfb14aaec6d6a5ac2eab994967d"
+  },
+  "limitations": "Browser rendering of real launcher HTML/CSS/JS; no native window, service, connection, installation or update action executed. HTTPS network requests blocked. Server address is fixture data."
+}
