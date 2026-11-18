@@ -1,12 +1,4 @@
-<p align="center">
-  <img src="../../../apps/web/public/favicon.svg" width="160" height="160" alt="Aixand logo">
-</p>
-
 # Aixand Runner Client
-
-<p align="center">
-  <strong>Submit jobs and inspect durable outcomes from Python.</strong>
-</p>
 
 Python client for the local Aixand Runner protocol. Install
 `aixand-suite-runner-client` and import `runner_client`. It connects through the
@@ -67,18 +59,7 @@ path. `health()` verifies service connectivity, not workflow completion.
 
 ## Handle retries, errors, and cleanup
 
-Keep the submission key and returned job ID. After a timeout, use `lookup(key)`
-or retry the exact original submission with the same key. Changed content under
-the same key conflicts. `inspect(job_id)`, `result(job_id)`, and
-`events(job_id)` inspect accepted work; `follow(job_id)` streams retained events
-until the job settles. `RunnerError` carries a structured `code` and optional
-`details`.
-
-Cancellation is cooperative: `cancel(job_id)` does not roll back effects.
-`resume(job_id)` reconciles supported native workflows using retained identities;
-it is not a generic replay mechanism for opaque SDK or standalone IR execution.
-The [Runner outcome contract](../README.md#outcomes-and-restart-behavior) defines
-failed, blocked, cancelled, and uncertain results.
+Keep the submission key and job ID. After a timeout, retry the exact submission with the same key or use `lookup(key)`; changed content conflicts. See [retry/error recovery](docs/lifecycles/recovery.md), [observation](docs/lifecycles/observation.md) and [operation reference](docs/reference/operations.md) for cancellation and native reconciliation limits.
 
 When finished with the demo, stop its foreground Runner with Ctrl+C. Retain the
 demo home for history, or remove only that disposable directory after service
@@ -92,3 +73,7 @@ shutdown. Closing a Python client request does not stop the service or its jobs.
 - [Client implementation](runner_client.py) and [package metadata](pyproject.toml)
 
 [Suite](../../../README.md) · [Support](../../../SUPPORT.md) · [License](../../../LICENSE)
+
+## Component architecture
+
+Read the [component architecture docs](docs/README.md) for ownership, lifecycles, integrations and source/test maps.

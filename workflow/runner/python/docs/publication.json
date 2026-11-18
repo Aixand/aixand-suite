@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "project": "aixand-suite",
+  "component": "runner-client",
+  "pages": [
+    {
+      "file": "README.md",
+      "slug": "runner-client",
+      "section": "Overview",
+      "order": 0
+    },
+    {
+      "file": "architecture/boundary.md",
+      "slug": "runner-client/architecture",
+      "section": "Architecture",
+      "order": 10
+    },
+    {
+      "file": "integrations/transport.md",
+      "slug": "runner-client/transport",
+      "section": "Integrations",
+      "order": 20
+    },
+    {
+      "file": "reference/contracts.md",
+      "slug": "runner-client/contracts",
+      "section": "Reference",
+      "order": 30
+    },
+    {
+      "file": "reference/operations.md",
+      "slug": "runner-client/operations",
+      "section": "Reference",
+      "order": 40
+    },
+    {
+      "file": "lifecycles/recovery.md",
+      "slug": "runner-client/recovery",
+      "section": "Lifecycles",
+      "order": 50
+    },
+    {
+      "file": "lifecycles/observation.md",
+      "slug": "runner-client/observation",
+      "section": "Lifecycles",
+      "order": 60
+    },
+    {
+      "file": "lifecycles/plans.md",
+      "slug": "runner-client/plans",
+      "section": "Lifecycles",
+      "order": 70
+    },
+    {
+      "file": "development/verification.md",
+      "slug": "runner-client/development",
+      "section": "Development",
+      "order": 80
+    }
+  ]
+}
