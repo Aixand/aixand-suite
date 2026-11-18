@@ -9,7 +9,8 @@ export type Target = string | { kind: 'managed' | 'release'; store?: string; ref
 export type Item = { target: Target; required?: boolean; inputs?: Record<string, unknown> }
 type Policy = { inherit?: boolean; add?: Item[]; exclude?: Target[] }
 export type ResourceRequest = { schema?: 'agent-manager/resource-request-1' | 'agent-manager/resource-request-2'; inherit_profile?: boolean; instructions?: { mode?: 'inherit' | 'off' | 'replace'; target?: Target; required?: boolean; inputs?: Record<string, unknown> }; skills?: Policy; mcp?: Policy }
-export type ResourceReport = { items: { id: string; kind: string; target: Target; origin: string; application?: { id: string; revision: string }; delivery?: 'native' | 'stdio'; required: boolean; status: string; verification: string; revision?: string; content_digest?: string; reconciliation_required?: boolean; sync_error?: { message: string } | null; connection_status?: string; reason?: { code: string; message: string } | null }[] }
+export type ResourceReportItem = { id: string; kind: string; target: Target; origin: string; text?: string; layers?: ResourceReportItem[]; application?: { id: string; revision: string }; delivery?: 'native' | 'stdio'; required: boolean; status: string; verification: string; revision?: string; content_digest?: string; reconciliation_required?: boolean; sync_error?: { message: string } | null; connection_status?: string; reason?: { code: string; message: string } | null }
+export type ResourceReport = { items: ResourceReportItem[] }
 export type Defaults = { revision: string; instructions: Item | null; skills: Item[]; mcp: Item[] }
 export function validDefaults(value: Defaults) {
   if (!value || typeof value.revision !== 'string' || !Array.isArray(value.skills) || !Array.isArray(value.mcp)) throw new Error('Profile resource defaults are unavailable. Refresh or update Agent Manager.')
@@ -17,7 +18,7 @@ export function validDefaults(value: Defaults) {
 }
 export type Choice = { label: string; target: Target; description?: string; reconciliation_required?: boolean; installation?: { status: string; installation_required: boolean } | null }
 type Integration = { manager: string; available: boolean; status: string; reason?: { message: string } | null }
-export type ResourceCatalog = { profileDefaultsSupported?: boolean; choices: Record<'instructions' | 'skills' | 'mcp', Choice[]>; integrations?: Record<string, Integration> }
+export type ResourceCatalog = { profileDefaultsSupported?: boolean; instructionDefaultsSupported?: boolean; choices: Record<'instructions' | 'skills' | 'mcp', Choice[]>; integrations?: Record<string, Integration> }
 export const resourceKey = (target: Target) => typeof target === 'string' ? target : JSON.stringify(Object.fromEntries(Object.entries(target).sort(([a], [b]) => a.localeCompare(b))))
 const key = resourceKey
 export const resourceLabel = (target: Target) => typeof target === 'string' ? target : target.reference ?? [target.publisher_id, target.package_id ?? target.skill_id ?? target.server_id, target.prompt].filter(Boolean).join('/')
@@ -37,7 +38,10 @@ export function ResourceReportView({ report }: { report?: ResourceReport | null 
   if (!report) return null
   return <section className="resource-report" aria-label="Resource delivery"><h4>Resources</h4>{report.items.length === 0 && <p>No manager resources selected.</p>}
     {report.items.map(row => <div key={row.id} className="resource-report-item"><strong>{resourceLabel(row.target)}</strong> · {({ ready: 'Available', applied: 'Applied', skipped: 'Skipped' } as Record<string, string>)[row.status] ?? row.status}{row.required ? ' · required' : ' · optional'}
-      <small> · {row.application ? 'Included by Suite' : row.origin === 'profile' ? 'From profile' : 'For this launch'} · {row.verification === 'pending' ? 'Support checked at connection' : 'Delivery checked'}</small>
+      <small> · {row.application ? 'Included by Suite' : row.origin === 'profile' ? 'From profile' : row.origin === 'global' ? 'Global default' : row.origin === 'defaults' ? 'Global and profile defaults' : 'For this launch'} · {row.verification === 'pending' ? 'Support checked at connection' : 'Delivery checked'}</small>
+      {(row.layers ?? (row.text !== undefined ? [row] : [])).map(layer => <details key={layer.id}><summary>{layer.origin === 'global' ? 'Global instructions' : layer.origin === 'profile' ? 'Profile instructions' : 'Captured instructions'}</summary>
+        <p>{resourceLabel(layer.target)}</p><code>{layer.revision}</code><pre style={{ whiteSpace: 'pre-wrap' }}>{layer.text}</pre>
+      </details>)}
       {row.reason && <p>{row.reason.message}</p>}
       {row.kind === 'mcp' && row.status === 'applied' && <small>{row.delivery === 'native' ? 'Native tools delivered.' : 'Configuration delivered. Check live MCP status for connections.'}</small>}
       {row.sync_error && <p role="status">Publisher update check failed: {row.sync_error.message}. Using the accepted configuration.</p>}
@@ -56,6 +60,8 @@ export function useResourcePicker({ agents, provider, profile, cwd, backend, mod
   const [choices, setChoices] = useState<Record<'instructions' | 'skills' | 'mcp', Choice[]>>({ instructions: [], skills: [], mcp: [] })
   const [defaults, setDefaults] = useState<Defaults | null>(null)
   const [profileDefaultsSupported, setProfileDefaultsSupported] = useState(true)
+  const [instructionDefaultsSupported, setInstructionDefaultsSupported] = useState(false)
+  const [resourceGeneration, setResourceGeneration] = useState(0)
   const [integrations, setIntegrations] = useState<Record<string, Integration>>({})
   const [preview, setPreview] = useState<{ key: string; report?: ResourceReport; error?: string }>()
   const [catalogError, setCatalogError] = useState('')
@@ -67,7 +73,7 @@ export function useResourcePicker({ agents, provider, profile, cwd, backend, mod
   const inputsText = inputsDraft?.key === inputsKey ? inputsDraft.text : JSON.stringify(instruction?.inputs ?? {}, null, 2)
   const setInputs = (text: string, error = '') => setInputsDraft({ key: inputsKey, text, error })
   const serialized = JSON.stringify(value)
-  const previewKey = JSON.stringify([provider, profile, serialized, cwd, backend, mode, applicationPreset])
+  const previewKey = JSON.stringify([provider, profile, serialized, cwd, backend, mode, applicationPreset, resourceGeneration])
   const report = preview?.key === previewKey ? preview.report : undefined
   const error = preview?.key === previewKey ? preview.error ?? '' : ''
   useEffect(() => {
@@ -77,6 +83,7 @@ export function useResourcePicker({ agents, provider, profile, cwd, backend, mod
     void api.current.request<ResourceCatalog>('resource-catalog', { provider }).then(async catalog => {
       const supported = catalog.profileDefaultsSupported !== false
       if (active) setProfileDefaultsSupported(supported)
+      if (active) setInstructionDefaultsSupported(catalog.instructionDefaultsSupported === true && mode !== 'terminal')
       if (editingDefaults && !supported) throw new Error('Profiles do not own resource bindings. Select resources when starting a conversation.')
       const bindings = supported ? await api.current.request<Defaults>('profile-resources-get', { provider, profile }) :
         { revision: 'unbound', instructions: null, skills: [], mcp: [] }
@@ -90,6 +97,7 @@ export function useResourcePicker({ agents, provider, profile, cwd, backend, mod
     if (!enabled) return
     let active = true
     const refresh = () => {
+      setResourceGeneration(value => value + 1)
       void api.current.request<ResourceCatalog>('resource-catalog', { provider }).then(catalog => {
         if (active && catalog.choices) { setChoices(catalog.choices); setIntegrations(catalog.integrations ?? {}) }
       }).catch(() => undefined)
@@ -112,7 +120,7 @@ export function useResourcePicker({ agents, provider, profile, cwd, backend, mod
   useEffect(() => {
     onValidationChange?.(valid)
   }, [valid, onValidationChange])
-  return { choices, defaults, profileDefaultsSupported, integrations, report, error, catalogError, inputsError, inputsText, setInputs, valid }
+  return { choices, defaults, profileDefaultsSupported, instructionDefaultsSupported, integrations, report, error, catalogError, inputsError, inputsText, setInputs, valid }
 }
 
 export function ResourcePicker(props: ResourcePickerProps) {
@@ -122,7 +130,7 @@ export function ResourcePicker(props: ResourcePickerProps) {
 
 export function ResourcePickerView({ value, onChange, disabled = false, editingDefaults = false, state, compact = false, section }: Pick<ResourcePickerProps, 'value' | 'onChange' | 'disabled' | 'editingDefaults'> & { compact?: boolean; section?: 'instructions' | 'skills' | 'mcp'; state: ReturnType<typeof useResourcePicker> }) {
   const fieldVariant = useContentFieldVariant()
-  const { choices, defaults, profileDefaultsSupported, integrations, report, error, catalogError, inputsError, inputsText, setInputs } = state
+  const { choices, defaults, profileDefaultsSupported, instructionDefaultsSupported, integrations, report, error, catalogError, inputsError, inputsText, setInputs } = state
   const instruction = value.instructions
   const instructionKey = instruction?.mode === 'replace' && instruction.target ? key(instruction.target) : instruction?.mode ?? 'inherit'
   const instructionChoices = [...choices.instructions]
@@ -131,7 +139,8 @@ export function ResourcePickerView({ value, onChange, disabled = false, editingD
     {(['instructions', 'skills', 'mcp'] as const).map(kind => {
       const label = kind === 'instructions' ? 'Prompts' : kind === 'skills' ? 'Skills' : 'MCP resources'
       const inherited = value.inherit_profile !== false && (kind === 'instructions' ? instruction?.mode !== 'off' && instruction?.mode !== 'replace' : value[kind]?.inherit !== false)
-      const count = kind === 'instructions' ? instruction?.mode === 'replace' ? 1 : inherited && defaults?.instructions ? 1 : 0 :
+      const capturedInstructions = report?.items.find(row => row.kind === 'instructions')
+      const count = kind === 'instructions' ? instruction?.mode === 'replace' ? 1 : inherited && capturedInstructions ? capturedInstructions.layers?.length ?? 1 : inherited && defaults?.instructions ? 1 : 0 :
         (value[kind]?.add?.length ?? 0) + (inherited ? defaults?.[kind].filter(item => !value[kind]?.exclude?.some(target => key(target) === key(item.target))).length ?? 0 : 0)
       return <Dialog key={kind} title={label} trigger={<Button variant="ghost" className="chat-resource-row" aria-label={`Edit ${label.toLowerCase()}`}>
         <span>{label}</span><span className="chat-settings-note">{count} selected</span><span>Edit</span>
@@ -143,21 +152,22 @@ export function ResourcePickerView({ value, onChange, disabled = false, editingD
     {(error || catalogError) && <p role="alert">{error || catalogError}</p>}
   </div>
   return <div className="agents-sheet-form resource-picker" aria-label="Launch resources">
-    {!section && <p>Profile defaults apply to new sessions. Optional resources can be skipped when unavailable; required resources must be usable before the task starts.</p>}
+    {!section && <p>Instruction defaults apply to new chats. Required resources must be usable before the task starts.</p>}
     {Object.entries(integrations).filter(([, row]) => !row.available).map(([kind, row]) => <p key={kind} role="status">{row.reason?.message ?? `${row.manager} is unavailable on the execution machine.`} Saved assignments are retained.</p>)}
-    {!editingDefaults && <Checkbox label="Inherit profile resources" isSelected={value.inherit_profile !== false} disabled={disabled}
+    {!editingDefaults && profileDefaultsSupported && <Checkbox label="Inherit profile resources" isSelected={value.inherit_profile !== false} disabled={disabled}
       onChange={inherit_profile => onChange({ ...value, inherit_profile })} />}
     {defaults && !editingDefaults && <p>{defaults.instructions ? 'Prompt assigned' : 'No profile prompt'} · {defaults.skills.length} skills · {defaults.mcp.length} MCP servers</p>}
     {(!section || section === 'instructions') && <Select variant={fieldVariant} label="Instructions" aria-label="Resource instructions" value={instructionKey} disabled={disabled}
       options={[
-        ...(!editingDefaults ? [{ id: 'inherit', label: profileDefaultsSupported ? 'Profile default' : 'None' }] : []),
-        { id: 'off', label: 'Off' },
+        ...(!editingDefaults ? [{ id: 'inherit', label: instructionDefaultsSupported ? 'Global and profile defaults' : profileDefaultsSupported ? 'Profile default' : 'None' }] : []),
+        { id: 'off', label: 'Off for this chat' },
         ...instructionChoices.map(row => ({ id: key(row.target), label: `${row.label}${row.reconciliation_required ? ' · update pending' : ''}` })),
       ]}
       onChange={selectedKey => {
         const choice = instructionChoices.find(row => key(row.target) === selectedKey)
         onChange({ ...value, instructions: choice ? { mode: 'replace', target: choice.target, required: false } : { mode: selectedKey as 'inherit' | 'off' } })
       }} />}
+    {(!section || section === 'instructions') && instructionDefaultsSupported && instruction?.mode !== 'replace' && instruction?.mode !== 'off' && report && <ResourceReportView report={{ items: report.items.filter(row => row.kind === 'instructions') }} />}
     {(!section || section === 'instructions') && instruction?.mode === 'replace' && <Checkbox label="Require these instructions" isSelected={instruction.required ?? false} disabled={disabled}
       description="These instructions must be available before the session starts."
       onChange={required => onChange({ ...value, instructions: { ...instruction, required } })} />}

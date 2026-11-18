@@ -5,6 +5,14 @@ import { agentsRequestSchema } from '../../server/src/agents/protocol'
 import type { Page } from './fixtures'
 import { initialSetup, previewCatalog, previewEnvironment, previewProviders } from '../src/auth/agentSetup'
 
+function defaultInstructions(route: { send: (data: string) => void }, message: { op: string; id: string }) {
+  const result = message.op === 'instruction-defaults-get' ? { revision: 0, policy: { mode: 'off' } }
+    : message.op === 'resource-catalog' ? { instructionDefaultsSupported: true, profileDefaultsSupported: false, choices: { instructions: [], skills: [], mcp: [] } } : null
+  if (result === null) return false
+  route.send(JSON.stringify({ type: 'result', id: message.id, result }))
+  return true
+}
+
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/updates', route => route.fulfill({ json: { available: false, message: 'Update feeds are not enabled for this fixture.' } }))
   await page.route('**/api/updates/application', route => route.fulfill({ json: { available: false, message: 'Application updates are managed by the connection window.' } }))
@@ -20,6 +28,59 @@ test.beforeEach(async ({ page }) => {
     }
     await route.fulfill({ json: progress })
   })
+})
+
+test('global instruction defaults validate inputs, save with a revision and retain conflicting drafts', async ({ page }) => {
+  const target = { kind: 'managed', store: '/prompts', publisher_id: 'local', package_id: 'review', prompt: 'review' }
+  let saved: { revision: number; policy: object } = { revision: 0, policy: { mode: 'off' } }
+  const writes: Record<string, unknown>[] = []
+  let conflict = false
+  await page.routeWebSocket('**/api/agents/ws', route => {
+    route.send(JSON.stringify({ type: 'ready' }))
+    route.onMessage(raw => {
+      const message = JSON.parse(String(raw))
+      if (message.op === 'instruction-defaults-set') {
+        expect(agentsRequestSchema.safeParse(message).success).toBe(true)
+        writes.push(message.args)
+        if (conflict) {
+          route.send(JSON.stringify({ type: 'error', id: message.id, code: 'conflict', message: 'Instructions changed elsewhere. Reload before saving.' })); return
+        }
+        saved = { revision: saved.revision + 1, policy: message.args.policy }
+      }
+      const result = message.op.startsWith('instruction-defaults-') ? saved
+        : message.op === 'resource-catalog' ? { instructionDefaultsSupported: true, profileDefaultsSupported: false, choices: { instructions: [{ label: 'Review', target }], skills: [], mcp: [] } }
+          : message.op === 'catalog' ? { profiles: [], auths: [], capabilities: [], cwd: '/workspace' }
+            : message.op === 'spawn-settings-get' ? { defaultMode: 'read-only', revision: 0 }
+              : message.op === 'codex-server-settings-get' ? { mode: 'separate', revision: 0, sharedSupported: true }
+                : message.op === 'approval-settings-get' ? { autoApprove: false, revision: 0 }
+                  : message.op === 'agent-operations' ? { operations: [] } : []
+      route.send(JSON.stringify({ type: 'result', id: message.id, result }))
+    })
+  })
+  await page.goto('/#/settings?section=agents')
+  const editor = page.getByRole('region', { name: 'Global instructions', exact: true })
+  await editor.getByRole('button', { name: /Instruction behavior/ }).click()
+  await page.getByRole('option', { name: 'Use a saved prompt', exact: true }).click()
+  await editor.getByRole('button', { name: /Saved prompt/ }).click()
+  await page.getByRole('option', { name: 'Review', exact: true }).click()
+  const inputs = editor.getByRole('textbox', { name: 'Prompt inputs (JSON)', exact: true })
+  await inputs.fill('[]')
+  await editor.getByRole('button', { name: 'Save instructions', exact: true }).click()
+  await expect(editor.getByRole('alert')).toHaveText('Prompt inputs must be a JSON object.')
+  expect(writes).toHaveLength(0)
+  await inputs.fill('{"language":"Python"}')
+  await editor.getByRole('button', { name: 'Save instructions', exact: true }).click()
+  await expect(editor.getByRole('status')).toHaveText('Instructions saved. Applies to new chats.')
+  expect(writes[0]).toEqual({ scope: 'global', policy: { mode: 'replace', target, inputs: { language: 'Python' } }, expectedRevision: 0 })
+  conflict = true
+  await inputs.fill('{"language":"Rust"}')
+  await editor.getByRole('button', { name: 'Save instructions', exact: true }).click()
+  await expect(editor.getByRole('alert')).toContainText('changed elsewhere')
+  await expect(inputs).toHaveValue('{"language":"Rust"}')
+  expect(writes[1].expectedRevision).toBe(1)
+  await editor.getByRole('button', { name: 'Reload', exact: true }).click()
+  await page.getByRole('button', { name: 'Discard changes', exact: true }).click()
+  await expect(inputs).toHaveValue(JSON.stringify({ language: 'Python' }, null, 2))
 })
 
 test('individual tool updates review companions, shared ownership and explicit installation consent', async ({ page }) => {
@@ -224,6 +285,7 @@ async function resetFixture(page: Page, failFirst = false, section = 'data', onR
         onReset?.()
         broadcast({ type: 'workspace-reset', scope: message.args.scope, key: message.args.key })
       }
+      if (defaultInstructions(route, message)) return
       const result = message.op === 'workspace-reset' ? { scope: message.args.scope, chats: 2, projects: 1 }
         : message.op === 'catalog' ? onReset ? previewCatalog() : { profiles: [], auths: [], capabilities: [], cwd: '/workspace' }
           : message.op === 'providers' ? { environment: previewEnvironment('windows'), providers: previewProviders(previewEnvironment('windows')) }
@@ -266,6 +328,7 @@ test(`app auto-approval confirms pending saves, restores changes, and remains ac
     route.send(JSON.stringify({ type: 'ready' }))
     route.onMessage((raw) => {
       const message = JSON.parse(String(raw))
+      if (defaultInstructions(route, message)) return
       if (message.op === 'approval-settings-set') {
         expect(agentsRequestSchema.safeParse(message).success).toBe(true)
         writes.push(message.args)
@@ -332,6 +395,7 @@ test('spawn default is saved on the server, restored on reload, and failures rem
     route.send(JSON.stringify({ type: 'ready' }))
     route.onMessage((raw) => {
       const message = JSON.parse(String(raw))
+      if (defaultInstructions(route, message)) return
       if (message.op === 'auth') { route.send(JSON.stringify({ type: 'ready' })); return }
       if (message.op === 'spawn-settings-set') {
         writes.push(message.args)
@@ -547,6 +611,7 @@ test('Codex process isolation persists, synchronizes, and reports save conflicts
     route.send(JSON.stringify({ type: 'ready' }))
     route.onMessage(raw => {
       const message = JSON.parse(String(raw))
+      if (defaultInstructions(route, message)) return
       if (message.op === 'codex-server-settings-set') {
         expect(agentsRequestSchema.safeParse(message).success).toBe(true)
         writes.push(message.args)

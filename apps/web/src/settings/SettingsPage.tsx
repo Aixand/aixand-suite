@@ -11,6 +11,7 @@ import { DevicesSettings } from '../connect/DevicesSettings'
 import { ResetSettings } from './ResetSettings'
 import { SettingsHelp } from './SettingsHelp'
 import { UpdatesSettings } from './UpdatesSettings'
+import { InstructionDefaults } from './InstructionDefaults'
 
 const allSettingsSections = [{ id: 'workspace', label: 'Workspace setup' }, { id: 'agents', label: 'Agent behavior' }, { id: 'devices', label: 'Devices' },
   { id: 'updates', label: 'Updates' }, { id: 'troubleshooting', label: 'Troubleshooting' }, { id: 'data', label: 'Data management' }]
@@ -69,6 +70,7 @@ export function SettingsPage({ agents, onSetup, route = 'settings', navigate = v
       <SpawnSettings agents={agents} />
       <CodexServerSettings agents={agents} />
       <ApprovalSettings agents={agents} />
+      <InstructionDefaults agents={agents} />
     </SettingsSection>
     </div><div className="settings-panel" hidden={section !== 'devices'}>
     <DevicesSettings agents={agents} active={section === 'devices'} />

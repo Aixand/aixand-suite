@@ -16,6 +16,7 @@ import { useProfileModels } from './useProfileModels'
 import { providerLabel } from './presentation'
 import { ProfileConnections } from './ProfileConnections'
 import { ProfileStatus } from './ProfileControls'
+import { InstructionDefaults } from '../settings/InstructionDefaults'
 
 type SettingsProps = { agents: AgentsModel; profile: Profile }
 type DraftState = { dirty: boolean; busy: boolean }
@@ -31,11 +32,13 @@ function accountStatus(account?: Auth) {
 export function ProfileSettings({ agents, profile, navigate }: SettingsProps & { navigate: (route: string) => void }) {
   const [account, setAccount] = useState<DraftState>({ dirty: false, busy: false })
   const [configuration, setConfiguration] = useState<DraftState>({ dirty: false, busy: false })
+  const [instructions, setInstructions] = useState<DraftState>({ dirty: false, busy: false })
   // One guard covers the whole page, including drafts in several sections at once.
-  const draft = useResourceDraft(account.dirty || configuration.dirty, account.busy || configuration.busy)
+  const draft = useResourceDraft(account.dirty || configuration.dirty || instructions.dirty, account.busy || configuration.busy || instructions.busy)
   return <>
     <AccountSettings agents={agents} profile={profile} navigate={navigate} onDraftChange={setAccount} />
     <ConfigurationSettings agents={agents} profile={profile} onDraftChange={setConfiguration} guard={draft.guard} />
+    <InstructionDefaults key={profile.id} agents={agents} profile={profile} onDraftChange={setInstructions} guard={draft.guard} />
     <section className="agent-settings-group" aria-label="Resource libraries">
       <h3 className="agent-settings-heading">Resource libraries</h3>
       <p className="carrier-muted">Choose instructions and MCP tools when starting a chat. Skills are managed in the library; chat delivery support is shown at launch.</p>
