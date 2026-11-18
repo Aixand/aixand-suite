@@ -1,18 +1,24 @@
 # Component versions
 
-Suite's beta composition label is separate from each component's version.
-Components may diverge. Read the [component catalog contract](../../../docs/reference/components.md)
-for source roots, owning manifests, dependency selection and activation owners.
-Python packages use PEP 440 spellings; native product manifests use SemVer.
-Protocol and schema versions have separate meanings.
+Suite's beta composition label and each component version are independent. The [component catalog contract](../../../docs/reference/components.md) identifies manifests, dependency selection and activation owners.
 
-From the Suite root, validate current metadata with:
+| Identity | Meaning |
+| --- | --- |
+| Composition label | Suite assembly label |
+| Python package version | PEP 440 spelling |
+| Native product version | SemVer |
+| Protocol/schema version | Compatibility contract, separate from package versions |
+
+From the Suite root:
 
 ```sh
 python3 scripts/check-release-versions.py
 ```
 
-A successful source check does not qualify a native installer, update an installed
-application or establish a public release. Rebuild affected consumers and verify
-the concrete target artifact before making release claims. Release metadata and
-runtime update integration are maintained separately from this documentation.
+| Check | Evidence |
+| --- | --- |
+| Source metadata check | Metadata consistency only |
+| Rebuilt consumer and target artifact | Needed to verify a concrete release |
+| Native installer/update qualification | Separate from source metadata and documentation |
+
+The source check neither updates an installed application nor establishes a public release. Runtime update integration is maintained separately.

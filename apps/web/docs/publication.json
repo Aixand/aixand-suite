@@ -1,0 +1,224 @@
+{
+  "schema": 1,
+  "project": "aixand-suite",
+  "component": "web",
+  "pages": [
+    {
+      "file": "README.md",
+      "slug": "web",
+      "section": "Overview",
+      "order": 0,
+      "description": "Web presents workspace state and sends explicit actions to Server. Desktop supplies the native shell and selected-host transport; managers and Runner retain execution authority."
+    },
+    {
+      "file": "architecture/composition.md",
+      "slug": "web/architecture/composition",
+      "section": "Architecture",
+      "order": 10,
+      "description": "App composes authentication, startup, capability checks, recovery and hash-routed workspace pages. Lazy feature entry points keep heavy editors outside the initial route."
+    },
+    {
+      "file": "architecture/state.md",
+      "slug": "web/architecture/state",
+      "section": "Architecture",
+      "order": 20,
+      "description": "React holds selections, drafts and rendered projections. Server responses and manager events determine durable workspace state."
+    },
+    {
+      "file": "architecture/transport.md",
+      "slug": "web/architecture/transport",
+      "section": "Architecture",
+      "order": 30,
+      "description": "workspaceFetch and workspaceSocket select the browser or bundled Client transport. The selected host remains the destination of workspace operations."
+    },
+    {
+      "file": "lifecycles/authentication.md",
+      "slug": "web/lifecycles/authentication",
+      "section": "Lifecycles",
+      "order": 40,
+      "description": "Authentication and installation readiness gate the workspace. Onboarding presents observed setup progress before normal workspace navigation."
+    },
+    {
+      "file": "lifecycles/live-state.md",
+      "slug": "web/lifecycles/live-state",
+      "section": "Lifecycles",
+      "order": 50,
+      "description": "Feature clients correlate requests and reconcile live events. A disconnected or timed-out submission can have an unknown remote outcome."
+    },
+    {
+      "file": "lifecycles/recovery.md",
+      "slug": "web/lifecycles/recovery",
+      "section": "Lifecycles",
+      "order": 60,
+      "description": "Recovery keeps workspace failures visible and lets readers return to authoritative state without silently repeating work."
+    },
+    {
+      "file": "modules/workspace.md",
+      "slug": "web/modules/workspace",
+      "section": "Feature modules",
+      "order": 70,
+      "description": "Workspace pages combine project selection, history and search. Project-file previews are reads against the selected project, not an independent filesystem authority."
+    },
+    {
+      "file": "modules/conversations.md",
+      "slug": "web/modules/conversations",
+      "section": "Feature modules",
+      "order": 80,
+      "description": "Conversation views render authoritative chat items, requests and turn state. Session readers expose related agent history without becoming a second conversation store."
+    },
+    {
+      "file": "modules/supervision.md",
+      "slug": "web/modules/supervision",
+      "section": "Feature modules",
+      "order": 90,
+      "description": "Supervision controls project monitor state into a conversation-linked view. The frontend contract must be distinguished from current Server execution support."
+    },
+    {
+      "file": "modules/providers.md",
+      "slug": "web/modules/providers",
+      "section": "Feature modules",
+      "order": 100,
+      "description": "Provider catalogs supply identities, controls and account observations. Web displays readiness evidence rather than treating a configured account as proof that a launch can run."
+    },
+    {
+      "file": "modules/resources.md",
+      "slug": "web/modules/resources",
+      "section": "Feature modules",
+      "order": 110,
+      "description": "Prompts, skills and MCP resources have distinct stores and editors. Launch selection captures resource choices; a library edit does not silently rewrite active work."
+    },
+    {
+      "file": "modules/workflow-builder.md",
+      "slug": "web/modules/workflow-builder",
+      "section": "Feature modules",
+      "order": 120,
+      "description": "The builder translates canvas state into workflow definitions and validation feedback. A valid canvas is not evidence that an execution has completed."
+    },
+    {
+      "file": "modules/workflow-runs.md",
+      "slug": "web/modules/workflow-runs",
+      "section": "Feature modules",
+      "order": 130,
+      "description": "Run views correlate accepted work with run events, outputs and failures. Runner owns execution; Web owns the readable projection and explicit controls."
+    },
+    {
+      "file": "modules/terminals.md",
+      "slug": "web/modules/terminals",
+      "section": "Feature modules",
+      "order": 140,
+      "description": "Terminal panes attach to host-owned sessions and render streamed output through xterm. Pane visibility and socket connectivity are separate from process lifecycle."
+    },
+    {
+      "file": "modules/carrier.md",
+      "slug": "web/modules/carrier",
+      "section": "Feature modules",
+      "order": 150,
+      "description": "Carrier projects messages, delegated work and delivery evidence into an inbox/outbox interface. Reading, delivery and acknowledgment are distinct events."
+    },
+    {
+      "file": "modules/connect.md",
+      "slug": "web/modules/connect",
+      "section": "Feature modules",
+      "order": 160,
+      "description": "Connect views present devices, transfers, remote conversations and project comparisons. UI contracts alone do not qualify the corresponding host integration."
+    },
+    {
+      "file": "modules/vox.md",
+      "slug": "web/modules/vox",
+      "section": "Feature modules",
+      "order": 170,
+      "description": "Vox presents call state and conversation links when voice capabilities are available. Media and call readiness remain separate from the visibility of the interface."
+    },
+    {
+      "file": "modules/settings.md",
+      "slug": "web/modules/settings",
+      "section": "Feature modules",
+      "order": 180,
+      "description": "Settings combines local preferences with explicit host operations. Update presentation must preserve reviewed plans, blockers and restart consent."
+    },
+    {
+      "file": "contracts/drafts.md",
+      "slug": "web/contracts/drafts",
+      "section": "UI contracts",
+      "order": 190,
+      "description": "The shared editor guard protects dirty or saving resource edits across navigation and browser unload."
+    },
+    {
+      "file": "contracts/content.md",
+      "slug": "web/contracts/content",
+      "section": "UI contracts",
+      "order": 200,
+      "description": "Conversation content is untrusted data. Markdown and Mermaid use explicit rendering boundaries before content reaches the interface."
+    },
+    {
+      "file": "contracts/design.md",
+      "slug": "web/interaction",
+      "section": "UI contracts",
+      "order": 210,
+      "description": "Use BBB components and Suite brand roles to make observed state, next actions and recovery understandable across themes and viewports."
+    },
+    {
+      "file": "development/verification.md",
+      "slug": "web/development/verification",
+      "section": "Development",
+      "order": 220,
+      "description": "Select checks by the owning module and its service dependencies. Fixture coverage demonstrates UI behavior; live qualification needs the actual owning services."
+    },
+    {
+      "file": "development/screenshots.md",
+      "slug": "web/development/screenshots",
+      "section": "Development",
+      "order": 230,
+      "description": "Screenshots show the real Web interface with simulated data. They illustrate structure and interaction states without asserting backend or provider readiness."
+    },
+    {
+      "file": "implementation-status.md",
+      "slug": "web/implementation-status",
+      "section": "Overview",
+      "order": 240,
+      "description": "A retained component or fixture test establishes a frontend contract. Availability of its Server handlers and downstream services must be checked separately."
+    },
+    {
+      "file": "chat-commands.md",
+      "slug": "web/chat-commands",
+      "section": "UI contracts",
+      "order": 250
+    },
+    {
+      "file": "development.md",
+      "slug": "web/development",
+      "section": "Development",
+      "order": 260
+    },
+    {
+      "file": "client.md",
+      "slug": "web/client",
+      "section": "Native boundaries",
+      "order": 270
+    },
+    {
+      "file": "desktop.md",
+      "slug": "web/desktop",
+      "section": "Native boundaries",
+      "order": 280
+    },
+    {
+      "file": "installation-editions.md",
+      "slug": "web/installation-editions",
+      "section": "Native boundaries",
+      "order": 290
+    },
+    {
+      "file": "release-versions.md",
+      "slug": "web/release-versions",
+      "section": "Reference",
+      "order": 300
+    },
+    {
+      "file": "updates.md",
+      "slug": "web/updates",
+      "section": "Reference",
+      "order": 310
+    }
+  ]
+}

@@ -1,55 +1,48 @@
 # Aixand Client
 
-Aixand has three installer roles:
+Client bundles the interface and native shell for remote Server workspaces. It can connect to a frontend-free Server and installs independently as `org.aixand.suite.client` alongside Desktop.
 
-| Role | Installed components | Workspace choices |
+| Role | Payload | Workspace |
 | --- | --- | --- |
-| Desktop | Frontend, local backend and product runtimes | This computer or Server |
-| Client | Frontend and native desktop shell | Server only |
-| Server | Backend and product runtimes | Hosts a workspace |
+| Desktop | Interface, shell, backend and product runtimes | This computer or Server |
+| Client | Interface and shell | Server only |
+| Server | Backend and product runtimes | Hosts the workspace |
 
-Client bundles its complete interface and can connect to a frontend-free Server.
-It opens no localhost gateway or backend listener, starts no agent/runtime
-processes, and carries no Node, Python or first-party product installation kit.
-The OS WebView and native TLS dependencies are still required by the desktop
-shell; the Windows installer can install WebView2.
+```mermaid
+flowchart LR
+  accTitle: Client connection boundary
+  accDescr: Bundled assets use restricted native transport to reach the selected Server.
+  UI[Bundled Web assets] --> Native[Restricted native HTTP and WebSocket]
+  Native --> Server[Selected Server]
+  Server --> State[Server-owned workspace state]
+```
 
-The connection window retains saved servers, optional names, automatic opening,
-connection health and reconnect. HTTPS is required for network addresses; HTTP
-loopback addresses remain supported for an existing SSH tunnel. Client does not
-create SSH tunnels or start services at those addresses. Configure the Server to
-allow its root HTTPS origin, as in the existing Server proxy setup instructions.
+## Connection and trust
 
-Bundled assets load through Tauri. Restricted native commands send HTTP and
-WebSocket traffic to the selected Server. Native code holds session cookies and
-persists their original expiry times in the Client's per-user configuration
-folder. On POSIX the session files have mode 0600. Passwords are not saved.
-The server's normal password, transport, Origin and CSRF checks still apply.
-Certificates use native trust validation; requests cannot follow redirects to
-another host. Workspace content has no launcher, local runtime, cleanup or
-process-execution permissions.
+| Concern | Contract |
+| --- | --- |
+| Payload | No localhost gateway/listener, agent processes, Node, Python or first-party installation kit. OS WebView/native TLS dependencies remain; Windows can install WebView2. |
+| Addresses | HTTPS for network hosts; loopback HTTP supports an existing SSH tunnel. Client creates no tunnel and starts no remote service. |
+| Server origin | Allow the Server root HTTPS origin using the [Server proxy configuration](../../server/docs/operations/authentication.md). |
+| Transport | Tauri loads bundled assets; restricted native commands send requests to the selected host. Certificates use native trust; cross-host redirects are refused. |
+| Sessions | Native code holds cookies and original expiry in per-user configuration. POSIX session files use 0600; passwords are not saved. |
+| Authorization | Normal password, transport, Origin and CSRF checks apply. Workspace content has no launcher, cleanup, runtime or process-execution permissions. |
 
-Each saved connection and backend address has separate session storage and a
-separate browser data directory on Windows/Linux. macOS uses an ephemeral
-workspace WebView to isolate browser data without requiring macOS 14 data-store
-APIs; native sign-in sessions and saved connections still persist, but browser
-preferences, drafts and caches do not survive closing that workspace on macOS.
-Changing a connection closes the previous workspace and cancels its native
-traffic; requests carrying its old connection generation are rejected.
+## Connection isolation and maintenance
 
-Client installs independently as `org.aixand.suite.client`, with a separate app
-name, binary and configuration directory. It can coexist with Desktop. To
-update it, use **Client updates** in the connection window or install a newer
-Client installer. Saved connections and sessions are retained. Daily checks and
-optional automatic downloads never install or restart without consent. Client
-uses its native updater; workspace component updates belong to the Server. The connection
-window's **Client settings → Clear Client data** clears local saved connections,
-sessions and browser data without changing the server. Use the OS uninstaller to
-remove the application. Uninstall preserves per-user data unless cleared first.
+| Concern | Contract |
+| --- | --- |
+| Connection window | Saved servers, optional names, automatic opening, connection health and reconnect. |
+| Windows/Linux | Each saved connection/backend address has separate sessions and browser data directory. |
+| macOS | Ephemeral workspace WebView isolates browser data without macOS 14 APIs. Saved connections/native sessions persist; browser preferences, drafts and caches do not survive workspace closure. |
+| Switching | Close the old workspace and cancel its native traffic. Reject requests carrying the old connection generation. |
+| Updates | Client updates in the connection window or a newer installer; retain saved connections/sessions. Daily checks and optional downloads never authorize installation/restart. |
+| Reset | Client settings → Clear Client data clears local connections, sessions and browser data; Server is unchanged. |
+| Removal | OS uninstall preserves per-user data unless cleared first. Workspace component updates belong to Server. |
 
 ## Building
 
-Use the existing native packaging entry points:
+From the Suite root:
 
 ```sh
 python3 scripts/package-linux.py --package client --output /fresh/client-build
@@ -60,24 +53,13 @@ python3 scripts/package-macos.py --package client --output /fresh/client-build
 .\build-windows.ps1 -Package client -OutputDirectory C:\fresh\client-build
 ```
 
-`--package all` (the default) builds Desktop, Server and Client. `both` retains
-its earlier Desktop-and-Server meaning. Individual `desktop` and `server` choices
-remain available. Client-only builds skip backend compilation, product builds,
-and runtime assembly. Build tools and build-time Node do not ship in Client.
-`--runtime-only` applies to runtime-bearing packages; Client has no runtime archive.
-
-Client artifacts and checksums are in `output/installers/client`; the combined
-`installers.json` includes its role. Native signing and public distribution need
-the same release configuration as other installers. Native Windows/macOS build
-and installation qualification must run on those platforms.
-
-Enabled Client feeds require `AIXAND_CLIENT_UPDATE_CONFIG` containing public
-trust settings and a positive safe `AIXAND_CLIENT_SEQUENCE`. Optional
-`AIXAND_CLIENT_VERSION` must match the selected application version. The Linux
-wrapper forwards these inputs into the build container. Packaging reads the
-native build's emitted identity into `client.json.nativeUpdater`; release
-preparation rejects mismatched version, sequence, trust or installer checksums.
-The checked-in feed configuration remains disabled.
+| Concern | Contract |
+| --- | --- |
+| Role selection | all (default) builds Desktop/Server/Client; both retains Desktop/Server meaning. Individual desktop/server choices remain. |
+| Client-only | Skip backend compilation, product builds and runtime assembly. Build tools and build-time Node do not ship. --runtime-only applies only to runtime-bearing roles. |
+| Artifacts | output/installers/client and checksums; installers.json records the role. Signing/public distribution use normal release configuration. |
+| Feed inputs | AIXAND_CLIENT_UPDATE_CONFIG supplies public trust settings; AIXAND_CLIENT_SEQUENCE must be a positive safe integer. Optional AIXAND_CLIENT_VERSION must match the application version. |
+| Identity | Linux wrapper forwards inputs. Packaging reads native identity into client.json.nativeUpdater; release preparation rejects version, sequence, trust or checksum mismatch. Checked-in feed remains disabled. |
 
 ## Verification
 
@@ -88,11 +70,9 @@ cargo test --manifest-path apps/desktop/src-tauri/transport/Cargo.toml
 python3 -m unittest discover -s scripts/runtime -p test_client_package.py
 ```
 
-On Linux, `scripts/runtime/verify-client.py` drives the packaged application
-through WebKitWebDriver under Xvfb. Its companion
-`apps/web/scripts/client-auth-test-server.mjs` uses the actual Server authentication
-module with a disposable database and an authenticated echo socket. It checks
-login, native cookie persistence, authenticated API/WebSocket traffic, reconnect,
-connection isolation, stale-request rejection, permission boundaries, local
-reset, and app-owned TCP listeners. It does not qualify every agent feature or
-substitute for native Windows/macOS installation tests.
+| Concern | Contract |
+| --- | --- |
+| Linux packaged probe | scripts/runtime/verify-client.py drives WebKitWebDriver under Xvfb. client-auth-test-server.mjs uses real Server authentication with a disposable database and authenticated echo socket. |
+| Covered boundaries | Login/cookie persistence, API/socket authentication, reconnect, isolation, stale requests, permissions, local reset and app-owned TCP listeners. |
+| Qualification limit | Does not qualify every agent feature. Windows/macOS native builds and installations require their own platform checks. |
+

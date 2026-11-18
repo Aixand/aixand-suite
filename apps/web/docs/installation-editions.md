@@ -1,24 +1,18 @@
 # Choose an installation role
 
-Packaging defines three roles for the development beta. Native artifacts need
-separate target qualification; these roles do not establish public availability.
+The development beta defines three payload roles. Native artifacts need target qualification; a role does not establish public release availability.
 
-| Role | Payload | Workspace choice |
+| Role | Payload | Workspace |
 | --- | --- | --- |
-| Desktop | Native shell, web assets, local backend and product runtimes | This computer or Server |
-| Client | Native shell and web assets | Server only |
+| Desktop | Native shell, Web assets, backend and product runtimes | This computer or Server |
+| Client | Native shell and Web assets | Server only |
 | Server | Backend and product runtimes | Hosts a workspace |
 
-The installation model is distributed. Independent products retain their own
-installation identities, state owners and licenses. Libraries stay in consumer
-interpreters rather than becoming extra command-line products. Source component
-versions may diverge; see [the component contract](../../../docs/reference/components.md).
+| Concern | Contract |
+| --- | --- |
+| Products | Independent installation identities, state owners and licenses. Libraries stay inside consumer interpreters. |
+| Versions | Source component versions may diverge; see the [component contract](../../../docs/reference/components.md). |
+| Maintenance | [Server setup](../../server/docs/operations/installation.md) owns product review, licenses, state modes and selective removal. |
+| Cleanup | Review the explicit cleanup plan. Suite removal must not silently delete shared products, projects or account data. |
+| Native roles | [Desktop](desktop.md) owns shell setup; [Client](client.md) owns remote-only behavior and isolated sessions. Client never starts/stops remote services. |
 
-See [Server setup and maintenance](../../server/docs/installation.md) for shared
-product review, license acceptance, state modes and selective removal. Removing
-Suite must not silently delete shared products, project directories or account
-data. Review the explicit cleanup plan before applying it.
-
-[Desktop development](desktop.md) owns native-shell setup. [Client](client.md)
-owns remote-only behavior and its separate local session storage. Client never
-starts or stops the remote host's services.
