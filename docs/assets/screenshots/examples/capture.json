@@ -1,0 +1,564 @@
+{
+  "schema": 1,
+  "mode": "real-ui-with-authored-draft-and-fixture-auth",
+  "execution": "not-run",
+  "command": "node scripts/docs/capture-example-workflow.mjs",
+  "viewport": {
+    "width": 1600,
+    "height": 1100
+  },
+  "screenshots": [
+    "project-health-workflow.png",
+    "autonomous-fix-workflow.png",
+    "feature-pipeline-workflow.png",
+    "release-readiness-workflow.png",
+    "scheduled-checks-workflow.png"
+  ],
+  "sourceHashes": {
+    "apps/web/src/pages/WorkflowBuilder.tsx": "cb98bbbf9eb81c60a84f175f7d6b37c4913f46526966bf55fb9fc148e599258d",
+    "apps/web/src/workflows/builder/model.ts": "aaf9a9389b1e83fe800b7f2ee4bfbeab57ac2cab83baac913c0ce24a226a4010",
+    "scripts/docs/example-workflows.json": "b867286dd34416cb03ae639bf55a6b9d719de68b577ff6bdb348b91148681517"
+  },
+  "drafts": [
+    {
+      "format": "aixand.workflow-canvas",
+      "version": 1,
+      "name": "Project health check",
+      "description": "Authored documentation illustration. Execution and supervision state are not shown.",
+      "nodes": [
+        {
+          "id": "architecture",
+          "type": "workflowStep",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "data": {
+            "kind": "chat",
+            "label": "Architecture review",
+            "prompt": "See the project-health example for this stage's instructions.",
+            "description": "Independent starting task.",
+            "agent": ""
+          }
+        },
+        {
+          "id": "security",
+          "type": "workflowStep",
+          "position": {
+            "x": 280,
+            "y": 0
+          },
+          "data": {
+            "kind": "chat",
+            "label": "Security review",
+            "prompt": "See the project-health example for this stage's instructions.",
+            "description": "Independent starting task.",
+            "agent": ""
+          }
+        },
+        {
+          "id": "plan",
+          "type": "workflowStep",
+          "position": {
+            "x": 560,
+            "y": 0
+          },
+          "data": {
+            "kind": "chat",
+            "label": "Prioritized action plan",
+            "prompt": "See the project-health example for this stage's instructions.",
+            "description": "Uses prerequisite reports.",
+            "agent": ""
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "architecture-plan",
+          "source": "architecture",
+          "target": "plan",
+          "sourceHandle": "out",
+          "targetHandle": "in",
+          "type": "smoothstep"
+        },
+        {
+          "id": "security-plan",
+          "source": "security",
+          "target": "plan",
+          "sourceHandle": "out",
+          "targetHandle": "in",
+          "type": "smoothstep"
+        }
+      ]
+    },
+    {
+      "format": "aixand.workflow-canvas",
+      "version": 1,
+      "name": "Autonomous bug repair",
+      "description": "Authored documentation illustration. Execution and supervision state are not shown.",
+      "nodes": [
+        {
+          "id": "reproduce",
+          "type": "workflowStep",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "data": {
+            "kind": "chat",
+            "label": "Reproduce the bug",
+            "prompt": "See the autonomous-fix example for this stage's instructions.",
+            "description": "Independent starting task.",
+            "agent": ""
+          }
+        },
+        {
+          "id": "repair",
+          "type": "workflowStep",
+          "position": {
+            "x": 280,
+            "y": 0
+          },
+          "data": {
+            "kind": "chat",
+            "label": "Repair the bug",
+            "prompt": "See the autonomous-fix example for this stage's instructions.",
+            "description": "Uses prerequisite reports.",
+            "agent": ""
+          }
+        },
+        {
+          "id": "tests",
+          "type": "workflowStep",
+          "position": {
+            "x": 560,
+            "y": 0
+          },
+          "data": {
+            "kind": "chat",
+            "label": "Independent tests",
+            "prompt": "See the autonomous-fix example for this stage's instructions.",
+            "description": "Uses prerequisite reports.",
+            "agent": ""
+          }
+        },
+        {
+          "id": "review",
+          "type": "workflowStep",
+          "position": {
+            "x": 840,
+            "y": 0
+          },
+          "data": {
+            "kind": "chat",
+            "label": "Independent review",
+            "prompt": "See the autonomous-fix example for this stage's instructions.",
+            "description": "Uses prerequisite reports.",
+            "agent": ""
+          }
+        },
+        {
+          "id": "summary",
+          "type": "workflowStep",
+          "position": {
+            "x": 1120,
+            "y": 0
+          },
+          "data": {
+            "kind": "chat",
+            "label": "Verified repair summary",
+            "prompt": "See the autonomous-fix example for this stage's instructions.",
+            "description": "Uses prerequisite reports.",
+            "agent": ""
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "reproduce-repair",
+          "source": "reproduce",
+          "target": "repair",
+          "sourceHandle": "out",
+          "targetHandle": "in",
+          "type": "smoothstep"
+        },
+        {
+          "id": "repair-tests",
+          "source": "repair",
+          "target": "tests",
+          "sourceHandle": "out",
+          "targetHandle": "in",
+          "type": "smoothstep"
+        },
+        {
+          "id": "repair-review",
+          "source": "repair",
+          "target": "review",
+          "sourceHandle": "out",
+          "targetHandle": "in",
+          "type": "smoothstep"
+        },
+        {
+          "id": "tests-summary",
+          "source": "tests",
+          "target": "summary",
+          "sourceHandle": "out",
+          "targetHandle": "in",
+          "type": "smoothstep"
+        },
+        {
+          "id": "review-summary",
+          "source": "review",
+          "target": "summary",
+          "sourceHandle": "out",
+          "targetHandle": "in",
+          "type": "smoothstep"
+        }
+      ]
+    },
+    {
+      "format": "aixand.workflow-canvas",
+      "version": 1,
+      "name": "Feature delivery pipeline",
+      "description": "Authored documentation illustration. Execution and supervision state are not shown.",
+      "nodes": [
+        {
+          "id": "requirements",
+          "type": "workflowStep",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "data": {
+            "kind": "chat",
+            "label": "Requirements",
+            "prompt": "See the feature-pipeline example for this stage's instructions.",
+            "description": "Independent starting task.",
+            "agent": ""
+          }
+        },
+        {
+          "id": "test-plan",
+          "type": "workflowStep",
+          "position": {
+            "x": 280,
+            "y": 0
+          },
+          "data": {
+            "kind": "chat",
+            "label": "Independent test plan",
+            "prompt": "See the feature-pipeline example for this stage's instructions.",
+            "description": "Independent starting task.",
+            "agent": ""
+          }
+        },
+        {
+          "id": "design",
+          "type": "workflowStep",
+          "position": {
+            "x": 560,
+            "y": 0
+          },
+          "data": {
+            "kind": "chat",
+            "label": "Reconciled design",
+            "prompt": "See the feature-pipeline example for this stage's instructions.",
+            "description": "Uses prerequisite reports.",
+            "agent": ""
+          }
+        },
+        {
+          "id": "implement",
+          "type": "workflowStep",
+          "position": {
+            "x": 840,
+            "y": 0
+          },
+          "data": {
+            "kind": "chat",
+            "label": "Implement and test",
+            "prompt": "See the feature-pipeline example for this stage's instructions.",
+            "description": "Uses prerequisite reports.",
+            "agent": ""
+          }
+        },
+        {
+          "id": "verify",
+          "type": "workflowStep",
+          "position": {
+            "x": 1120,
+            "y": 0
+          },
+          "data": {
+            "kind": "chat",
+            "label": "Independent verification",
+            "prompt": "See the feature-pipeline example for this stage's instructions.",
+            "description": "Uses prerequisite reports.",
+            "agent": ""
+          }
+        },
+        {
+          "id": "review",
+          "type": "workflowStep",
+          "position": {
+            "x": 1400,
+            "y": 0
+          },
+          "data": {
+            "kind": "chat",
+            "label": "Compatibility review",
+            "prompt": "See the feature-pipeline example for this stage's instructions.",
+            "description": "Uses prerequisite reports.",
+            "agent": ""
+          }
+        },
+        {
+          "id": "documentation",
+          "type": "workflowStep",
+          "position": {
+            "x": 1680,
+            "y": 0
+          },
+          "data": {
+            "kind": "chat",
+            "label": "Usage examples report",
+            "prompt": "See the feature-pipeline example for this stage's instructions.",
+            "description": "Uses prerequisite reports.",
+            "agent": ""
+          }
+        },
+        {
+          "id": "handoff",
+          "type": "workflowStep",
+          "position": {
+            "x": 1960,
+            "y": 0
+          },
+          "data": {
+            "kind": "chat",
+            "label": "Evidence and handoff",
+            "prompt": "See the feature-pipeline example for this stage's instructions.",
+            "description": "Uses prerequisite reports.",
+            "agent": ""
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "requirements-design",
+          "source": "requirements",
+          "target": "design",
+          "sourceHandle": "out",
+          "targetHandle": "in",
+          "type": "smoothstep"
+        },
+        {
+          "id": "test-plan-design",
+          "source": "test-plan",
+          "target": "design",
+          "sourceHandle": "out",
+          "targetHandle": "in",
+          "type": "smoothstep"
+        },
+        {
+          "id": "design-implement",
+          "source": "design",
+          "target": "implement",
+          "sourceHandle": "out",
+          "targetHandle": "in",
+          "type": "smoothstep"
+        },
+        {
+          "id": "implement-verify",
+          "source": "implement",
+          "target": "verify",
+          "sourceHandle": "out",
+          "targetHandle": "in",
+          "type": "smoothstep"
+        },
+        {
+          "id": "implement-review",
+          "source": "implement",
+          "target": "review",
+          "sourceHandle": "out",
+          "targetHandle": "in",
+          "type": "smoothstep"
+        },
+        {
+          "id": "implement-documentation",
+          "source": "implement",
+          "target": "documentation",
+          "sourceHandle": "out",
+          "targetHandle": "in",
+          "type": "smoothstep"
+        },
+        {
+          "id": "verify-handoff",
+          "source": "verify",
+          "target": "handoff",
+          "sourceHandle": "out",
+          "targetHandle": "in",
+          "type": "smoothstep"
+        },
+        {
+          "id": "review-handoff",
+          "source": "review",
+          "target": "handoff",
+          "sourceHandle": "out",
+          "targetHandle": "in",
+          "type": "smoothstep"
+        },
+        {
+          "id": "documentation-handoff",
+          "source": "documentation",
+          "target": "handoff",
+          "sourceHandle": "out",
+          "targetHandle": "in",
+          "type": "smoothstep"
+        }
+      ]
+    },
+    {
+      "format": "aixand.workflow-canvas",
+      "version": 1,
+      "name": "Release assessment",
+      "description": "Authored documentation illustration. Execution and supervision state are not shown.",
+      "nodes": [
+        {
+          "id": "tests",
+          "type": "workflowStep",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "data": {
+            "kind": "chat",
+            "label": "Run existing tests",
+            "prompt": "See the release-readiness example for this stage's instructions.",
+            "description": "Independent starting task.",
+            "agent": ""
+          }
+        },
+        {
+          "id": "compatibility",
+          "type": "workflowStep",
+          "position": {
+            "x": 280,
+            "y": 0
+          },
+          "data": {
+            "kind": "chat",
+            "label": "Compatibility review",
+            "prompt": "See the release-readiness example for this stage's instructions.",
+            "description": "Independent starting task.",
+            "agent": ""
+          }
+        },
+        {
+          "id": "docs",
+          "type": "workflowStep",
+          "position": {
+            "x": 560,
+            "y": 0
+          },
+          "data": {
+            "kind": "chat",
+            "label": "Documentation review",
+            "prompt": "See the release-readiness example for this stage's instructions.",
+            "description": "Independent starting task.",
+            "agent": ""
+          }
+        },
+        {
+          "id": "decision",
+          "type": "workflowStep",
+          "position": {
+            "x": 840,
+            "y": 0
+          },
+          "data": {
+            "kind": "chat",
+            "label": "GO / NO-GO decision",
+            "prompt": "See the release-readiness example for this stage's instructions.",
+            "description": "Uses prerequisite reports.",
+            "agent": ""
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "tests-decision",
+          "source": "tests",
+          "target": "decision",
+          "sourceHandle": "out",
+          "targetHandle": "in",
+          "type": "smoothstep"
+        },
+        {
+          "id": "compatibility-decision",
+          "source": "compatibility",
+          "target": "decision",
+          "sourceHandle": "out",
+          "targetHandle": "in",
+          "type": "smoothstep"
+        },
+        {
+          "id": "docs-decision",
+          "source": "docs",
+          "target": "decision",
+          "sourceHandle": "out",
+          "targetHandle": "in",
+          "type": "smoothstep"
+        }
+      ]
+    },
+    {
+      "format": "aixand.workflow-canvas",
+      "version": 1,
+      "name": "One regression check",
+      "description": "Authored documentation illustration. Execution and supervision state are not shown.",
+      "nodes": [
+        {
+          "id": "test",
+          "type": "workflowStep",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "data": {
+            "kind": "chat",
+            "label": "Run existing tests",
+            "prompt": "See the scheduled-checks example for this stage's instructions.",
+            "description": "Independent starting task.",
+            "agent": ""
+          }
+        },
+        {
+          "id": "triage",
+          "type": "workflowStep",
+          "position": {
+            "x": 280,
+            "y": 0
+          },
+          "data": {
+            "kind": "chat",
+            "label": "Compare and triage",
+            "prompt": "See the scheduled-checks example for this stage's instructions.",
+            "description": "Uses prerequisite reports.",
+            "agent": ""
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "test-triage",
+          "source": "test",
+          "target": "triage",
+          "sourceHandle": "out",
+          "targetHandle": "in",
+          "type": "smoothstep"
+        }
+      ]
+    }
+  ]
+}
