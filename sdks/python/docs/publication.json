@@ -1,0 +1,73 @@
+{
+  "schema": 1,
+  "project": "aixand-suite",
+  "component": "python-sdk",
+  "pages": [
+    {
+      "file": "README.md",
+      "slug": "python-sdk",
+      "section": "Overview",
+      "order": 0
+    },
+    {
+      "file": "architecture/composition.md",
+      "slug": "python-sdk/composition",
+      "section": "Architecture",
+      "order": 10
+    },
+    {
+      "file": "architecture/ownership.md",
+      "slug": "python-sdk/ownership",
+      "section": "Architecture",
+      "order": 20
+    },
+    {
+      "file": "lifecycles/agent-lifecycle.md",
+      "slug": "python-sdk/lifecycle",
+      "section": "Lifecycles",
+      "order": 30
+    },
+    {
+      "file": "lifecycles/cleanup.md",
+      "slug": "python-sdk/cleanup",
+      "section": "Lifecycles",
+      "order": 40
+    },
+    {
+      "file": "lifecycles/recovery.md",
+      "slug": "python-sdk/recovery",
+      "section": "Lifecycles",
+      "order": 50
+    },
+    {
+      "file": "integrations/carrier.md",
+      "slug": "python-sdk/integrations/carrier",
+      "section": "Integrations",
+      "order": 60
+    },
+    {
+      "file": "integrations/native-launch.md",
+      "slug": "python-sdk/integrations/native-launch",
+      "section": "Integrations",
+      "order": 70
+    },
+    {
+      "file": "development/verification.md",
+      "slug": "python-sdk/development",
+      "section": "Development",
+      "order": 80
+    },
+    {
+      "file": "reference/api.md",
+      "slug": "python-sdk/reference/api",
+      "section": "Reference",
+      "order": 90
+    },
+    {
+      "file": "reference/implementation-status.md",
+      "slug": "python-sdk/implementation-status",
+      "section": "Reference",
+      "order": 100
+    }
+  ]
+}
