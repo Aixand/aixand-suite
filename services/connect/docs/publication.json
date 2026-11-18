@@ -1,0 +1,91 @@
+{
+  "schema": 1,
+  "project": "aixand-suite",
+  "component": "connect",
+  "pages": [
+    {
+      "file": "README.md",
+      "slug": "connect",
+      "section": "Overview",
+      "order": 0
+    },
+    {
+      "file": "architecture/runtime.md",
+      "slug": "connect/architecture",
+      "section": "Architecture",
+      "order": 10
+    },
+    {
+      "file": "architecture/trust.md",
+      "slug": "connect/trust",
+      "section": "Architecture",
+      "order": 20
+    },
+    {
+      "file": "reference/http.md",
+      "slug": "connect/contracts",
+      "section": "Reference",
+      "order": 30
+    },
+    {
+      "file": "lifecycles/transfers.md",
+      "slug": "connect/transfers",
+      "section": "Lifecycles",
+      "order": 40
+    },
+    {
+      "file": "integrations/direct-codex.md",
+      "slug": "connect/remote-codex",
+      "section": "Integrations",
+      "order": 50
+    },
+    {
+      "file": "integrations/managers.md",
+      "slug": "connect/managed-conversations",
+      "section": "Integrations",
+      "order": 60
+    },
+    {
+      "file": "lifecycles/projects.md",
+      "slug": "connect/projects",
+      "section": "Lifecycles",
+      "order": 70
+    },
+    {
+      "file": "reference/storage.md",
+      "slug": "connect/storage",
+      "section": "Reference",
+      "order": 80
+    },
+    {
+      "file": "development/packaging.md",
+      "slug": "connect/packaging",
+      "section": "Development",
+      "order": 90
+    },
+    {
+      "file": "development/verification.md",
+      "slug": "connect/development",
+      "section": "Development",
+      "order": 100
+    },
+    {
+      "file": "reference/status.md",
+      "slug": "connect/integration",
+      "section": "Reference",
+      "order": 110
+    },
+    {
+      "file": "development/setup.md",
+      "slug": "connect/setup",
+      "section": "Development",
+      "order": 85
+    },
+    {
+      "file": "reference/retained-ui.md",
+      "slug": "connect/retained-ui",
+      "section": "Reference",
+      "order": 115
+    }
+  ]
+}
