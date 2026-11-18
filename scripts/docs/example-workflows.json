@@ -1,0 +1,175 @@
+[
+  {
+    "id": "project-health",
+    "name": "Project health check",
+    "steps": [
+      {
+        "id": "architecture",
+        "label": "Architecture review",
+        "depends_on": []
+      },
+      {
+        "id": "security",
+        "label": "Security review",
+        "depends_on": []
+      },
+      {
+        "id": "plan",
+        "label": "Prioritized action plan",
+        "depends_on": [
+          "architecture",
+          "security"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "autonomous-fix",
+    "name": "Autonomous bug repair",
+    "steps": [
+      {
+        "id": "reproduce",
+        "label": "Reproduce the bug",
+        "depends_on": []
+      },
+      {
+        "id": "repair",
+        "label": "Repair the bug",
+        "depends_on": [
+          "reproduce"
+        ]
+      },
+      {
+        "id": "tests",
+        "label": "Independent tests",
+        "depends_on": [
+          "repair"
+        ]
+      },
+      {
+        "id": "review",
+        "label": "Independent review",
+        "depends_on": [
+          "repair"
+        ]
+      },
+      {
+        "id": "summary",
+        "label": "Verified repair summary",
+        "depends_on": [
+          "tests",
+          "review"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "feature-pipeline",
+    "name": "Feature delivery pipeline",
+    "steps": [
+      {
+        "id": "requirements",
+        "label": "Requirements",
+        "depends_on": []
+      },
+      {
+        "id": "test-plan",
+        "label": "Independent test plan",
+        "depends_on": []
+      },
+      {
+        "id": "design",
+        "label": "Reconciled design",
+        "depends_on": [
+          "requirements",
+          "test-plan"
+        ]
+      },
+      {
+        "id": "implement",
+        "label": "Implement and test",
+        "depends_on": [
+          "design"
+        ]
+      },
+      {
+        "id": "verify",
+        "label": "Independent verification",
+        "depends_on": [
+          "implement"
+        ]
+      },
+      {
+        "id": "review",
+        "label": "Compatibility review",
+        "depends_on": [
+          "implement"
+        ]
+      },
+      {
+        "id": "documentation",
+        "label": "Usage examples report",
+        "depends_on": [
+          "implement"
+        ]
+      },
+      {
+        "id": "handoff",
+        "label": "Evidence and handoff",
+        "depends_on": [
+          "verify",
+          "review",
+          "documentation"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "release-readiness",
+    "name": "Release assessment",
+    "steps": [
+      {
+        "id": "tests",
+        "label": "Run existing tests",
+        "depends_on": []
+      },
+      {
+        "id": "compatibility",
+        "label": "Compatibility review",
+        "depends_on": []
+      },
+      {
+        "id": "docs",
+        "label": "Documentation review",
+        "depends_on": []
+      },
+      {
+        "id": "decision",
+        "label": "GO / NO-GO decision",
+        "depends_on": [
+          "tests",
+          "compatibility",
+          "docs"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "scheduled-checks",
+    "name": "One regression check",
+    "steps": [
+      {
+        "id": "test",
+        "label": "Run existing tests",
+        "depends_on": []
+      },
+      {
+        "id": "triage",
+        "label": "Compare and triage",
+        "depends_on": [
+          "test"
+        ]
+      }
+    ]
+  }
+]
