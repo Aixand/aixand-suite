@@ -1,0 +1,91 @@
+{
+  "schema": 1,
+  "project": "aixand-suite",
+  "component": "runner",
+  "pages": [
+    {
+      "file": "README.md",
+      "slug": "runner",
+      "section": "Overview",
+      "order": 0
+    },
+    {
+      "file": "architecture/runtime.md",
+      "slug": "runner/architecture/runtime",
+      "section": "Architecture",
+      "order": 10
+    },
+    {
+      "file": "architecture/ipc.md",
+      "slug": "runner/architecture/ipc",
+      "section": "Architecture",
+      "order": 20
+    },
+    {
+      "file": "architecture/storage.md",
+      "slug": "runner/architecture/storage",
+      "section": "Architecture",
+      "order": 30
+    },
+    {
+      "file": "lifecycles/scheduling.md",
+      "slug": "runner/lifecycles/scheduling",
+      "section": "Lifecycles",
+      "order": 40
+    },
+    {
+      "file": "lifecycles/recovery.md",
+      "slug": "runner/recovery",
+      "section": "Lifecycles",
+      "order": 50
+    },
+    {
+      "file": "lifecycles/plans.md",
+      "slug": "runner/lifecycles/plans",
+      "section": "Lifecycles",
+      "order": 60
+    },
+    {
+      "file": "integrations/effect-hosts.md",
+      "slug": "runner/integrations/effect-hosts",
+      "section": "Integrations",
+      "order": 70
+    },
+    {
+      "file": "integrations/ir-sdk.md",
+      "slug": "runner/integrations/ir-sdk",
+      "section": "Integrations",
+      "order": 80
+    },
+    {
+      "file": "development/verification.md",
+      "slug": "runner/development",
+      "section": "Development",
+      "order": 90
+    },
+    {
+      "file": "development/installation-ownership.md",
+      "slug": "runner/development/installation-ownership",
+      "section": "Development",
+      "order": 100
+    },
+    {
+      "file": "reference/protocol.md",
+      "slug": "runner/reference/protocol",
+      "section": "Reference",
+      "order": 110
+    },
+    {
+      "file": "reference/status.md",
+      "slug": "runner/reference/status",
+      "section": "Reference",
+      "order": 120
+    },
+    {
+      "file": "installation.md",
+      "slug": "runner/installation",
+      "section": "Reference",
+      "order": 130
+    }
+  ]
+}
