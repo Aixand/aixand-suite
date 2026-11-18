@@ -41,7 +41,7 @@ def snapshot(destination, *, local_sources=False):
             'apps/web/vite.config.ts', 'apps/web/src', 'apps/web/public', 'apps/web/vendor', 'apps/desktop/src-tauri', 'apps/desktop/package.json', 'apps/desktop/package-lock.json', 'scripts/dev'],
     }
     trees['aixand-suite'] += ['release', 'scripts/release', 'LICENSE', 'services/connect/LICENSE', 'services/vox/LICENSE', 'sdks/python/LICENSE', 'installation.toml', 'scripts/product.py', 'scripts/package-orchestration.py', 'scripts/package-products.py', 'scripts/package-macos.py', 'scripts/prepare-update-release.mjs', 'scripts/update-signing.mjs',
-        'scripts/verify-windows-maintenance.py', 'apps/server/docs/installation.md']
+        'scripts/verify-windows-maintenance.py', 'apps/server/docs/operations/installation.md']
     sys.path.insert(0, str(ROOT / 'scripts/runtime'))
     import dependencies
     uc_source = ROOT.parent / 'undercurrent' if local_sources else dependencies.source('undercurrent', destination.parent / 'cache/dependency-sources')
