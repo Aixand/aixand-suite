@@ -38,7 +38,7 @@ latest-direct-send boundary, receipt affinity checks, input delivery, stability
 observation, process management and cancellation. Direct input needs no Carrier
 mailbox; this workflow leaves `address` absent.
 
-To run, start in the `aixand-ir` directory. Use the existing authenticated
+To run, start in `workflow/ir` in the Suite checkout. Use the existing authenticated
 Agent Manager configuration and running Undercurrent daemon. The checked-in
 runtime example points to the sibling development bridge; change that path to
 your matching installed bridge if needed. For initial SDK installation:
@@ -89,8 +89,9 @@ agent sequence. Optional `--workflow`, `--catalog` and `--inputs` select other
 files. Stdout contains the ordinary JSON result. Stderr contains runner events
 and structured failures. Ctrl-C cancels the runner and waits for scope cleanup.
 
-The supplied workflow's `cwd: ".."` selects the parent `aixand-suite`
-directory, already trusted by this machine's `backup` profile. The task reads
+The supplied workflow's `cwd: ".."` selects the parent `workflow` directory
+in a Suite checkout. This literal and the `backup` profile are machine-specific;
+the historical run used a trusted project directory. The task reads
 only the included fixture. On another machine, set `profile` and `cwd` literals
 to an existing authenticated profile and suitable trusted project, then adjust
 the fixture path in `inputs.json`. Authentication remains entirely managed by
@@ -120,7 +121,7 @@ unselected operations have no binding. Existing SDK tests additionally cover
 omitted/null/explicit waits, foreign and revisionless receipts, uncertain
 delivery, partial setup failure, and cancellation joining.
 
-The abstraction findings are:
+The historical example implementation findings are:
 
 | Boundary | Finding |
 |---|---|
@@ -129,5 +130,6 @@ The abstraction findings are:
 | Runtime binding/configuration | Selective installation was added. Interpreter imports, bridge path, profile configuration and directory trust stay outside IR semantics. The startup prompt was resolved using an already trusted working directory. |
 | SDK API | No API change was needed. Native delivery/wait/stop semantics remain intact. Known owned agents are cleaned up after partial failure. A launch that fails before the SDK obtains a confirmed handle may retain only an unconfirmed run ID; the existing SDK records that uncertainty for Agent Manager reconciliation, and this adapter does not promise termination of an unknown session. |
 
-No branching, loops, parallel execution, retries, triggers, durability or Python
-AST compilation were added.
+This sequential example added no branching, loops, parallel execution, retries,
+triggers, durability or Python AST compilation. Current component capabilities
+are described in [implementation status](../../docs/architecture/composition.md#implementation-status).

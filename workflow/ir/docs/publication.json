@@ -1,0 +1,103 @@
+{
+  "schema": 1,
+  "project": "aixand-suite",
+  "component": "ir",
+  "pages": [
+    {
+      "file": "README.md",
+      "slug": "ir",
+      "section": "Overview",
+      "order": 0
+    },
+    {
+      "file": "architecture/composition.md",
+      "slug": "ir/architecture",
+      "section": "Architecture",
+      "order": 10
+    },
+    {
+      "file": "architecture/model.md",
+      "slug": "ir/model",
+      "section": "Architecture",
+      "order": 20
+    },
+    {
+      "file": "architecture/types.md",
+      "slug": "ir/types",
+      "section": "Architecture",
+      "order": 30
+    },
+    {
+      "file": "validation.md",
+      "slug": "ir/validation",
+      "section": "Architecture",
+      "order": 40
+    },
+    {
+      "file": "lifecycles/execution.md",
+      "slug": "ir/execution",
+      "section": "Lifecycles",
+      "order": 50
+    },
+    {
+      "file": "lifecycles/scopes.md",
+      "slug": "ir/scopes",
+      "section": "Lifecycles",
+      "order": 60
+    },
+    {
+      "file": "integrations/sdk.md",
+      "slug": "ir/bindings",
+      "section": "Integrations",
+      "order": 70
+    },
+    {
+      "file": "integrations/frontend.md",
+      "slug": "ir/frontend",
+      "section": "Integrations",
+      "order": 80
+    },
+    {
+      "file": "development.md",
+      "slug": "ir/development",
+      "section": "Development",
+      "order": 90
+    },
+    {
+      "file": "specification.md",
+      "slug": "ir/specification",
+      "section": "Reference",
+      "order": 100
+    },
+    {
+      "file": "branching-v0.2.md",
+      "slug": "ir/branching",
+      "section": "Reference",
+      "order": 110
+    },
+    {
+      "file": "branching-implementation.md",
+      "slug": "ir/branching-implementation",
+      "section": "Reference",
+      "order": 120
+    },
+    {
+      "file": "decisions.md",
+      "slug": "ir/decisions",
+      "section": "Reference",
+      "order": 130
+    },
+    {
+      "file": "conformance.md",
+      "slug": "ir/conformance",
+      "section": "Reference",
+      "order": 140
+    },
+    {
+      "file": "distribution.md",
+      "slug": "ir/distribution",
+      "section": "Reference",
+      "order": 150
+    }
+  ]
+}

@@ -7,7 +7,8 @@ an acceptance or revision note; a final operation runs after either arm. Publish
 outputs use the original pre-branch result. These deterministic operations need
 no credentials and create no managed agents.
 
-From `workflow/ir` in the Suite checkout:
+From `workflow/ir` in the Suite checkout. The first command rewrites the checked-in
+`generated.json`; review its diff before retaining it:
 
 ```sh
 cargo run -p aixand-ir-cli --features frontend -- lower-python examples/branching/workflow.py > examples/branching/generated.json
