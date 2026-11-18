@@ -71,11 +71,14 @@ and its matching `CARRIER_URL` before starting the host. Provisioning uses Carri
 public local administration API and verifies both identities against the service
 before any task starts. Missing Carrier disables delegation and workflow submission
 without disabling plain conversation/native execution tools. Start
-an orchestration host with explicit groups and homes:
+an orchestration host with explicit groups and homes. Start Runner in a second
+terminal with the same exported Carrier settings:
 
 ```sh
-orchestration-mcp host --suite off --home /absolute/orchestration \
-  --runner-home /absolute/runner --groups shared,conversations,queues,tasks,workflows
+export CARRIER_DATABASE=/absolute/carrier.db
+export CARRIER_URL=http://127.0.0.1:8765
+orchestration-mcp host --home /absolute/orchestration --suite off \
+  --groups shared,conversations,queues,tasks,workflows --runner-home /absolute/runner
 runner --home /absolute/runner serve \
   --effect-host /absolute/orchestration/execution-workflows.sock
 ```
@@ -120,8 +123,10 @@ The snapshot retains rendered content and source revision with a content digest.
 Changing the prompt library later does not change that captured task/workflow.
 Workflow-level resources are captured before Runner admission and passed to each
 task as a pinned orchestration snapshot. Model/default selection remains separate.
-Conflicting settings are rejected. Frozen skill and MCP selections need qualified
-public compilers; unsupported capture requests fail rather than being dropped.
+Conflicting settings are rejected. Frozen skill selections need a qualified public compiler. Managed stdio MCP
+selections now support explicit revision-pinned capture with workspace and credential
+restrictions; see [resource capture](integrations/resources.md). Unsupported capture
+requests fail rather than being dropped.
 
 Resource requests use explicit snapshots. Unsupported profile-resource requests
 are rejected rather than silently dropping selections.
@@ -148,3 +153,34 @@ cover lost submission acknowledgements, cycles, unconfirmed publication, invalid
 reports and mode isolation. Static workflow bundle tests no longer import Server
 Manager. Resource-manager integration is optional and explicitly skipped when its
 SDK is absent.
+
+## Architecture reading path
+
+[Carrier acceptance](integrations/carrier.md) · [Runner effects](integrations/runner.md) · [receipt recovery](lifecycles/receipts.md) · [implementation gaps](implementation-status.md).
+
+## Task state and evidence
+
+```mermaid
+flowchart LR
+ accTitle: Delegated task evidence
+ accDescr: A retained assignment starts an exact execution. Execution completion without a Carrier report waits for a report; only authenticated host acceptance supplies an explicit task outcome.
+ Assignment[Creating assignment] --> Dispatch[Exact execution and turn]
+ Dispatch --> Running[Running or waiting for input]
+ Running --> Await[Execution ended awaiting report]
+ Dispatch --> Report[Carrier result accepted]
+ Await --> Report
+ Report --> Outcome[Completed or failed task]
+```
+
+| State / evidence | Interpretation |
+| --- | --- |
+| `creating`, `created` | Assignment or conversation startup retained; dispatch may still be unconfirmed |
+| `running`, `waiting` | Assigned execution active; waiting can reflect pending conversation requests |
+| `awaiting_report` | Execution or turn ended without an accepted report; final text does not complete the task |
+| `uncertain` | Startup or observation unavailable; no replacement is launched |
+| `needs_input` | Legacy task lacks a Carrier assignment; inspect or cancel explicitly |
+| `completed`, `failed` with accepted result | Authenticated attempt outcome accepted; claims still need review |
+| `failed` with `failure_source=execution` | Observed execution failure before report acceptance; no invented report |
+| `cancelled` / cancellation requested | Exact execution cancellation path; late reports cannot become evidence |
+
+An accepted report may coexist with an active worker. Report acceptance does not implicitly terminate the process or conversation. Mode-disabled task reads and cancellation are rejected even if a task record exists.

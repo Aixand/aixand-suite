@@ -86,3 +86,7 @@ consumer environment. Local commands do not publish packages, register MCP
 servers, or modify provider profiles.
 
 [Package overview](../README.md) · [Developer command implementation](../dev.py)
+
+## Architecture and focused checks
+
+Read the [component entry](README.md), then use the [source map](development/source-map.md) to select checks for the changed boundary.

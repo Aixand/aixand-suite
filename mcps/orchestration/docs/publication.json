@@ -1,0 +1,91 @@
+{
+  "schema": 1,
+  "project": "aixand-suite",
+  "component": "orchestration-mcp",
+  "pages": [
+    {
+      "file": "README.md",
+      "slug": "orchestration-mcp",
+      "section": "Overview",
+      "order": 0
+    },
+    {
+      "file": "architecture/composition.md",
+      "slug": "orchestration-mcp/architecture",
+      "section": "Architecture",
+      "order": 10
+    },
+    {
+      "file": "architecture/identity.md",
+      "slug": "orchestration-mcp/identity",
+      "section": "Architecture",
+      "order": 20
+    },
+    {
+      "file": "lifecycles/receipts.md",
+      "slug": "orchestration-mcp/receipts",
+      "section": "Lifecycles",
+      "order": 30
+    },
+    {
+      "file": "lifecycles/executions.md",
+      "slug": "orchestration-mcp/executions",
+      "section": "Lifecycles",
+      "order": 40
+    },
+    {
+      "file": "architecture/security.md",
+      "slug": "orchestration-mcp/security",
+      "section": "Architecture",
+      "order": 50
+    },
+    {
+      "file": "integrations/carrier.md",
+      "slug": "orchestration-mcp/carrier",
+      "section": "Integrations",
+      "order": 60
+    },
+    {
+      "file": "integrations/runner.md",
+      "slug": "orchestration-mcp/runner",
+      "section": "Integrations",
+      "order": 70
+    },
+    {
+      "file": "integrations/resources.md",
+      "slug": "orchestration-mcp/resources",
+      "section": "Integrations",
+      "order": 80
+    },
+    {
+      "file": "reference/tool-groups.md",
+      "slug": "orchestration-mcp/tools",
+      "section": "Reference",
+      "order": 90
+    },
+    {
+      "file": "implementation-status.md",
+      "slug": "orchestration-mcp/implementation-status",
+      "section": "Reference",
+      "order": 100
+    },
+    {
+      "file": "development/source-map.md",
+      "slug": "orchestration-mcp/development/source-map",
+      "section": "Development",
+      "order": 110
+    },
+    {
+      "file": "development.md",
+      "slug": "orchestration-mcp/development",
+      "section": "Development",
+      "order": 120
+    },
+    {
+      "file": "delegation-workflows.md",
+      "slug": "orchestration-mcp/delegation",
+      "section": "Lifecycles",
+      "order": 130
+    }
+  ]
+}
