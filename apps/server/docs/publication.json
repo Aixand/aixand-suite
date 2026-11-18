@@ -1,0 +1,139 @@
+{
+  "schema": 1,
+  "project": "aixand-suite",
+  "component": "server",
+  "pages": [
+    {
+      "file": "README.md",
+      "slug": "server",
+      "section": "Overview",
+      "order": 0
+    },
+    {
+      "file": "architecture/README.md",
+      "slug": "server/architecture/overview",
+      "section": "Architecture",
+      "order": 5
+    },
+    {
+      "file": "architecture/runtime.md",
+      "slug": "server/architecture",
+      "section": "Architecture",
+      "order": 10
+    },
+    {
+      "file": "architecture/ownership.md",
+      "slug": "server/ownership",
+      "section": "Architecture",
+      "order": 20
+    },
+    {
+      "file": "architecture/request-flow.md",
+      "slug": "server/request-flow",
+      "section": "Architecture",
+      "order": 30
+    },
+    {
+      "file": "architecture/security.md",
+      "slug": "server/security",
+      "section": "Architecture",
+      "order": 40
+    },
+    {
+      "file": "implementation-status.md",
+      "slug": "server/implementation-status",
+      "section": "Architecture",
+      "order": 41
+    },
+    {
+      "file": "lifecycles/README.md",
+      "slug": "server/lifecycles",
+      "section": "Lifecycles",
+      "order": 45
+    },
+    {
+      "file": "lifecycles/conversations.md",
+      "slug": "server/conversations",
+      "section": "Lifecycles",
+      "order": 50
+    },
+    {
+      "file": "lifecycles/workflows.md",
+      "slug": "server/workflows",
+      "section": "Lifecycles",
+      "order": 60
+    },
+    {
+      "file": "lifecycles/supervision.md",
+      "slug": "server/supervision",
+      "section": "Lifecycles",
+      "order": 65
+    },
+    {
+      "file": "integrations/README.md",
+      "slug": "server/integrations",
+      "section": "Integrations",
+      "order": 70
+    },
+    {
+      "file": "integrations/managers.md",
+      "slug": "server/integrations/managers",
+      "section": "Integrations",
+      "order": 71
+    },
+    {
+      "file": "integrations/mcp.md",
+      "slug": "server/integrations/mcp",
+      "section": "Integrations",
+      "order": 72
+    },
+    {
+      "file": "integrations/suite-resources.md",
+      "slug": "server/integrations/suite-resources",
+      "section": "Integrations",
+      "order": 73
+    },
+    {
+      "file": "integrations/conversation-tools.md",
+      "slug": "server/integrations/conversation-tools",
+      "section": "Integrations",
+      "order": 74
+    },
+    {
+      "file": "integrations/carrier.md",
+      "slug": "server/integrations/carrier",
+      "section": "Integrations",
+      "order": 75
+    },
+    {
+      "file": "integrations/connect.md",
+      "slug": "server/integrations/connect",
+      "section": "Integrations",
+      "order": 76
+    },
+    {
+      "file": "integrations/native-workflows.md",
+      "slug": "server/integrations/native-workflows",
+      "section": "Integrations",
+      "order": 77
+    },
+    {
+      "file": "development/README.md",
+      "slug": "server/development",
+      "section": "Development",
+      "order": 80
+    },
+    {
+      "file": "development/local-development.md",
+      "slug": "server/development/local-setup",
+      "section": "Development",
+      "order": 81
+    },
+    {
+      "file": "development/capacity.md",
+      "slug": "server/development/capacity",
+      "section": "Development",
+      "order": 82
+    }
+  ]
+}
