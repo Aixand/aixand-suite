@@ -8,6 +8,14 @@ The agent should perform the installation and checks it can complete, and guide
 you through native dialogs, passwords, and provider sign-in when needed. A
 terminal-only agent cannot complete every desktop interaction unattended.
 
+**Reading path:** [Assign the task](#give-your-agent-this-task) →
+[Inspect and choose](#step-1-inspect-the-computer-and-choose-a-role) →
+[Download](#step-2-download-the-matching-installer) →
+[Install](#step-3-run-the-native-installation) →
+[Set up](#step-4-complete-the-chosen-applications-setup) →
+[Diagnose and report](#step-6-diagnose-failures-and-finish).
+Complete the verification checks between setup and the final report.
+
 ## Give your agent this task
 
 Copy the following instruction and attach this file or provide its public link:
@@ -75,7 +83,8 @@ and Linux x86_64. Full Suite and Server payloads require Windows build 26200,
 macOS 26.5.1, or Linux glibc 2.35 or newer. Linux Suite/Client use Debian packages;
 Server also supports Fedora. Client still requires its native WebView and TLS
 platform dependencies. Do not force an installer onto an unsupported target.
-See [installation requirements](README.md#installation).
+See [platform requirements](docs/reference/compatibility.md#platforms) and
+[role-specific installation guides](docs/getting-started/installation.md).
 
 Inspect the OS's installed application list and existing Aixand launchers. If
 `aixand-server` is already available, use `aixand-server status` to inspect its
@@ -191,8 +200,8 @@ aixand-server providers codex login
 
 Use provider-specific help for OpenCode or other supported login options. Let
 the user complete provider authorization privately. Configure either an
-[SSH tunnel](apps/server/docs/installation.md#connect-through-an-ssh-tunnel) or
-[HTTPS proxy](apps/server/docs/installation.md#connect-through-an-https-reverse-proxy)
+[SSH tunnel](apps/server/docs/operations/installation.md#connect-through-an-ssh-tunnel) or
+[HTTPS proxy](apps/server/docs/operations/installation.md#connect-through-an-https-reverse-proxy)
 when access is remote. Do not expose a plain HTTP LAN listener.
 
 ### Client or Suite connecting to Server
@@ -307,7 +316,7 @@ An installer exit code or health endpoint alone does not prove end-to-end succes
 
 Use `aixand-server logs server` and `aixand-server doctor` on the Server host for
 startup or remote-access failures. Use the
-[remote connection troubleshooting table](apps/server/docs/installation.md#troubleshoot-a-remote-connection)
+[remote connection troubleshooting table](apps/server/docs/operations/installation.md#troubleshoot-a-remote-connection)
 for origin, HTTPS, session, and WebSocket errors. Redact credentials from any
 reported logs. Preserve existing data and installation receipts during recovery.
 Never delete authentication files to reopen setup; use
@@ -333,7 +342,7 @@ Finish with a concise report:
 ## Maintainer references
 
 These instructions follow the [application roles](apps/web/docs/installation-editions.md),
-[Server lifecycle and setup](apps/server/docs/installation.md),
+[Server lifecycle and setup](apps/server/docs/operations/installation.md),
 [Client behavior](apps/web/docs/client.md), and
 [provider onboarding](docs/development/onboarding.md). Update this guide when those contracts
 or hosted installer routes change. The guide is ordinary documentation; it does

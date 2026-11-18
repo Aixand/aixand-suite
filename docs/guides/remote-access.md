@@ -29,4 +29,4 @@ or managed HTTPS. Server startup is separate and runs after user login.
 | No live updates | WebSocket upgrades, Origin, and cookies |
 
 On the Server host, use `aixand-server status`, `aixand-server doctor`, and
-`aixand-server logs server`. See the [detailed connection reference](../../apps/server/docs/installation.md#troubleshoot-a-remote-connection).
+`aixand-server logs server`. See the [detailed connection reference](../../apps/server/docs/operations/installation.md#troubleshoot-a-remote-connection).

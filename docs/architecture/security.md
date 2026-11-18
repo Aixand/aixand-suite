@@ -14,7 +14,7 @@ headers count only from trusted peers. Native Client validates certificates and
 uses the selected Server origin.
 
 [Remote setup](../guides/remote-access.md) ·
-[Authentication checks](../../apps/server/docs/authentication.md)
+[Authentication checks](../../apps/server/docs/operations/authentication.md)
 
 ## Credentials and execution
 

@@ -57,4 +57,4 @@ works but live updates fail, check WebSocket forwarding. Inspect
 `aixand-server logs server` on the host.
 
 [Connection errors](remote-access.md#connection-errors) ·
-[Authentication reference](../../apps/server/docs/authentication.md)
+[Authentication reference](../../apps/server/docs/operations/authentication.md)

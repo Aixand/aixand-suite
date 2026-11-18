@@ -1,56 +1,65 @@
 # Publish docs to the project site
 
-Source Markdown stays in Suite. [publication.json](../publication.json) selects
-website pages, stable URL slugs, navigation sections, and ordering.
+Suite owns the source Markdown; publication manifests choose site routes and
+navigation. Repository policies, writing standards, release operations and
+component package READMEs remain source references.
 
-Selected pages cover getting started, task guides, architecture, reference, and
-development. Installation, `quickstart`, and remote-access URLs stay unchanged.
-Writing standards, documentation maintenance, publication instructions, and release
-operations stay repository-only. Component READMEs remain source links.
+## Choose the owning manifest
+
+| Area | Manifest |
+| --- | --- |
+| General docs and examples | `docs/publication.json` |
+| Server / Web / Desktop & Client | `apps/server/docs/publication.json`, `apps/web/docs/publication.json`, `apps/desktop/docs/publication.json` |
+| Vox / Connect | `services/vox/docs/publication.json`, `services/connect/docs/publication.json` |
+| Orchestration MCP | `mcps/orchestration/docs/publication.json` |
+| Runner / Workflow IR | `workflow/runner/docs/publication.json`, `workflow/ir/docs/publication.json` |
+| Python SDK / Runner Client | `sdks/python/docs/publication.json`, `workflow/runner/python/docs/publication.json` |
 
 ## Import
 
-After committing the source docs, run from `project-site`. Replace `SOURCE_SHA`
-with the exact 40-character Suite commit containing the manifest and pages.
+Commit source changes first. From `project-site`, replace `SOURCE_SHA` with the
+exact 40-character Suite commit and select the owning manifest:
 
 ```sh
-npm run docs:sync -- --source ../aixand-suite --repository https://github.com/Aixand/aixand-suite --revision SOURCE_SHA --output .
+npm run docs:sync -- --source ../aixand-suite --repository https://github.com/Aixand/aixand-suite --manifest apps/web/docs/publication.json --revision SOURCE_SHA --output .
 npm run build
 ```
 
-The importer reads that commit, not dirty working files. It generates article
-metadata, website links between selected pages, commit-pinned GitHub links for
-other source files, and content-addressed image assets. Source paths and Markdown
-anchors are checked before output is written.
+Omit `--manifest` for General. Refresh each affected component. The importer reads
+committed bytes, checks paths/anchors, copies content-addressed images, and emits
+site links within each manifest plus commit-pinned source links for other files.
+Do not hand-edit generated articles. Push source commits before public deployment
+so their GitHub source links resolve. Importing never deploys the site.
 
-Edit source docs, then import again. Do not hand-edit generated articles.
-Existing site pages outside the manifest stay unchanged. Removed/renamed routes
-need an explicit cleanup/redirect review; sync does not delete them automatically.
+General provenance is `src/content-imports/aixand-suite.json`; component provenance
+is `src/content-imports/aixand-suite/COMPONENT.json`. Keep existing public slugs
+when moving source files. Sync leaves files outside its manifest unchanged;
+removed routes require an explicit redirect/removal review and generated-file cleanup.
 
 ## Preview uncommitted docs
 
-From `project-site`, use a separate output directory:
+Use a separate output directory from `project-site`:
 
 ```sh
-npm run docs:sync -- --source ../aixand-suite --repository https://github.com/Aixand/aixand-suite --working-tree --output /tmp/suite-docs-preview
+npm run docs:sync -- --source ../aixand-suite --repository https://github.com/Aixand/aixand-suite --manifest apps/web/docs/publication.json --working-tree --output /tmp/suite-web-preview
 ```
 
-Preview pages are marked uncommitted and have no pinned source attribution.
-Fallback GitHub links use `main` and may not exist until changes are published.
-Do not publish preview output. Importing does not deploy the site.
+Preview output has no pinned source attribution; fallback GitHub links use `main`.
+Review it in an isolated site copy. Never deploy it or copy it into production content.
 
 ## Manifest fields
 
-| Field | Meaning |
+| Field | Contract |
 | --- | --- |
-| `schema` | Publication format version; currently `1` |
-| `project` | Website project identifier |
-| `pages[].file` | Markdown path relative to the manifest directory |
-| `pages[].slug` | Stable route under `/<project>/docs/` |
-| `pages[].section` / `order` | Navigation group and order |
-| `pages[].title` / `description` | Optional overrides; otherwise derived from H1/first paragraph |
+| `schema` / `project` | `1` / `aixand-suite` |
+| `component` | Optional for General; otherwise catalog ID, e.g. `web` |
+| `pages[].file` | Unique concrete Markdown file relative to manifest directory; no parent traversal |
+| `pages[].collection` | `docs` (default) or `examples` |
+| `pages[].slug` | Stable route; component routes equal their ID or start `ID/` |
+| `pages[].section` / `order` | Navigation section and integer reading order |
+| `pages[].title` / `description` | Optional overrides for H1/first-paragraph defaults |
 
-The importer accepts ordinary Markdown with one H1. Keep relative source links;
-raw HTML, source frontmatter, and root-relative site links are rejected. Runnable
-example files remain source links; the importer does not package downloadable
-example bundles. Mermaid source passes through to the site's existing renderer.
+Use one H1 and source-relative file links. Published sources cannot contain
+frontmatter, raw HTML or root-relative site URLs. Mermaid passes through to the
+site renderer; examples remain source links rather than downloaded bundles.
+Validate links and diagrams using [documentation checks](documentation.md).

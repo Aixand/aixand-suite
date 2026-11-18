@@ -17,7 +17,7 @@ Server. A Client-only backup does not contain the Server's workspace.
 5. If using **Shared** installation, also back up the resolved manager settings,
    provider homes, tool data, and selected Undercurrent storage. Stop other
    applications writing to those stores before copying them. See
-   [installation paths and overrides](../../apps/server/docs/installation.md#installation-choices).
+   [installation paths and overrides](../../apps/server/docs/operations/installation.md#installation-choices).
 6. Confirm the copy completed and contains the expected files before restarting.
 
 Keep credentials and provider homes in protected backup storage. External paths
@@ -76,4 +76,4 @@ Read the final list of removed and retained paths before confirming:
 Settings-based workspace reset is unavailable in this alpha. Keep the removal
 report and check unfinished components; a partial result is not a complete uninstall.
 
-[Detailed removal options](../../apps/server/docs/installation.md#repair-reset-and-removal)
+[Detailed removal options](../../apps/server/docs/operations/installation.md#repair-reset-and-removal)

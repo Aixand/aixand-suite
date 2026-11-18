@@ -9,7 +9,7 @@ that host, even when you use Client on another computer.
 | --- | --- |
 | Installation or launch fails | Check [platform requirements](../reference/compatibility.md) and the installer error. |
 | Client cannot reach Server | Check Server status, its saved address, and the SSH tunnel or HTTPS proxy. Follow [remote access](remote-access.md). |
-| Password accepted but access rejected | Check the exact origin, HTTPS, trusted proxy peers, and session settings in [connection troubleshooting](../../apps/server/docs/installation.md#troubleshoot-a-remote-connection). |
+| Password accepted but access rejected | Check the exact origin, HTTPS, trusted proxy peers, and session settings in [connection troubleshooting](../../apps/server/docs/operations/installation.md#troubleshoot-a-remote-connection). |
 | Server password forgotten | Run `aixand-server password` on its host and use the private prompt. Keep authentication files. |
 | Provider sign-in is pending | Return to the retained sign-in terminal and finish its instructions. See [profiles and sign-in](../onboarding/profiles-sign-in.md). |
 | Conversation fails after sign-in | Confirm its provider/profile, quota, model access, and the displayed provider error. |

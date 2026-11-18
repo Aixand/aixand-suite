@@ -31,8 +31,8 @@ expected results, and relevant cleanup.
 
 Root docs own shared setup and integration; components own local contracts.
 Keep examples with their component and link them from the [catalog](../guides/examples.md).
-Update incoming links when moving pages. Preserve current behavior directly;
-this doc set does not retain ADRs.
+Update incoming links when moving pages. Describe current behavior directly. Retain version-scoped decision records only
+when they still explain a supported contract; label superseded constraints.
 
 Follow [standard 0.1.0](../_standards/standard.md). Report passed, failed, and
 unverified checks separately.
@@ -78,3 +78,27 @@ node scripts/docs/capture-updates.mjs
 
 Inspect `docs/assets/screenshots/updates/`. Versions and licenses are examples;
 no real downloads or installation requests are made.
+
+Capture the example workflow graphs with the same local Web server:
+
+```sh
+node scripts/docs/capture-example-workflow.mjs
+```
+
+This records five authored drafts in the real builder with fixture authentication.
+It does not run agents or submit an MCP workflow. Capture metadata retains the draft
+and source hashes beside the images. Layout definitions live in
+`scripts/docs/example-workflows.json`; they are screenshot inputs, not runnable MCP submissions.
+
+## Refresh native launcher screenshots
+
+With Web dependencies and Playwright Chromium installed, run from the Suite root:
+
+```sh
+node apps/desktop/docs/development/capture-launcher.mjs
+```
+
+The helper renders real launcher assets with read-only mocked native responses
+and blocks HTTP(S). It records hashes and fixture scope under
+`apps/desktop/docs/assets/screenshots/`; it does not qualify native WebView,
+transport or installer behavior. See [Desktop verification](../../apps/desktop/docs/development/verification.md).

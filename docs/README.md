@@ -23,7 +23,7 @@ this checkout; installed releases can have different controls.
 | Update an installed application or tool | [Updates](guides/updates.md) |
 | Diagnose a problem | [Troubleshooting](guides/troubleshooting.md) |
 | Back up, restore, reset, or uninstall | [Backup and removal](guides/backup-and-removal.md) |
-| Find runnable integration examples | [Examples](guides/examples.md) |
+| Try delegated tasks, workflows, or component examples | [Examples](guides/examples.md) |
 | Understand the system | [Architecture](architecture/README.md) |
 | Look up names, boundaries, or support limits | [Terminology](reference/terminology.md) · [Components](reference/components.md) · [Compatibility](reference/compatibility.md) |
 | Change or verify the source | [Development](development/README.md) |

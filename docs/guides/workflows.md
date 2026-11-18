@@ -39,5 +39,5 @@ submitting another. Cancellation does not undo completed effects.
 
 Next: [Maintain your workspace](maintenance.md).
 
-[Workflow reference](../../apps/server/docs/native-workflows.md) ·
+[Workflow reference](../../apps/server/docs/integrations/native-workflows.md) ·
 [Execution and recovery](../architecture/execution-and-recovery.md)

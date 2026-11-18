@@ -34,4 +34,4 @@ delivery to managed chats; use the displayed provider support/delivery status.
 Resources and preparation belong to the execution machine.
 
 Next: [Workflows](workflows.md). Exact preparation/delivery contracts are in
-[Server resources](../../apps/server/docs/suite-resources.md).
+[Server resources](../../apps/server/docs/integrations/suite-resources.md).

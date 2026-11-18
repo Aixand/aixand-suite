@@ -203,7 +203,7 @@
       "slug": "guides/examples",
       "section": "Guides",
       "order": 37,
-      "description": "Find runnable examples and their prerequisites."
+      "description": "Find delegated tasks, autonomous workflows, and supervision examples."
     },
     {
       "file": "architecture/README.md",
@@ -302,6 +302,78 @@
       "section": "Development",
       "order": 76,
       "description": "Select focused checks for a component change."
+    },
+    {
+      "file": "examples/prepare.md",
+      "slug": "prepare",
+      "section": "Examples",
+      "order": 81,
+      "description": "Prepare the sample project and check Suite orchestration capabilities.",
+      "collection": "examples"
+    },
+    {
+      "file": "examples/explore-project.md",
+      "slug": "explore-project",
+      "section": "Examples",
+      "order": 82,
+      "description": "Delegate architecture and test reviews, then combine accepted reports.",
+      "collection": "examples"
+    },
+    {
+      "file": "examples/fix-and-review.md",
+      "slug": "fix-and-review",
+      "section": "Examples",
+      "order": 83,
+      "description": "Fix a reproducible bug and delegate an independent review.",
+      "collection": "examples"
+    },
+    {
+      "file": "examples/project-health.md",
+      "slug": "project-health",
+      "section": "Examples",
+      "order": 84,
+      "description": "Run parallel architecture and security reviews followed by a dependent plan.",
+      "collection": "examples"
+    },
+    {
+      "file": "examples/autonomous-fix.md",
+      "slug": "autonomous-fix",
+      "section": "Examples",
+      "order": 85,
+      "description": "Run a bounded autonomous repair workflow with independent verification.",
+      "collection": "examples"
+    },
+    {
+      "file": "examples/feature-pipeline.md",
+      "slug": "feature-pipeline",
+      "section": "Examples",
+      "order": 86,
+      "description": "Build a feature through an eight-stage analysis, implementation, and verification workflow.",
+      "collection": "examples"
+    },
+    {
+      "file": "examples/release-readiness.md",
+      "slug": "release-readiness",
+      "section": "Examples",
+      "order": 87,
+      "description": "Join independent checks into a release decision without publishing.",
+      "collection": "examples"
+    },
+    {
+      "file": "examples/supervise-work.md",
+      "slug": "supervise-work",
+      "section": "Examples",
+      "order": 88,
+      "description": "Supervise an existing worker with bounded corrections and independent verification.",
+      "collection": "examples"
+    },
+    {
+      "file": "examples/scheduled-checks.md",
+      "slug": "scheduled-checks",
+      "section": "Examples",
+      "order": 89,
+      "description": "Use a time-limited supervisor to repeat test and triage workflows.",
+      "collection": "examples"
     }
   ]
 }

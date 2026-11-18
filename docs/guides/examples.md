@@ -1,9 +1,23 @@
 # Examples
 
-Runnable examples stay with their owning components. Follow each linked guide
-for prerequisites, commands, expected results, and cleanup.
+Use Suite to delegate useful work and inspect the accepted results. Start with
+[example preparation](../examples/prepare.md), then choose a task.
 
-## Application tasks
+| Example | Orchestration capability |
+| --- | --- |
+| [Explore a project](../examples/explore-project.md) | Parallel specialist tasks and accepted reports |
+| [Fix a bug and review it](../examples/fix-and-review.md) | Implementation followed by independent verification |
+| [Run a project health check](../examples/project-health.md) | Runner dependencies and canonical workflow results |
+| [Fix a bug autonomously](../examples/autonomous-fix.md) | Persistent supervision, repair, parallel tests/review, final evidence |
+| [Build a feature](../examples/feature-pipeline.md) | Eight-stage workflow with parallel analysis and verification |
+| [Prepare a release decision](../examples/release-readiness.md) | Parallel checks joined into an evidence-based GO/NO-GO |
+| [Supervise existing work](../examples/supervise-work.md) | Watch a worker, request corrections, verify, obtain a brief |
+| [Watch regressions](../examples/scheduled-checks.md) | Timer-based supervision of repeated test/triage workflows |
+
+These are copyable prompts, not recorded live outcomes. Agent runs require
+provider access and can consume quota.
+
+## Other application tasks
 
 | Task | Guide |
 | --- | --- |

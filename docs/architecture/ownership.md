@@ -28,4 +28,4 @@ before termination and review data ownership before removal.
 
 [Application services](../../apps/server/agent-bridge/application/README.md) ·
 [Resource integration](../development/agent-integration.md) ·
-[Installation ownership](../../apps/server/docs/installation.md#installation-choices)
+[Installation ownership](../../apps/server/docs/operations/installation.md#installation-choices)
