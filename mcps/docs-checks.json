@@ -1,9 +1,13 @@
 {
   "version": 1,
   "include": [
-    "README.md",
     "orchestration/README.md",
-    "orchestration/docs/*.md"
+    "orchestration/docs/*.md",
+    "orchestration/docs/architecture/*.md",
+    "orchestration/docs/development/*.md",
+    "orchestration/docs/integrations/*.md",
+    "orchestration/docs/lifecycles/*.md",
+    "orchestration/docs/reference/*.md"
   ],
   "exclude": [],
   "allow_placeholders": false
