@@ -259,6 +259,8 @@ class SuiteChats:
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         self.resources = resources or module.ChatResources()
+        from application.services.instruction_defaults import InstructionDefaults
+        self.instruction_defaults = InstructionDefaults(self)
         spec = importlib.util.spec_from_file_location(
             "suite_sdk_tools", Path(__file__).with_name("tools.py")
         )
@@ -772,6 +774,7 @@ class SuiteChats:
                 self.resources.capture,
                 {**args, "suiteTools": False, "applicationPreset": "basic"},
                 cwd,
+                instruction_layers=self.instruction_defaults.layers(provider, target, args.get("resources") or {}),
             )
             now = time.time() * 1000
             record = dict(
@@ -786,6 +789,7 @@ class SuiteChats:
                 signature=signature,
                 sdkExecutionId=None,
                 environmentId=target.environment_id,
+                profileId=target.profile_id,
                 startupOperation="suite-create:" + key,
                 startupStatus="pending",
                 provider=provider,
@@ -935,6 +939,10 @@ class SuiteChats:
         )
 
     async def resource_operation(self, op, args):
+        if op == "instruction-defaults-get":
+            return self.instruction_defaults.get(args)
+        if op == "instruction-defaults-set":
+            return self.instruction_defaults.set(args)
         if op == "resource-catalog":
             return await asyncio.to_thread(self.resources.catalog)
         if op in ("profile-resources-get", "profile-resources-set"):
@@ -957,10 +965,15 @@ class SuiteChats:
         cwd = str(Path(args.get("cwd") or self.adapter.cwd).expanduser().resolve())
         if not Path(cwd).is_dir():
             raise ConversationError("validation", "Choose an existing workspace")
+        manager = self.adapter.clients[provider].manager
+        target = manager.resolve_profile(args["profile"]) if args.get("profile") is not None else await asyncio.to_thread(manager.select_profile, model=args.get("model"))
+        if isinstance(target, dict):
+            target = manager.resolve_profile(target["profile"])
         snapshot, report = await asyncio.to_thread(
             self.resources.capture,
             {**args, "suiteTools": False, "applicationPreset": "basic"},
             cwd,
+            instruction_layers=self.instruction_defaults.layers(provider, target, args.get("resources") or {}),
         )
         if args.get("applicationPreset") == "controller":
             report["items"].append(

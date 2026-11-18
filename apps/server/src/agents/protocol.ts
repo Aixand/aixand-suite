@@ -72,6 +72,13 @@ const releaseResource = z.object({ kind: z.literal('release'), store: cwd.option
 const managedPromptResource = z.object({ kind: z.literal('managed'), store: cwd.optional(), publisher_id: consumerId, package_id: consumerId, prompt, revision: digest.optional() }).strict();
 const managedSkillResource = z.object({ kind: z.literal('managed'), store: cwd.optional(), publisher_id: consumerId, skill_id: consumerId, revision: digest.optional() }).strict();
 const instructionResource = z.object({ target: z.union([managedPromptResource, releaseResource]), required: z.boolean().optional(), inputs: inputs.optional() }).strict();
+const instructionScope = { scope: z.enum(['global', 'profile']), provider: provider.optional(), profile: name.optional() };
+const instructionPolicy = z.union([
+  z.object({ mode: z.enum(['off', 'inherit']) }).strict(),
+  z.object({ mode: z.enum(['append', 'replace']), target: managedPromptResource, inputs: inputs.optional() }).strict(),
+]);
+const validInstructionScope = (value: { scope: string; provider?: string; profile?: string }) =>
+  value.scope === 'global' ? value.provider === undefined && value.profile === undefined : !!value.provider && !!value.profile;
 const skillResource = z.object({ target: z.union([managedSkillResource, releaseResource]), required: z.boolean().optional() }).strict();
 const managedMcpResource = z.object({ kind: z.literal('managed'), store: cwd.optional(), publisher_id: consumerId, server_id: consumerId, revision: digest.optional() }).strict();
 const mcpTarget = z.union([name, managedMcpResource]);
@@ -259,6 +266,9 @@ export const agentsRequestSchema = z.union([
   request('spawn-settings-get', {}),
   request('spawn-settings-set', { defaultMode: z.union([permissionMode, z.literal('manual')]), expectedRevision: z.number().int().min(0) }),
   request('approval-settings-get', {}),
+  z.object({ ...envelope, op: z.literal('instruction-defaults-get'), args: z.object(instructionScope).strict().refine(validInstructionScope) }).strict(),
+  z.object({ ...envelope, op: z.literal('instruction-defaults-set'), args: z.object({ ...instructionScope, policy: instructionPolicy, expectedRevision: z.number().int().min(0) }).strict()
+    .refine(validInstructionScope).refine(value => value.scope !== 'global' || ['off', 'replace'].includes(value.policy.mode)) }).strict(),
   request('approval-settings-set', { autoApprove: z.boolean(), expectedRevision: z.number().int().min(0) }),
   request('mcp-catalog', { provider: resourceProvider.optional() }),
   request('mcp-profile-get', { provider: resourceProvider, profile: name }),

@@ -202,11 +202,13 @@ class SuiteSdkChatRoutes(unittest.IsolatedAsyncioTestCase):
 
         class Target:
             environment_id = "fixture-env"
+            profile_id = "fixture-profile"
 
             def __str__(self):
                 return "work"
 
         manager = SimpleNamespace(
+            provider="codex",
             root=self.root / "agents/codex",
             config_path=None,
             resolve_profile=lambda profile: Target(),

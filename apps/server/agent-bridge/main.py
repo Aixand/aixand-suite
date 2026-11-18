@@ -210,7 +210,7 @@ class Adapter:
             return await self.chat_store().application.upgrade(args['chatId'], args['key'])
         if op == 'suite-mcp-context':
             return await self.chat_store().application.stdio_context(args['chatId'], args['key'])
-        if op in {'resource-catalog', 'profile-resources-get', 'profile-resources-set', 'launch-preview'}:
+        if op in {'resource-catalog', 'profile-resources-get', 'profile-resources-set', 'launch-preview', 'instruction-defaults-get', 'instruction-defaults-set'}:
             return await self.chat_store().resource_operation(op, args)
         if op in {"resource-catalog", "profile-resources-get", "profile-resources-set", "launch-preview",
                   "sdk-credentials-list", "sdk-credential-save", "sdk-credential-assign", "sdk-auth-configure"}:

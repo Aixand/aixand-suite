@@ -19,6 +19,20 @@ describe('spawn policy contracts', () => {
 
 describe('Agent requests', () => {
   const id = crypto.randomUUID();
+  it('guards instruction default scopes, targets and revisions', () => {
+    const valid = (op: string, args: object) => agentsRequestSchema.safeParse({ id, op, args }).success;
+    const target = { kind: 'managed', publisher_id: 'local', package_id: 'review', prompt: 'review' };
+    expect(valid('instruction-defaults-get', { scope: 'global' })).toBe(true);
+    expect(valid('instruction-defaults-set', { scope: 'global', policy: { mode: 'replace', target }, expectedRevision: 0 })).toBe(true);
+    expect(valid('instruction-defaults-set', { scope: 'profile', provider: 'codex', profile: 'review', policy: { mode: 'append', target }, expectedRevision: 1 })).toBe(true);
+    for (const args of [
+      { scope: 'global', provider: 'codex', policy: { mode: 'off' }, expectedRevision: 0 },
+      { scope: 'profile', policy: { mode: 'inherit' }, expectedRevision: 0 },
+      { scope: 'global', policy: { mode: 'append', target }, expectedRevision: 0 },
+      { scope: 'global', policy: { mode: 'replace', target } },
+      { scope: 'global', policy: { mode: 'off', target }, expectedRevision: 0 },
+    ]) expect(valid('instruction-defaults-set', args)).toBe(false);
+  });
   it('accepts native profile sign-in methods separately from installation methods', () => {
     const args = { key: crypto.randomUUID(), provider: 'codex', kind: 'profile-login', profile: 'work' };
     const valid = (extra: object) => agentsRequestSchema.safeParse({ id, op: 'agent-operation-start', args: { ...args, ...extra } }).success;

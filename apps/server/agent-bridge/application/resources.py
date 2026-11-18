@@ -60,7 +60,7 @@ class ChatResources:
             result["prompt"] = value["prompt"]
         return result
 
-    def capture(self, args, cwd):
+    def capture(self, args, cwd, *, instruction_layers=None):
         request = args.get("resources") or {}
         if (
             not isinstance(request, dict)
@@ -74,7 +74,7 @@ class ChatResources:
             )
         ):
             raise OrchestrationError("validation", "Unsupported resource selection")
-        if request.get("inherit_profile") or args.get("useProfileInstructions"):
+        if args.get("useProfileInstructions"):
             raise OrchestrationError(
                 "unsupported",
                 "Profiles do not own resource bindings; select library targets explicitly",
@@ -105,6 +105,11 @@ class ChatResources:
             target = self.target("instructions", instruction.get("target"))
             target["inputs"] = instruction.get("inputs") or {}
             selected.append(("instructions", instruction, {"instructions": target}))
+        elif instruction.get("mode", "inherit") == "inherit":
+            for layer in instruction_layers or []:
+                target = self.target("instructions", layer["target"])
+                target["inputs"] = layer.get("inputs", {})
+                selected.append(("instructions", layer, {"instructions": target}))
         for kind in ("skills", "mcp"):
             policy = request.get(kind) or {}
             if not isinstance(policy, dict) or set(policy) - {
@@ -141,6 +146,7 @@ class ChatResources:
                     (kind, item, {"mcp": [self.target(kind, item.get("target"))]})
                 )
         settings, sources, report = {}, [], []
+        instruction_texts, instruction_reports = [], []
         names = set()
         for kind, item, selection in selected:
             required = item.get("required", False)
@@ -149,13 +155,14 @@ class ChatResources:
                     "validation", "Resource required must be boolean"
                 )
             row = dict(
-                id=kind + ":" + digest(item["target"])[7:31],
+                id=kind + ":" + digest([item["origin"], item["target"]] if "origin" in item else item["target"])[7:31],
                 kind=kind,
                 target=deepcopy(item["target"]),
                 required=required,
-                origin="launch",
+                origin=item.get("origin", "launch"),
                 delivery="native" if kind == "instructions" else "stdio",
             )
+            row.update({key: item[key] for key in ("assignment_revision", "profile_id") if key in item})
             try:
                 snapshot = ResourceCapture().capture(selection, cwd=cwd)
             except Exception as error:
@@ -176,7 +183,11 @@ class ChatResources:
                 )
             else:
                 if kind == "instructions":
-                    settings["instructions"] = snapshot["settings"]["instructions"]
+                    text = snapshot["settings"]["instructions"]["text"]
+                    instruction_texts.append(text)
+                    row["text"] = text
+                    for source in snapshot["sources"]:
+                        source.update({key: item[key] for key in ("origin", "assignment_revision", "profile_id") if key in item})
                 else:
                     for server in snapshot["settings"]["mcp"]["servers"]:
                         if server["server_name"] in names:
@@ -195,7 +206,19 @@ class ChatResources:
                     revision=source["revision"],
                     content_digest=snapshot["digest"],
                 )
-            report.append(row)
+            if kind == "instructions":
+                instruction_reports.append(row)
+            else:
+                report.append(row)
+        if instruction_reports:
+            if instruction_texts:
+                settings["instructions"] = {"text": "\n\n".join(instruction_texts)}
+            if len(instruction_reports) == 1:
+                report.insert(0, instruction_reports[0])
+            else:
+                report.insert(0, dict(id="instructions:composed", kind="instructions", target="Global and profile instructions",
+                    required=True, origin="defaults", delivery="native", status="ready", verification="captured",
+                    layers=instruction_reports, content_digest=digest(instruction_texts)))
         if settings.get("mcp"):
             settings["mcp"]["selection_digest"] = digest(settings["mcp"]["servers"])
         if len(json.dumps(settings, allow_nan=False).encode()) > 512 * 1024:
@@ -302,5 +325,5 @@ class ChatResources:
             },
         )
         return dict(
-            choices=choices, integrations=integrations, profileDefaultsSupported=False
+            choices=choices, integrations=integrations, profileDefaultsSupported=False, instructionDefaultsSupported=True
         )
