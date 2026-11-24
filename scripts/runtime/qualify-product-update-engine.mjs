@@ -245,7 +245,11 @@ export async function qualifyProductEngine(options) {
       const components = await import(pathToFileURL(join(root, 'component-updates.mjs')).href)
       await components.saveComponentState(config, { ...components.componentState(config), daily: false })
       await coordinator.saveProductUpdateState(config, { ...productUpdateState(config), daily: false })
-      await (await import(pathToFileURL(join(root, 'updates.mjs')).href)).updateSettings(config, { daily: false })
+      if (manifest.releaseSequence > 0) {
+        await (await import(pathToFileURL(join(root, 'updates.mjs')).href)).updateSettings(config, { daily: false })
+      } else {
+        assert.ok(diagnostic, 'Native release qualification requires a positive application release sequence')
+      }
       delete dependencies.lifecycle
       dependencies.launchWorker = (await import(pathToFileURL(join(root, 'component-launcher.mjs')).href)).launchComponentWorker
       dependencies.lifecycle = nativeLifecycle
@@ -284,8 +288,7 @@ export async function qualifyProductEngine(options) {
     console.log('Applying the signed product update through the real native installation engine.')
     const consent = { confirmed: true, revision: plan.revision, acceptedLicenses, restartConsent: true }
     if (nativeLifecycle) {
-      const reviewChoice = options['local-catalog'] ? { products: [id] } : choice
-      const reviewed = await request('/api/updates/products', { action: 'plan', ...reviewChoice })
+      const reviewed = await request('/api/updates/products', { action: 'plan', ...choice })
       assert.equal(reviewed.revision, plan.revision)
       assert.equal((await request('/api/updates/products', { action: 'install', ...consent })).started, true)
     } else await productUpdateAction(config, 'install', consent, dependencies)
