@@ -61,16 +61,53 @@ async def exchange():
 asyncio.run(exchange())
 `
 
+const conversationProbe = String.raw`
+import asyncio
+import json
+from pathlib import Path
+import sys
+from conversation_manager import Client
+from conversation_manager.demo import demo
+
+phase, workspace = sys.argv[1:]
+state = Path(workspace) / "conversation-qualification"
+state.mkdir(exist_ok=True)
+home = state / "store"
+home.mkdir(exist_ok=True)
+evidence = state / "retained.json"
+
+async def exercise():
+    if phase == "before":
+        result = await demo(home=str(home))
+        assert result["status"] == "completed", result
+        evidence.write_text(json.dumps({
+            "conversation": result["conversation_ref"],
+            "turn": result["send_receipt"]["result"]["turn_id"],
+        }))
+    saved = json.loads(evidence.read_text())
+    client = Client(str(home))
+    history = await client.history(saved["conversation"])
+    assert history["entries"]
+    assert (await client.turn_result(saved["conversation"], saved["turn"]))["status"] == "completed"
+    if phase == "after":
+        fresh = state / "new-store"
+        fresh.mkdir()
+        assert (await demo(home=str(fresh)))["status"] == "completed"
+
+asyncio.run(asyncio.wait_for(exercise(), timeout=45))
+`
+
 export async function qualifyProductEngine(options) {
   const id = options.product ?? 'runner'
-  assert.ok(['runner', 'carrier'].includes(id), 'Native qualification probes are available for Runner and Carrier')
+  assert.ok(['runner', 'carrier', 'agent-manager', 'conversation-manager'].includes(id),
+    'No integrated qualification probe is defined for this product')
   const selection = productDefinitions[id].product
   const nativeModes = ['native-feed', 'hosted-feed', 'local-native'].filter(mode => options[mode])
   const native = nativeModes.length > 0
   const diagnostic = !options['native-feed'] && !options['hosted-feed']
   assert.ok(nativeModes.length <= 1, 'Choose one native feed source')
   assert.ok(!options['local-catalog'] || diagnostic, 'The qualification feed defines its own schema')
-  assert.ok(id !== 'carrier' || native, 'Carrier qualification requires a running Suite lifecycle')
+  assert.ok(id === 'runner' || native, 'This product qualification requires a running Suite lifecycle')
   for (const name of ['runtime', 'old-artifact', 'new-archive', 'new-sha256', 'work', 'report']) assert.ok(options[name], 'Required: --' + name)
   assert.ok(!options.scope || ['private', 'shared'].includes(options.scope), 'Choose private or shared scope')
   const shared = options.scope === 'shared'
@@ -181,6 +218,21 @@ export async function qualifyProductEngine(options) {
     await execute(carrierPython, ['-B', '-c', carrierProbe, phase, config.env.CARRIER_URL, config.env.CARRIER_DATABASE, base],
       { env: config.input, timeout: 30000, windowsHide: true })
   }
+  const agentManagerData = async phase => {
+    if (id !== 'agent-manager') return
+    const { commands } = installedProductTools(root, config.input, base)
+    const agent = async (...args) => JSON.parse((await execute(commands.agent, ['codex', 'profile', ...args, '--json'],
+      { env: config.env, timeout: 30000, windowsHide: true })).stdout)
+    if (phase === 'before') await agent('new', 'updater-qualification')
+    await agent('show', 'updater-qualification')
+    if (phase === 'after') await agent('new', 'created-after-update')
+  }
+  const conversationManagerData = async phase => {
+    if (id !== 'conversation-manager') return
+    const python = (await receipt()).products[selection].python
+    await execute(python, ['-B', '-c', conversationProbe, phase, base],
+      { env: config.env, timeout: 60000, windowsHide: true })
+  }
   try {
     if (native) {
       nativeLifecycle = await import(pathToFileURL(join(root, 'runtime.mjs')).href)
@@ -206,6 +258,8 @@ export async function qualifyProductEngine(options) {
       const inventory = await request('/api/updates/products')
       assert.ok(inventory.available, 'Packaged authenticated product update API must be enabled')
       await carrierData('before')
+      await agentManagerData('before')
+      await conversationManagerData('before')
     }
     if (diagnostic) {
       compatible = false
@@ -249,6 +303,8 @@ export async function qualifyProductEngine(options) {
       await request('/api/auth/login', { password })
       assert.ok((await request('/api/updates/products')).inventory)
       await carrierData('after')
+      await agentManagerData('after')
+      await conversationManagerData('after')
     } else {
       const job = JSON.parse(await readFile(jobFile, 'utf8'))
       await runProductUpdateWorker(config, { ...job, path: jobFile }, { ...dependencies, outsideLifecycle: true })
@@ -279,7 +335,11 @@ export async function qualifyProductEngine(options) {
       verified: true, target: catalog.target, product: id, installationScope: shared ? 'shared' : 'private', runtimeRole: manifest.installation?.role,
       runtimeVersion: manifest.version, previousVersion: oldManifest.products[selection].version, version: next.version, release: next.release,
       compatibleBuilds: [manifest.build], manifestSha256: hash(candidateBytes), archiveSha256: options['new-sha256'], checks: { httpPlanAndInstall: Boolean(nativeLifecycle), upgrade: true, restart: Boolean(nativeLifecycle), signedCheck: true, realEngineUpgrade: true,
-        otherProductsUnchanged: true, ...(id === 'carrier' ? { carrierMessagesRetained: true, carrierDelivery: true } : {}), selectedRepair: true, dataRetained: true, softwareRemoved: true },
+        otherProductsUnchanged: true,
+        ...(id === 'carrier' ? { carrierMessagesRetained: true, carrierDelivery: true } : {}),
+        ...(id === 'agent-manager' ? { agentProfilesRetained: true, agentProfileCreation: true } : {}),
+        ...(id === 'conversation-manager' ? { conversationHistoryRetained: true, offlineConversation: true } : {}),
+        selectedRepair: true, dataRetained: true, softwareRemoved: true },
       scope: nativeLifecycle ? 'Packaged native runtime, authenticated HTTP API, external worker and actual Server restart. '
         + (options['hosted-feed'] ? 'Hosted signed feed and archive.' : 'Local feed and archive transport.')
         : 'Real native products and engine; application lifecycle fixture. No native GUI, HTTP API or real Server restart qualification.' }

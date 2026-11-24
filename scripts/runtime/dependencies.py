@@ -111,7 +111,8 @@ def suite_source_digest(root, name):
                             and Path(directory, n).parts[-2:] != ('scripts', 'dev')]
                 candidates.extend(Path(directory) / n for n in leaves
                                   if not any(fnmatch.fnmatchcase(n, p) for p in ignored)
-                                  and not n.endswith('.md'))
+                                  and not n.endswith('.md')
+                                  and not (Path(directory).name == 'docs' and n == 'publication.json'))
         else:
             candidates = [path]
         for file in candidates:

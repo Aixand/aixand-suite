@@ -74,6 +74,8 @@ class DependencyTests(unittest.TestCase):
             (root / 'workflow/runner/target').mkdir()
             (root / 'workflow/runner/target/generated').write_text('compiler output')
             (root / 'workflow/runner/README.md').write_text('updated documentation')
+            (root / 'workflow/runner/docs').mkdir()
+            (root / 'workflow/runner/docs/publication.json').write_text('{"pages": []}')
             (root / 'workflow/ir/upstream.rs').write_text('independently updated library source')
             self.assertEqual(dependencies.suite_source_digest(root, 'runner'), identity)
 

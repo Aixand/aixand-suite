@@ -41,6 +41,10 @@ before restart and sends a new message using the same credentials afterward.
 Use `--local-native` for a diagnostic run with an ephemeral key. The signer
 requires a native qualification report with the Carrier message checks.
 
+Schema 2 product catalogs allow several qualified versions per tool. When
+enabling the catalog for a target, include the eligible releases that should
+remain available from the previous feed. Suite prefers the catalog when present.
+
 Feed `sequence` is a monotonic metadata revision. Native artifacts retain a
 separate `releaseSequence`, identifying the actual compiled application. Feed
 renewal advances metadata expiry and revision while preserving package version,

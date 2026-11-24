@@ -15,6 +15,12 @@ owns the update: your desktop application or the connected Server.
 Updating Client does not update Server. Shared tool changes can affect other
 applications on the workspace host.
 
+Manager tool updates replace the installed commands and their private runtimes.
+Use a workspace host update to change the manager SDKs bundled with Server.
+For a shared Undercurrent installation, follow its maintenance procedure to stop
+the daemon and back up its data before replacing the software. Review the new
+tool selection in Suite when a compatible update is available.
+
 ## Check and review
 
 1. Open **Settings → Updates** and select **Check all updates**.
