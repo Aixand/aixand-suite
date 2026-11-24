@@ -19,7 +19,7 @@ const trust = { enabled: true, origin: 'https://updates.example', keys: { test: 
 
 // This is a coordinator fixture, not native product qualification. Installation
 // ownership and real artifact extraction have separate engine/native checks.
-async function fixture(t) {
+async function fixture(t, { stateful = true } = {}) {
   const temporary = await mkdtemp(join(tmpdir(), 'suite-product-updates-'))
   t.after(() => rm(temporary, { recursive: true, force: true }))
   const root = join(temporary, 'application'), base = join(temporary, 'workspace'), home = join(temporary, 'home')
@@ -31,6 +31,14 @@ async function fixture(t) {
   const catalog = { schema: 1, target, consumer: { 'consumer/consumer.py': hash('# coordinator fixture') },
     assemblies: Object.entries(productDefinitions).map(([id, item]) => ({ id, artifact: 'artifacts/' + id, licenses: [], manifest_sha256: hash('manifest' + id),
       products: { [item.product]: { version: '1.0.0', release: hash(id), commands: [id] } } })) }
+  const baseline = catalog.assemblies.find(row => row.id === 'agent-manager')
+  const bundledProduct = baseline.products['manager-suite/agent-manager']
+  const bundledManifest = JSON.stringify({ target, products: { 'manager-suite/agent-manager': {
+    ...bundledProduct, dependencies: [], stateful,
+  } } })
+  baseline.manifest_sha256 = hash(bundledManifest)
+  await mkdir(join(root, 'products', baseline.artifact), { recursive: true })
+  await writeFile(join(root, 'products', baseline.artifact, 'release-manifest.json'), bundledManifest)
   const text = JSON.stringify(catalog)
   await writeFile(join(root, 'products/catalog.json'), text)
   await writeFile(join(root, 'manifest.json'), JSON.stringify({ build, installation: { schema: 1, role: 'server', edition: 'distributed', catalogSha256: hash(text) } }))
@@ -69,7 +77,7 @@ async function fixture(t) {
       if (args.includes('--dry-run')) return { operation: 'upgrade', scope: location.scope, owner: location.owner, prefix: location.prefix }
       if (fail) throw new Error('Engine installation interrupted')
       events.push('upgrade-agent')
-      const receipt = JSON.parse(await readFile(receiptPath, 'utf8')); receipt.products[selection].product = product
+      const receipt = JSON.parse(await readFile(receiptPath, 'utf8')); receipt.products[selection].product = args.includes(join(root, 'products', baseline.artifact)) ? bundledProduct : product
       await writeFile(receiptPath, JSON.stringify(receipt)); return { installed: true }
     },
     validateProducts: async () => { events.push('verify'); assert.equal(productStatus(root, config.input, base).ready, true) },
@@ -183,4 +191,96 @@ test('a compatible tool changed by another installation is recognized without re
   await runProductUpdateWorker(f.config, await f.job(), { ...dependencies, outsideLifecycle: true })
   assert.equal(productStatus(f.config.root, f.config.input, f.config.base).ready, true)
   assert.deepEqual(f.events, ['prepare', 'stop', 'verify', 'start'])
+})
+
+test('catalog check, exact review, download and worker install keep the selected release', async t => {
+  const f = await fixture(t)
+  const latest = { ...f.candidate, version: '1.2.0', release: hash('latest agent manager') }
+  const prior = JSON.parse(f.envelope.payload)
+  const payload = JSON.stringify({ ...prior, schema: 2, products: { 'agent-manager': [f.candidate, latest] } })
+  const envelope = { ...f.envelope, payload, signature: sign(null, Buffer.from(payload), pair.privateKey).toString('base64') }
+  const fetch = async url => {
+    assert.ok(url.endsWith('/catalog.json'))
+    return Response.json(envelope)
+  }
+  await productUpdateAction(f.config, 'check', {}, { ...f.dependencies, fetch })
+  const status = await productUpdateAction(f.config)
+  assert.equal(status.inventory.products['agent-manager'].bundledVersion, '1.0.0')
+  assert.equal(status.candidates['agent-manager'].release, latest.release)
+  assert.deepEqual(status.versions['agent-manager'].map(item => item.version), ['1.2.0', '1.1.0'])
+  const selected = { releases: { 'agent-manager': f.candidate.release } }
+  const plan = await productUpdateAction(f.config, 'plan', selected, f.dependencies)
+  assert.deepEqual(plan.selectedReleases, selected.releases)
+  await productUpdateAction(f.config, 'download', selected, f.dependencies)
+  const ready = await productUpdateAction(f.config, 'plan', selected, f.dependencies)
+  assert.equal(ready.ready, true)
+  await productUpdateAction(f.config, 'install', { confirmed: true, revision: ready.revision, acceptedLicenses: [], restartConsent: true }, f.dependencies)
+  await runProductUpdateWorker(f.config, await f.job(), { ...f.dependencies, outsideLifecycle: true })
+  const updated = await productUpdateAction(f.config)
+  assert.equal(updated.inventory.products['agent-manager'].version, '1.1.0')
+  assert.equal(updated.inventory.products['agent-manager'].bundledVersion, '1.0.0')
+  const receipt = await readFile(f.receiptPath, 'utf8')
+  const restore = await productUpdateAction(f.config, 'restore-plan', {}, f.dependencies)
+  assert.equal(restore.candidates['agent-manager'].version, '1.0.0')
+  assert.match(restore.blockers[0].reason, /current tool data or a compatible backup/)
+  await assert.rejects(productUpdateAction(f.config, 'restore', { confirmed: true, revision: restore.revision,
+    acceptedLicenses: [], restartConsent: true }, f.dependencies), /conflicts block/)
+  assert.equal(await readFile(f.receiptPath, 'utf8'), receipt)
+
+  await assert.rejects(productUpdateAction(f.config, 'check', {}, { ...f.dependencies, fetch: async url => {
+    assert.ok(url.endsWith('/catalog.json'))
+    return new Response(null, { status: 503 })
+  } }), /503/)
+})
+
+test('an unpublished catalog falls back to the existing signed feed', async t => {
+  const f = await fixture(t), requests = []
+  await productUpdateAction(f.config, 'check', {}, { ...f.dependencies, fetch: async url => {
+    requests.push(url.split('/').at(-1))
+    return url.endsWith('/catalog.json') ? new Response(null, { status: 503 }) : Response.json(f.envelope)
+  } })
+  assert.deepEqual(requests, ['catalog.json', 'latest.json'])
+  assert.deepEqual((await productUpdateAction(f.config)).versions, {})
+  await assert.rejects(productUpdateAction(f.config, 'plan', { releases: { 'agent-manager': f.candidate.release } }, f.dependencies), /verified product catalog/)
+})
+
+test('bundled restore uses the reviewed offline artifact and restarts through the existing worker', async t => {
+  const f = await fixture(t, { stateful: false })
+  const initial = await currentProductUpdatePlan(f.config, productUpdateState(f.config), f.dependencies)
+  const confirm = plan => ({ confirmed: true, revision: plan.revision, acceptedLicenses: [], restartConsent: true })
+  const dependencies = { ...f.dependencies, fetch: () => { throw new Error('restore must stay offline') } }
+  await productUpdateAction(f.config, 'install', confirm(initial), dependencies)
+  await runProductUpdateWorker(f.config, await f.job(), { ...dependencies, outsideLifecycle: true })
+
+  const restore = await productUpdateAction(f.config, 'restore-plan', {}, dependencies)
+  assert.equal(restore.ready, true)
+  await productUpdateAction(f.config, 'restore', confirm(restore), dependencies)
+  const job = await f.job()
+  await runProductUpdateWorker(f.config, job, { ...dependencies, outsideLifecycle: true })
+  const status = await productUpdateAction(f.config)
+  assert.equal(status.inventory.products['agent-manager'].version, '1.0.0')
+  assert.deepEqual(JSON.parse(await readFile(productSelectionPath(f.config.base), 'utf8')).assemblies, {})
+  assert.deepEqual(f.events.slice(-5), ['prepare', 'stop', 'upgrade-agent', 'verify', 'start'])
+  assert.equal(status.phase, 'completed')
+})
+
+test('interrupted bundled restore records the previous selection and preserves recovery ownership', async t => {
+  const f = await fixture(t, { stateful: false })
+  const confirm = plan => ({ confirmed: true, revision: plan.revision, acceptedLicenses: [], restartConsent: true })
+  const dependencies = { ...f.dependencies, outsideLifecycle: true }
+  const initial = await currentProductUpdatePlan(f.config, productUpdateState(f.config), dependencies)
+  await productUpdateAction(f.config, 'install', confirm(initial), dependencies)
+  await runProductUpdateWorker(f.config, await f.job(), dependencies)
+  const restore = await productUpdateAction(f.config, 'restore-plan', {}, dependencies)
+  await productUpdateAction(f.config, 'restore', confirm(restore), dependencies)
+  const job = await f.job()
+  f.fail()
+  await assert.rejects(runProductUpdateWorker(f.config, job, dependencies), /interrupted/)
+  const recovery = JSON.parse(await readFile(join(job.path, '..', 'recovery.json'), 'utf8'))
+  assert.equal(recovery.previousSelection.assemblies['agent-manager'].manifestSha256, f.manifestSha256)
+  assert.deepEqual(recovery.completed, [])
+  const status = await productUpdateAction(f.config)
+  assert.equal(status.recoveryRequired, true)
+  assert.equal(status.inventory.products['agent-manager'].version, '1.1.0')
+  assert.deepEqual(f.events.slice(-2), ['prepare', 'stop'])
 })

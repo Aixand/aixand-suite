@@ -16,8 +16,15 @@ const request = z.discriminatedUnion('action', [
 ]);
 const productIds = ['undercurrent', 'runner', 'carrier', 'agent-manager', 'conversation-manager', 'mcp-manager', 'prompt-manager', 'skill-manager', 'orchestration-mcp'] as const;
 const productRequest = z.discriminatedUnion('action', [
+  z.object({ action: z.literal('restore'), confirmed: z.literal(true), revision: z.string().regex(/^[a-f0-9]{64}$/),
+    restartConsent: z.literal(true), acceptedLicenses: z.array(z.string().regex(/^[a-f0-9]{64}$/)).max(288) }).strict(),
+  z.object({ action: z.literal('restore-plan') }).strict(),
   z.object({ action: z.literal('check') }).strict(),
-  z.object({ action: z.enum(['plan', 'download']), products: z.array(z.enum(productIds)).min(1).max(9).refine(ids => new Set(ids).size === ids.length).optional() }).strict(),
+  z.object({ action: z.enum(['plan', 'download']),
+    products: z.array(z.enum(productIds)).min(1).max(9).refine(ids => new Set(ids).size === ids.length).optional(),
+    releases: z.partialRecord(z.enum(productIds), z.string().regex(/^[a-f0-9]{64}$/))
+      .refine(value => Object.keys(value).length > 0).optional(),
+  }).strict().refine(value => !(value.products && value.releases)),
   z.object({ action: z.literal('settings'), daily: z.boolean().optional(), automaticDownload: z.boolean().optional() }).strict().refine(v => v.daily !== undefined || v.automaticDownload !== undefined),
   z.object({ action: z.literal('install'), confirmed: z.literal(true), revision: z.string().regex(/^[a-f0-9]{64}$/),
     restartConsent: z.literal(true), acceptedLicenses: z.array(z.string().regex(/^[a-f0-9]{64}$/)).max(288) }).strict(),
@@ -46,7 +53,7 @@ export class UpdatesService implements OnModuleInit, OnModuleDestroy {
       candidates: { server: { version: value.version } }, licenses: value.licenses, restartRequired: true, unsupported: [],
       blockers: [...(value.sessions || []).map((item: any) => ({ name: item.name || 'Active workspace work' })),
         ...(value.productBlockers || []).map((item: any) => ({ name: item.id, reason: item.reason }))] };
-    if (!application && action === 'plan') return { revision: value.revision, ready: value.ready, requested: value.requested, shared: value.shared,
+    if (!application && action === 'plan') return { revision: value.revision, ready: value.ready, requested: value.requested, shared: value.shared, selectedReleases: products ? value.selectedReleases : undefined,
       candidates: Object.fromEntries(Object.entries(value.candidates || {}).map(([id, item]: [string, any]) => [id, { version: item.version, requires: item.requires, action: item.action }])),
       licenses: value.licenses, restartRequired: value.restartRequired, unsupported: value.unsupported,
       blockers: (value.blockers || []).map((item: any) => ({ name: typeof item.name === 'string' ? item.name : 'Active workspace work', reason: typeof item.reason === 'string' ? item.reason : undefined })) };
@@ -57,8 +64,8 @@ export class UpdatesService implements OnModuleInit, OnModuleDestroy {
     if (!value.inventory && value.available === false) return value;
     if (!products) return { ...value, host: { name: hostname() } };
     return { ...value, host: { name: hostname() }, inventory: value.inventory ? { products: Object.fromEntries(Object.entries(value.inventory.products || {}).map(([id, item]: [string, any]) =>
-      [id, { name: item.name, version: item.version, availableVersion: item.availableVersion, scope: item.scope, updatable: item.updatable, reason: item.reason }])) } : undefined,
-      candidates: Object.fromEntries(Object.entries(value.candidates || {}).map(([id, item]: [string, any]) => [id, { version: item.version, requires: item.requires }])) };
+      [id, { name: item.name, version: item.version, bundledVersion: item.bundledVersion, canReviewRestore: item.canReviewRestore, availableVersion: item.availableVersion, scope: item.scope, updatable: item.updatable, reason: item.reason }])) } : undefined,
+      candidates: Object.fromEntries(Object.entries(value.candidates || {}).map(([id, item]: [string, any]) => [id, { version: item.version, release: item.release, requires: item.requires }])) };
   }
   async plan(application = false, products = false) { return this.call('plan', {}, application, products); }
   async checkAll(value: unknown) {

@@ -74,7 +74,7 @@ export function productLocation(root, input, base) {
   const prefix = mode !== 'system' ? join(base, 'software/products') : sharedProductPrefix(input)
   if (mode === 'system' && (inside(prefix, root) || inside(prefix, base)))
     throw new Error('Shared products must live outside the Suite installation and workspace.')
-  return { catalog, mode, scope: mode !== 'system' ? 'private' : 'shared',
+  return { catalog, baseline, mode, scope: mode !== 'system' ? 'private' : 'shared',
     owner: mode !== 'system' ? 'aixand-suite' : 'user',
     prefix }
 }

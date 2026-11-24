@@ -120,6 +120,63 @@ test('individual tool updates review companions, shared ownership and explicit i
   await expect.poll(() => requests.find(row => row.action === 'install')).toEqual({ action: 'install', confirmed: true, revision: 'b'.repeat(64), acceptedLicenses: ['c'.repeat(64)], restartConsent: true })
 })
 
+test('tool version review preserves the selected release and bundled restore requires restart consent', async ({ page }) => {
+  const id = 'agent-manager', older = 'a'.repeat(64), newer = 'b'.repeat(64), revision = 'c'.repeat(64)
+  const releases = { [id]: older }
+  let installed = '0.1.0-beta', phase = 'available', recoveryRequired = false
+  const requests: Record<string, unknown>[] = []
+  await page.route('**/api/updates/products', async route => {
+    if (route.request().method() === 'POST') {
+      const input = route.request().postDataJSON()
+      requests.push(input)
+      if (input.action === 'plan') return route.fulfill({ json: {
+        requested: [id], selectedReleases: releases, candidates: { [id]: { version: '0.1.3-beta.1' } },
+        revision, ready: phase === 'downloaded', blockers: [], unsupported: [], restartRequired: true, licenses: [],
+      } })
+      if (input.action === 'download') phase = 'downloaded'
+      if (input.action === 'install') { installed = '0.1.3-beta.1'; phase = 'completed' }
+      if (input.action === 'restore-plan') return route.fulfill({ json: {
+        candidates: { [id]: { version: '0.1.0-beta' } }, ready: true, blockers: [], licenses: [], restartRequired: true, revision,
+      } })
+      if (input.action === 'restore') { installed = '0.1.0-beta'; phase = 'completed' }
+    }
+    return route.fulfill({ json: { available: true, phase, recoveryRequired, requested: [id],
+      candidates: { [id]: { version: '0.1.4-beta', release: newer } },
+      versions: { [id]: [
+        { version: '0.1.4-beta', release: newer, selectable: true, qualified: true },
+        { version: '0.1.3-beta.1', release: older, selectable: true, qualified: true },
+      ] },
+      inventory: { products: { [id]: { name: 'Agent Manager', version: installed, bundledVersion: '0.1.0-beta',
+        canReviewRestore: installed !== '0.1.0-beta' } } },
+    } })
+  })
+  await resetFixture(page, false, 'updates')
+  const tool = page.getByRole('row', { name: /Agent Manager/ })
+  await tool.getByRole('combobox', { name: 'Available versions for Agent Manager' }).selectOption(older)
+  const review = page.getByRole('button', { name: 'Review tool updates', exact: true })
+  await review.click()
+  await expect(page.getByRole('region', { name: 'Review tool updates' })).toContainText('Agent Manager: 0.1.3-beta.1')
+  await page.getByRole('button', { name: 'Download selected tool updates' }).click()
+  await review.click()
+  await page.getByRole('switch', { name: 'I agree to the displayed tool licenses and companion updates' }).check()
+  await page.getByRole('switch', { name: 'I approve the reviewed tool restart impact' }).check()
+  await page.getByRole('button', { name: 'Install selected tool updates' }).click()
+  await expect(tool.locator('td[data-label="Installed"]')).toContainText('0.1.3-beta.1')
+  await page.getByRole('button', { name: 'Review bundled versions' }).click()
+  const restore = page.getByRole('button', { name: 'Restore bundled versions', exact: true })
+  await expect(restore).toBeDisabled()
+  await page.getByRole('switch', { name: 'I approve restarting this workspace' }).check()
+  await restore.click()
+  await expect(tool.locator('td[data-label="Installed"]')).toHaveText('0.1.0-betaBundled 0.1.0-beta')
+  expect(requests.filter(input => ['plan', 'download'].includes(String(input.action)))).toEqual([
+    { action: 'plan', releases }, { action: 'download', releases }, { action: 'plan', releases },
+  ])
+  expect(requests.at(-1)).toEqual({ action: 'restore', confirmed: true, revision, acceptedLicenses: [], restartConsent: true })
+  recoveryRequired = true
+  await expect(page.getByText(/Installation needs recovery/)).toBeVisible()
+  await expect(review).toBeDisabled()
+})
+
 test('server updates show the host, persist daily checking and require update consent', async ({ page }) => {
   const requests: Record<string, unknown>[] = []
   let daily = true

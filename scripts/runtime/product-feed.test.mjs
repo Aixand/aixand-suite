@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createHash, generateKeyPairSync, sign } from 'node:crypto'
-import { productDefinitions, validateProductFeed, planProductUpdates, compareProductVersions } from './product-feed.mjs'
+import { productDefinitions, validateProductFeed, planProductUpdates, planCatalogProductUpdates, compareProductVersions } from './product-feed.mjs'
 
 const { publicKey, privateKey } = generateKeyPairSync('ed25519')
 const target = 'linux-x86_64-gnu', build = 'a'.repeat(64), now = Date.now()
@@ -69,4 +69,28 @@ test('product ordering refuses downgrade offers across stable and prerelease ver
   assert.equal(compareProductVersions('1.0.0', '1.0.0'), 0)
   const installed = inventory(); installed.products['agent-manager'].version = '0.2.0'
   assert.throws(() => planProductUpdates(installed, validate(feed({ 'agent-manager': candidate('agent-manager') })), ['agent-manager'], context), /downgrades/)
+})
+
+test('signed catalogs allow an exact older candidate than the newest offer', () => {
+  const manager = candidate('agent-manager')
+  const latest = { ...manager, version: '0.1.2-beta', release: digest('latest-agent') }
+  const value = feed({ 'agent-manager': [manager, latest] }, { schema: 2 })
+  assert.throws(() => validate(value), /target mismatch/)
+  const catalog = validate(value, { schema: 2 })
+  const plan = planCatalogProductUpdates(inventory(), catalog, { 'agent-manager': manager.release }, context)
+  assert.equal(plan.candidates['agent-manager'].release, manager.release)
+  assert.equal(plan.feedDigest, catalog.digest)
+  assert.throws(() => validate(feed({ 'agent-manager': [manager, manager] }, { schema: 2 }), { schema: 2 }), /version inventory/)
+})
+
+test('exact catalog plans resolve the required companion release even when a newer one exists', () => {
+  const companion = candidate('prompt-manager')
+  const latest = { ...companion, version: '0.1.2-beta', release: digest('latest-companion') }
+  const manager = candidate('agent-manager', { 'prompt-manager': companion.release })
+  const catalog = validate(feed({ 'agent-manager': [manager], 'prompt-manager': [latest, companion] }, { schema: 2 }), { schema: 2 })
+  const plan = planCatalogProductUpdates(inventory(), catalog, { 'agent-manager': manager.release }, context)
+  assert.deepEqual(plan.order, ['prompt-manager', 'agent-manager'])
+  assert.equal(plan.candidates['prompt-manager'].release, companion.release)
+  assert.throws(() => planCatalogProductUpdates(inventory(), catalog,
+    { 'agent-manager': manager.release, 'prompt-manager': latest.release }, context), /Conflicting companion/)
 })

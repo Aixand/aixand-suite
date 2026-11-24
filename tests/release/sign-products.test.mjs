@@ -23,5 +23,11 @@ test('offline product signing creates verifiable feeds and refuses unqualified p
     const qualification = join(root, 'unqualified.json')
     await writeFile(qualification, JSON.stringify({ schema: 1, kind: 'product-update-qualification', verified: false }))
     await assert.rejects(prepareProductFeed({ ...descriptor, products: [{ id: 'runner', qualification }] }, key, join(root, 'rejected')), /qualification/)
+    const compatibleBuilds = ['a'.repeat(64)]
+    await writeFile(qualification, JSON.stringify({ schema: 1, kind: 'product-update-qualification',
+      verified: true, product: 'carrier', target: descriptor.target, compatibleBuilds,
+      checks: { upgrade: true, restart: true, dataRetained: true } }))
+    await assert.rejects(prepareProductFeed({ ...descriptor, products: [{ id: 'carrier', qualification, compatibleBuilds }] },
+      key, join(root, 'carrier-rejected')), /retained messages and delivery/)
   } finally { await rm(root, { recursive: true, force: true }) }
 })

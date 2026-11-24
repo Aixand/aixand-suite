@@ -39,7 +39,7 @@ export function compareProductVersions(left, right) {
   }
   return 0
 }
-export function validateProductFeed(envelope, trust, { target, floor = 0, previousDigest, now = Date.now() } = {}) {
+export function validateProductFeed(envelope, trust, { target, floor = 0, previousDigest, now = Date.now(), schema = 1 } = {}) {
   must(trust?.enabled === true, 'Product update trust is disabled.')
   fields(envelope, ['schema', 'keyId', 'payload', 'signature'])
   must(envelope.schema === 1 && typeof envelope.keyId === 'string' && typeof envelope.payload === 'string'
@@ -50,7 +50,7 @@ export function validateProductFeed(envelope, trust, { target, floor = 0, previo
   must(key.asymmetricKeyType === 'ed25519' && verify(null, Buffer.from(envelope.payload), key, Buffer.from(envelope.signature, 'base64')), 'Product feed signature verification failed.')
   const feed = JSON.parse(envelope.payload)
   fields(feed, ['schema', 'product', 'target', 'sequence', 'issuedAt', 'expiresAt', 'products'])
-  must(feed.schema === 1 && feed.product === 'aixand-suite-products' && feed.target === target
+  must([1, 2].includes(schema) && feed.schema === schema && feed.product === 'aixand-suite-products' && feed.target === target
     && /^(linux-(x86_64|arm64)-gnu|macos-(arm64|x86_64)|windows-(x86_64|arm64)-msvc)$/.test(target), 'Product feed target mismatch.')
   must(Number.isSafeInteger(feed.sequence) && feed.sequence > 0 && feed.sequence >= floor, 'Product feed rollback refused.')
   const issued = Date.parse(feed.issuedAt), expires = Date.parse(feed.expiresAt)
@@ -59,7 +59,16 @@ export function validateProductFeed(envelope, trust, { target, floor = 0, previo
   const digest = createHash('sha256').update(envelope.payload).digest('hex')
   must(feed.sequence !== floor || !previousDigest || previousDigest === digest, 'Immutable product feed sequence changed.')
   must(object(feed.products) && Object.keys(feed.products).length <= Object.keys(productDefinitions).length, 'Invalid product candidate list.')
-  for (const [id, item] of Object.entries(feed.products)) {
+  if (schema === 2) {
+    for (const candidates of Object.values(feed.products)) {
+      must(Array.isArray(candidates) && candidates.length > 0 && candidates.length <= 20
+        && new Set(candidates.map(item => item?.version)).size === candidates.length
+        && new Set(candidates.map(item => item?.release)).size === candidates.length, 'Invalid product version inventory.')
+    }
+  }
+  const candidates = Object.entries(feed.products).flatMap(([id, value]) =>
+    (schema === 2 ? value : [value]).map(item => [id, item]))
+  for (const [id, item] of candidates) {
     must(Object.hasOwn(productDefinitions, id), 'Unknown product: ' + id)
     fields(item, ['selection', 'version', 'release', 'compatibleBuilds', 'requires', 'artifact', 'licenses'])
     must(item.selection === productDefinitions[id].product && hex(item.release)
@@ -122,4 +131,29 @@ export function planProductUpdates(inventory, feed, requested, context) {
     blockers: context.blockers, scope: context.scope, running: context.running, restartRequired: context.running && Object.keys(candidates).length > 0,
     shared: inventory.scope === 'shared', unsupported: [] }
   return { ...plan, revision: productFeedDigest(plan) }
+}
+
+// Resolve explicit release identities before running the existing lifecycle and
+// installed-consumer checks. The catalog's signed digest stays in the plan.
+export function planCatalogProductUpdates(inventory, catalog, requested, context) {
+  must(catalog.schema === 2 && object(requested) && Object.keys(requested).length > 0,
+    'Choose exact product catalog releases.')
+  const products = {}
+  function select(id, release) {
+    must(Object.hasOwn(productDefinitions, id) && hex(release), 'Invalid product selection: ' + id)
+    if (Object.hasOwn(products, id)) {
+      must(products[id].release === release, 'Conflicting companion releases: ' + id)
+      return
+    }
+    const candidate = catalog.products[id]?.find(item => item.release === release)
+    must(candidate, 'Selected release is absent from the product catalog: ' + id)
+    products[id] = candidate
+    for (const [companion, required] of Object.entries(candidate.requires)) {
+      const selected = requested[companion]
+      must(!selected || selected === required, 'Conflicting companion releases: ' + companion)
+      if (selected || inventory.products[companion]?.release !== required) select(companion, required)
+    }
+  }
+  for (const [id, release] of Object.entries(requested)) select(id, release)
+  return { ...planProductUpdates(inventory, { ...catalog, products }, Object.keys(requested), context), selectedReleases: { ...requested } }
 }

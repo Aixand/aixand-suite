@@ -31,6 +31,16 @@ retention check for that exact product release and each permitted runtime build.
 An engine-only test report cannot authorize a product feed. Product installation
 uses the owning engine; it does not overlay libraries or reset an installation.
 
+For Carrier, qualify with a native Server or Desktop runtime, the previous
+Carrier handoff, and the exact candidate archive and manifest. Run
+[`qualify-product-update-engine.mjs`](../../../scripts/runtime/qualify-product-update-engine.mjs)
+with `--product carrier`, `--new-manifest`, and `--native-feed` for a signed
+qualification envelope. After deployment, use `--hosted-feed` to repeat the
+check through the embedded update origin. The probe checks a message queued
+before restart and sends a new message using the same credentials afterward.
+Use `--local-native` for a diagnostic run with an ephemeral key. The signer
+requires a native qualification report with the Carrier message checks.
+
 Feed `sequence` is a monotonic metadata revision. Native artifacts retain a
 separate `releaseSequence`, identifying the actual compiled application. Feed
 renewal advances metadata expiry and revision while preserving package version,

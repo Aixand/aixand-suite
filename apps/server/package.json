@@ -1,6 +1,6 @@
 {
   "name": "aixand-server",
-  "version": "0.1.0-alpha.3",
+  "version": "0.1.0-beta",
   "description": "Aixand backend API and WebSocket gateway",
   "author": "Artificial Intelligence Advancement Initiative Inc.",
   "private": true,

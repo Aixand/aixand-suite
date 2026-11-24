@@ -75,7 +75,8 @@ export async function runProductUpdateWorker(config, job, dependencies = {}) {
           ...plan.licenses.flatMap(license => ['--accept-license', license.sha256])])
         const installed = productUpdateInventory(config).products[id]
         must(installed?.release === candidate.release, 'Installation engine did not select the reviewed product release.')
-        selection.assemblies[id] = { manifestSha256: row.manifest_sha256, compatibleBuilds: candidate.compatibleBuilds }
+        if (candidate.action === 'restore') delete selection.assemblies[id]
+        else selection.assemblies[id] = { manifestSha256: row.manifest_sha256, compatibleBuilds: candidate.compatibleBuilds }
         await atomicJson(productSelectionPath(config.base), selection)
         state.completed.push(id)
         await atomicJson(join(directory, 'recovery.json'), { previousSelection: previous, plan,
@@ -88,7 +89,9 @@ export async function runProductUpdateWorker(config, job, dependencies = {}) {
         await lifecycle.start(lifecycle.configuration ? lifecycle.configuration(config.root, config.input) : config)
       }
       state.phase = 'completed'; state.completedAt = Date.now(); state.currentProduct = null; state.error = null
-      state.message = 'Selected products updated. Settings, accounts and saved history were retained.'
+      state.restoreBundled = false
+      state.message = plan.kind === 'bundled-restore' ? 'Bundled tool versions restored.'
+        : 'Selected products updated. Settings, accounts and saved history were retained.'
       await saveProductUpdateState(config, state)
       await atomicJson(join(directory, 'recovery.json'), { previousSelection: previous, plan, completed: state.completed, state: 'completed', selected: selection })
       await completeActivation(config.base, job.operation)

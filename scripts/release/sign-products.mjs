@@ -25,13 +25,15 @@ async function prepare(descriptor, privateKeyFile, output, temporary, { python =
   must(privateKey.asymmetricKeyType === 'ed25519', 'Use an Ed25519 update signing key.')
   const publicKey = createPublicKey(privateKey), pem = publicKey.export({ type: 'spki', format: 'pem' }).toString()
   const keyId = createHash('sha256').update(publicKey.export({ type: 'spki', format: 'der' })).digest('hex').slice(0, 16)
-  const now = Date.now(), payload = { schema: 1, product: 'aixand-suite-products', target: descriptor.target,
+  const schema = descriptor.schema ?? 1
+  must([1, 2].includes(schema), 'Unsupported product feed schema.')
+  const now = Date.now(), payload = { schema, product: 'aixand-suite-products', target: descriptor.target,
     sequence: descriptor.sequence ?? now, issuedAt: new Date(now).toISOString(),
     expiresAt: descriptor.expiresAt || new Date(now + 30 * 86400000).toISOString(), products: {} }
   const pending = []
   const seen = new Set()
   for (const item of descriptor.products) {
-    must(item && Object.hasOwn(productDefinitions, item.id) && !seen.has(item.id), 'Choose distinct known product IDs.')
+    must(item && Object.hasOwn(productDefinitions, item.id) && (schema === 2 || !seen.has(item.id)), 'Choose distinct known product IDs.')
     seen.add(item.id)
     const proof = JSON.parse(await readFile(resolve(item.qualification), 'utf8'))
     must(proof.schema === 1 && proof.kind === 'product-update-qualification' && proof.verified === true
@@ -39,9 +41,16 @@ async function prepare(descriptor, privateKeyFile, output, temporary, { python =
       && JSON.stringify(proof.compatibleBuilds) === JSON.stringify(item.compatibleBuilds)
       && proof.checks?.upgrade === true && proof.checks?.restart === true && proof.checks?.dataRetained === true,
     'Product updates require matching native upgrade, restart and data-retention qualification.')
+    if (item.id === 'carrier') {
+      must(proof.checks.httpPlanAndInstall === true && proof.checks.carrierMessagesRetained === true
+        && proof.checks.carrierDelivery === true, 'Carrier qualification must verify retained messages and delivery after restart.')
+    }
     const file = resolve(item.file), sha256 = await digest(file)
+    must(schema === 1 && item.id !== 'carrier' && proof.archiveSha256 === undefined || proof.archiveSha256 === sha256,
+      'Qualification does not identify the product archive bytes.')
+    const artifact = join(await mkdtemp(join(temporary, item.id + '-')), 'artifacts')
     const { stdout } = await execute(python, ['-I', '-B', join(own, '../runtime/product-update-artifact.py'),
-      '--archive', file, '--output', join(temporary, item.id, 'artifacts'), '--helper', join(own, '../dev'),
+      '--archive', file, '--output', artifact, '--helper', join(own, '../dev'),
       '--archive-sha256', sha256, '--manifest-sha256', proof.manifestSha256,
       '--target', descriptor.target, '--selection', productDefinitions[item.id].product], { maxBuffer: 8 * 1024 * 1024 })
     const manifest = JSON.parse(stdout), product = manifest.products[productDefinitions[item.id].product]
@@ -51,24 +60,26 @@ async function prepare(descriptor, privateKeyFile, output, temporary, { python =
       const record = product.license_acceptance, entry = product.files[record.path]
       must(entry && /^objects\/[a-f0-9]{64}$/.test(entry.artifact), 'Invalid product license object.')
       licenses.push({ product: product.id, sha256: record.sha256,
-        text: await readFile(join(temporary, item.id, 'artifacts', entry.artifact), 'utf8') })
+        text: await readFile(join(artifact, entry.artifact), 'utf8') })
     }
     const path = `aixand-suite-products/${descriptor.target}/${item.id}/${product.version}/${sha256}${descriptor.target.startsWith('windows-') ? '.zip' : '.tar.gz'}`
-    payload.products[item.id] = { selection: product.id, version: product.version, release: product.release,
+    const candidate = { selection: product.id, version: product.version, release: product.release,
       compatibleBuilds: item.compatibleBuilds, requires: item.requires || {}, licenses,
       artifact: { url: descriptor.origin + '/' + path, sha256, size: (await stat(file)).size, manifestSha256: proof.manifestSha256 } }
+    if (schema === 2) (payload.products[item.id] ??= []).push(candidate)
+    else payload.products[item.id] = candidate
     pending.push({ file, path })
   }
   const encoded = JSON.stringify(payload)
   const envelope = { schema: 1, keyId, payload: encoded, signature: sign(null, Buffer.from(encoded), privateKey).toString('base64') }
-  validateProductFeed(envelope, { enabled: true, origin: descriptor.origin, keys: { [keyId]: pem } }, { target: descriptor.target })
+  validateProductFeed(envelope, { enabled: true, origin: descriptor.origin, keys: { [keyId]: pem } }, { target: descriptor.target, schema })
   const destination = join(resolve(output), 'aixand-suite-products', descriptor.target)
   await mkdir(destination, { recursive: true })
   for (const item of pending) {
     const file = join(resolve(output), item.path)
     await mkdir(dirname(file), { recursive: true }); await copyFile(item.file, file, constants.COPYFILE_EXCL)
   }
-  await writeFile(join(destination, 'latest.candidate.json'), JSON.stringify(envelope) + '\n', { flag: 'wx' })
+  await writeFile(join(destination, schema === 2 ? 'catalog.candidate.json' : 'latest.candidate.json'), JSON.stringify(envelope) + '\n', { flag: 'wx' })
   return { target: descriptor.target, sequence: payload.sequence, products: Object.keys(payload.products), keyId, publication: 'not-published' }
 }
 

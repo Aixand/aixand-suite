@@ -51,9 +51,9 @@ export async function prepareDelivery(directory, output, tag, origin = 'https://
       if (!entry.isFile()) throw new Error('Signing outputs must contain regular files.')
       const path = '/' + relative(root, file).split('\\').join('/')
       if (!/^\/(?:aixand-suite-components|aixand-suite-products|aixand-desktop|aixand-client|aixand-server)\//.test(path)) throw new Error('Unexpected signing output path.')
-      if (entry.name === 'latest.candidate.json') {
+      if (entry.name === 'latest.candidate.json' || entry.name === 'catalog.candidate.json') {
         const envelope = JSON.parse(await readFile(file, 'utf8'))
-        feeds.push({ path: path.replace(/latest\.candidate\.json$/, 'latest.json'), envelope })
+        feeds.push({ path: path.replace(/\.candidate\.json$/, '.json'), envelope })
       } else {
         const sha256 = await hash(file), size = (await stat(file)).size
         objects.push({ path, asset: deliveryAssetName(path), sha256, size, file })

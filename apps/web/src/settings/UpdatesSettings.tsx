@@ -4,11 +4,12 @@ import { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { authRequest } from '../auth/client'
 
-type Component = { availableVersion?: string; action?: string; version: string | null; name?: string; scope?: string; updatable?: boolean; reason?: string | null; requires?: Record<string, string> }
+type Component = { release?: string; bundledVersion?: string | null; canReviewRestore?: boolean; availableVersion?: string; action?: string; version: string | null; name?: string; scope?: string; updatable?: boolean; reason?: string | null; requires?: Record<string, string> }
 type Update = { available: boolean; message?: string; error?: string | null; daily?: boolean; automaticDownload?: boolean; checkedAt?: number | null;
-  phase?: string; requested?: string[]; candidates?: Record<string, Component>; updateAvailable?: boolean;
+  phase?: string; requested?: string[]; versions?: Record<string, { version: string; release: string; selectable: boolean; qualified: boolean }[]>; candidates?: Record<string, Component>; updateAvailable?: boolean;
   installed?: { version: string; role: string }; release?: { version: string }; host?: { name: string }; completed?: string[]; recoveryRequired?: boolean; inventory?: { components?: Record<string, Component>; products?: Record<string, Component> } }
-type Plan = { revision: string; ready: boolean; licenses: { id?: string; product?: string; text?: string; url?: string; sha256: string }[]; shared?: boolean;
+type RestoreReview = { ready: boolean; revision: string; restartRequired: boolean; licenses: Plan['licenses']; candidates: Record<string, Component>; blockers: { name?: string; reason?: string }[] }
+type Plan = { selectedReleases?: Record<string, string>; revision: string; ready: boolean; licenses: { id?: string; product?: string; text?: string; url?: string; sha256: string }[]; shared?: boolean;
   candidates: Record<string, Component>; requested: string[]; blockers: { name?: string; reason?: string }[];
   unsupported: { id: string; action: string }[]; restartRequired: boolean }
 async function request<T>(method: 'GET' | 'POST' = 'GET', body?: unknown, suffix = ''): Promise<T> {
@@ -33,6 +34,8 @@ function UpdateGroup({ products = false, application = false, preferences, onSum
   const [value, setValue] = useState<Update | null>(null), [error, setError] = useState(''), [busy, setBusy] = useState(false)
   const [connectionError, setConnectionError] = useState('')
   const [plan, setPlan] = useState<Plan | null>(null), [consent, setConsent] = useState(false)
+  const [restoreReview, setRestoreReview] = useState<RestoreReview | null>(null)
+  const [selectedReleases, setSelectedReleases] = useState<Record<string, string>>({})
   const [selected, setSelected] = useState<string[] | null>(null), [restart, setRestart] = useState(false)
   useEffect(() => {
     let alive = true
@@ -42,14 +45,24 @@ function UpdateGroup({ products = false, application = false, preferences, onSum
   }, [suffix])
   async function action(input: object) {
     const previous = value
-    setBusy(true); setError('')
+    setBusy(true); setError(''); setRestoreReview(null)
     try { await request('POST', input, suffix); setValue(await request<Update>('GET', undefined, suffix)); setPlan(null); setConsent(false) }
     catch (error) { setValue(previous); setError(error instanceof Error ? error.message : String(error)) }
     finally { setBusy(false) }
   }
   async function review() {
     setBusy(true); setError(''); setConsent(false); setRestart(false)
-    try { setPlan(await request<Plan>('POST', { action: 'plan', ...(!application && selected ? { [selectionKey]: selected } : {}) }, suffix)) }
+    const ids = selected || value?.requested || candidateIds
+    const selection = products && Object.keys(value?.versions || {}).length
+      ? { releases: Object.fromEntries(ids.map(id => [id, selectedReleases[id] || value?.candidates?.[id]?.release])) }
+      : !application && selected ? { [selectionKey]: selected } : {}
+    try { setPlan(await request<Plan>('POST', { action: 'plan', ...selection }, suffix)) }
+    catch (error) { setError(error instanceof Error ? error.message : String(error)) }
+    finally { setBusy(false) }
+  }
+  async function reviewRestore() {
+    setBusy(true); setError(''); setPlan(null); setRestoreReview(null); setConsent(false); setRestart(false)
+    try { setRestoreReview(await request<RestoreReview>('POST', { action: 'restore-plan' }, suffix)) }
     catch (error) { setError(error instanceof Error ? error.message : String(error)) }
     finally { setBusy(false) }
   }
@@ -76,7 +89,16 @@ function UpdateGroup({ products = false, application = false, preferences, onSum
               setSelected(event.target.checked ? [...current, id] : current.filter(item => item !== id)); setPlan(null); setConsent(false)
             }} />{name(id)}</label> : name(id)}
           {products && <span className="settings-update-item-note">{item.reason || (item.scope === 'shared' ? 'Shared with other applications' : 'Private to this workspace')}</span>}
-        </th><td data-label="Installed">{item.version || 'Not managed here'}</td><td data-label="Available">{(application ? value?.updateAvailable ? value.release?.version : undefined : value?.candidates?.[id]?.version || item.availableVersion) || '—'}</td></tr>)}
+        </th><td data-label="Installed">{item.version || 'Not managed here'}
+          {products && item.bundledVersion && <span className="settings-update-item-note">Bundled {item.bundledVersion}</span>}
+        </td><td data-label="Available">{products && value?.versions?.[id]?.length ? <select aria-label={`Available versions for ${name(id)}`}
+          disabled={working || !value.candidates?.[id]} value={selectedReleases[id] || value.candidates?.[id]?.release || ''}
+          onChange={event => { setSelectedReleases(current => ({ ...current, [id]: event.target.value })); setPlan(null); setConsent(false) }}>
+          {!value.candidates?.[id] && <option value="">No eligible update</option>}
+          {value.versions[id].map(version => <option key={version.release} value={version.release} disabled={!version.selectable}>
+            {version.version}{!version.qualified ? ' (unverified for this build)' : !version.selectable ? ' (unavailable for update)' : ''}
+          </option>)}
+        </select> : (application ? value?.updateAvailable ? value.release?.version : undefined : value?.candidates?.[id]?.version || item.availableVersion) || '—'}</td></tr>)}
         {!Object.keys(installed).length && <tr><td colSpan={3} className="settings-update-empty">{value ? 'No managed items reported on this computer.' : 'Loading installed versions…'}</td></tr>}
       </tbody></table></div>
       <p role="status">{value?.message || (value ? 'Choose components or check for updates.' : 'Checking the installed update service…')}</p>
@@ -103,9 +125,25 @@ function UpdateGroup({ products = false, application = false, preferences, onSum
     </fieldset>}
     <div className="settings-update-actions">
       {!application && choices.length > 1 && <Button variant="ghost" disabled={working} onPress={() => { setSelected(choices); setPlan(null); setConsent(false) }}>Select all compatible {products ? 'tools' : 'components'}</Button>}
-      <Button variant="ghost" disabled={!value?.available || working} onPress={() => { setSelected(null); void action({ action: 'check' }) }}>{application ? 'Check application updates' : products ? 'Check for tool updates' : 'Check for updates'}</Button>
+      <Button variant="ghost" disabled={!value?.available || working} onPress={() => { setSelected(null); setSelectedReleases({}); void action({ action: 'check' }) }}>{application ? 'Check application updates' : products ? 'Check for tool updates' : 'Check for updates'}</Button>
+      {products && Object.values(installed).some(item => item.canReviewRestore) &&
+        <Button variant="ghost" disabled={working} onPress={() => void reviewRestore()}>Review bundled versions</Button>}
       {choices.length > 0 && <Button disabled={!value?.available || working || selected?.length === 0} onPress={() => void review()}>{application ? 'Review application update' : products ? 'Review tool updates' : 'Review update'}</Button>}
     </div>
+    {restoreReview && <div className="settings-update-plan" role="region" aria-label="Review bundled versions">
+      <h3>Bundled versions</h3>
+      {Object.entries(restoreReview.candidates).map(([id, item]) => <p key={id}>{name(id)}: {installed[id]?.version} → {item.version}</p>)}
+      {restoreReview.blockers.map((row, index) => <p key={index}>{[row.name, row.reason].filter(Boolean).join(': ')}</p>)}
+      {restoreReview.licenses.map(row => <details key={row.sha256}><summary>{row.product} license</summary><pre className="settings-update-license">{row.text}</pre></details>)}
+      {restoreReview.ready && <>
+        {restoreReview.licenses.length > 0 && <Switch label="I accept the bundled tool licenses" checked={consent} onChange={event => setConsent(event.target.checked)} />}
+        {restoreReview.restartRequired && <Switch label="I approve restarting this workspace" checked={restart} onChange={event => setRestart(event.target.checked)} />}
+        <Button disabled={working || (restoreReview.licenses.length > 0 && !consent) || (restoreReview.restartRequired && !restart)}
+          onPress={() => void action({ action: 'restore', confirmed: true, revision: restoreReview.revision,
+            acceptedLicenses: restoreReview.licenses.map(row => row.sha256), restartConsent: true })}>Restore bundled versions</Button>
+      </>}
+      <Button variant="ghost" onPress={() => setRestoreReview(null)}>Close review</Button>
+    </div>}
     {plan && <div className="settings-update-plan" role="region" aria-label={application ? 'Review application update' : products ? 'Review tool updates' : 'Review server update'}>
       <h3>Review before installing</h3>
       <p>{plan.restartRequired ? 'Installing restarts this workspace. Finish active work first.' : 'No workspace restart is required.'} Account logins, settings and saved history are kept.</p>
@@ -115,7 +153,9 @@ function UpdateGroup({ products = false, application = false, preferences, onSum
       {plan.shared && <p>These changes apply to shared tools used by other applications. Other active consumers may block installation.</p>}
       {plan.licenses.map(row => <details key={row.sha256}><summary>{row.id || row.product} license</summary>{row.url && <a href={row.url} target="_blank" rel="noreferrer">Read license</a>}{row.text && <pre className="settings-update-license">{row.text}</pre>}</details>)}
       <Button disabled={working || plan.unsupported.length > 0 || !Object.keys(plan.candidates).length}
-        onPress={() => void action({ action: 'download', ...(!application ? { [selectionKey]: plan.requested } : {}) })}>{application ? 'Download application update' : products ? 'Download selected tool updates' : 'Download selected updates'}</Button>
+        onPress={() => void action({ action: 'download', ...(!application ? plan.selectedReleases
+          ? { releases: plan.selectedReleases }
+          : { [selectionKey]: plan.requested } : {}) })}>{application ? 'Download application update' : products ? 'Download selected tool updates' : 'Download selected updates'}</Button>
       <Switch label={application ? 'I agree to the displayed application licenses and tool changes' : products ? 'I agree to the displayed tool licenses and companion updates' : 'I agree to the displayed licenses and companion updates'} checked={consent} onChange={event => setConsent(event.target.checked)} />
       <Switch label={application ? 'I approve the application restart impact' : products ? 'I approve the reviewed tool restart impact' : 'I approve the reviewed restart impact'} checked={restart} onChange={event => setRestart(event.target.checked)} />
       <Button disabled={!plan.ready || !consent || !restart || working || plan.blockers.length > 0 || plan.unsupported.length > 0 || value?.phase !== 'downloaded'}
